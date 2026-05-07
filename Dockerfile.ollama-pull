@@ -1,0 +1,7 @@
+# Bootstrap de modelos: evita montar *.sh desde Windows (CRLF rompe `set -eu` en sh).
+FROM curlimages/curl:8.11.1
+USER root
+COPY scripts/ollama_pull.sh /ollama_pull.sh
+RUN sed -i 's/\r$//' /ollama_pull.sh
+USER curl_user
+ENTRYPOINT ["/bin/sh", "/ollama_pull.sh"]

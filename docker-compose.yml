@@ -1,0 +1,90 @@
+name: api-rag
+
+networks:
+  default:
+    name: api-rag-net
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: api-rag-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    healthcheck:
+      # La imagen ollama trae CLI; equivale a comprobar que el daemon contesta por red local.
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 40
+      start_period: 30s
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: api-rag-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6333/collections >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 15s
+
+  # Descarga embeddings + modelo de chat dentro del daemon antes de exponer la API (evita errores en Swagger por modelos ausentes).
+  ollama-pull:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama-pull
+    image: api-rag-ollama-pull:local
+    container_name: api-rag-ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      EMBED_MODEL: nomic-embed-text
+      CHAT_MODEL: llama3.2:3b
+      BOOTSTRAP_MAX_WAIT_SEC: "300"
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-rag-api
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      APP_ENV: docker
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: rag_chunks
+      VECTOR_SIZE: "768"
+      USE_OLLAMA: "true"
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
+      OLLAMA_CHAT_MODEL: llama3.2:3b
+      INGEST_EMBED_CONCURRENCY: "4"
+      RAG_DEFAULT_SCORE_THRESHOLD: "0.25"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./sample_documents:/samples:ro
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
+  ollama_data:

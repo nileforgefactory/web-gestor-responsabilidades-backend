@@ -1,0 +1,33 @@
+from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    app_name: str = "Agentic RAG API"
+    app_env: str = "dev"
+    app_host: str = "0.0.0.0"
+    app_port: int = 8000
+
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_collection: str = "rag_chunks"
+    vector_size: int = 768
+
+    use_ollama: bool = True
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_embedding_model: str = "nomic-embed-text"
+    ollama_chat_model: str = "llama3.2:3b"
+
+    ingest_embed_concurrency: int = 4
+    rag_default_score_threshold: float = 0.25
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

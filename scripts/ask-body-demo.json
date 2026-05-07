@@ -1,0 +1,5 @@
+{
+  "collection_ids": ["demo_local"],
+  "user_message": "Cual es el SLA de primera respuesta para un incidente P1?",
+  "top_k": 5
+}

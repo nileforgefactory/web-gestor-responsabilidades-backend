@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+qdrant-client>=1.16,<2
+httpx
+pypdf
+python-multipart
