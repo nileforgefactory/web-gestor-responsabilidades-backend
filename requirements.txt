@@ -5,3 +5,7 @@ qdrant-client>=1.16,<2
 httpx
 pypdf
 python-multipart
+# ── MySQL / SQLAlchemy ────────────────────────────────────────────────────
+sqlalchemy[asyncio]>=2.0
+aiomysql
+cryptography

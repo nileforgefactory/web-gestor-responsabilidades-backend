@@ -5,6 +5,29 @@ networks:
     name: api-rag-net
 
 services:
+
+  # ── Base de datos relacional ──────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: api-rag-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: gestor_responsabilidades
+      MYSQL_USER: gestor
+      MYSQL_PASSWORD: gestor_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
   ollama:
     image: ollama/ollama:latest
     container_name: api-rag-ollama
@@ -30,12 +53,8 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6333/collections >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 60
-      start_period: 15s
+    # Sin healthcheck: la imagen no incluye wget/curl. Qdrant arranca en <1s
+    # y la API reintenta en ensure_collection() si no está listo aún.
 
   # Descarga embeddings + modelo de chat dentro del daemon antes de exponer la API (evita errores en Swagger por modelos ausentes).
   ollama-pull:
@@ -61,11 +80,13 @@ services:
     container_name: api-rag-api
     depends_on:
       qdrant:
-        condition: service_healthy
+        condition: service_started
       ollama:
         condition: service_healthy
       ollama-pull:
         condition: service_completed_successfully
+      mysql:
+        condition: service_healthy
     environment:
       APP_ENV: docker
       APP_HOST: 0.0.0.0
@@ -79,6 +100,7 @@ services:
       OLLAMA_CHAT_MODEL: llama3.2:3b
       INGEST_EMBED_CONCURRENCY: "4"
       RAG_DEFAULT_SCORE_THRESHOLD: "0.25"
+      MYSQL_URL: mysql+aiomysql://gestor:gestor_pass@mysql:3306/gestor_responsabilidades?charset=utf8mb4
     ports:
       - "8000:8000"
     volumes:
@@ -88,3 +110,4 @@ services:
 volumes:
   qdrant_data:
   ollama_data:
+  mysql_data:
