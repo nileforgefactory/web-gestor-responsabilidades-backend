@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     ingest_embed_concurrency: int = 4
     rag_default_score_threshold: float = 0.25
 
+    # MySQL — opcional; si está vacío las rutas DB devuelven 503
+    # Formato: mysql+aiomysql://usuario:clave@host:puerto/base_datos?charset=utf8mb4
+    mysql_url: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
