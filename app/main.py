@@ -13,16 +13,32 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from app.core.config import Settings, get_settings
+from app.core.database import create_tables, dispose_engine, init_db
 from app.dependencies import get_rag_service
 from app.slices.rag.router import router as rag_router
+from app.slices.planes.router import router as planes_router
+from app.slices.conocimiento.router import router as conocimiento_router
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # ── RAG (Qdrant + Ollama) ──
     rag_service = get_rag_service()
     await rag_service.ensure_collection()
+
+    # ── MySQL (opcional) ──
+    settings = get_settings()
+    if settings.mysql_url:
+        # Importar modelos para que estén en Base.metadata antes de create_all
+        import app.slices.planes.models       # noqa: F401
+        import app.slices.conocimiento.models # noqa: F401
+        init_db(settings.mysql_url)
+        await create_tables()
+
     yield
+
     await rag_service.close()
+    await dispose_engine()
 
 
 def _model_tag_present(registry: list[str], want: str) -> bool:
@@ -148,7 +164,9 @@ openapi_tags_docs = [
         "name": "salud",
         "description": "Comprobaciones ligeras para depuracion (Swagger, Compose, soporte local).",
     },
-    {"name": "rag", "description": "Ingesta, busqueda, contexto para agentes y preguntas con modelo local."},
+    {"name": "rag",          "description": "Ingesta, busqueda, contexto para agentes y preguntas con modelo local."},
+    {"name": "planes",       "description": "CRUD de planes de desarrollo (requiere MySQL)."},
+    {"name": "conocimiento", "description": "Registro de documentos indexados en la base de conocimiento RAG (requiere MySQL)."},
 ]
 
 app = FastAPI(
@@ -193,7 +211,9 @@ async def request_validation_hints(_request: Request, exc: RequestValidationErro
     return JSONResponse(status_code=422, content=payload)
 
 
-app.include_router(rag_router, prefix="/api/v1")
+app.include_router(rag_router,         prefix="/api/v1")
+app.include_router(planes_router,      prefix="/api/v1")
+app.include_router(conocimiento_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)
