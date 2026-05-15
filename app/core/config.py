@@ -25,6 +25,16 @@ class Settings(BaseSettings):
     # Formato: mysql+aiomysql://usuario:clave@host:puerto/base_datos?charset=utf8mb4
     mysql_url: str | None = None
 
+    ocr_enabled: bool = True
+    ocr_lang: str = "spa"
+    ocr_dpi: int = 200
+    ocr_min_chars_per_page: int = 50
+
+    # Subida masiva
+    bulk_max_files: int = 50
+    bulk_max_file_bytes: int = 52_428_800  # 50 MiB por archivo
+    bulk_ingest_concurrency: int = 2
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
