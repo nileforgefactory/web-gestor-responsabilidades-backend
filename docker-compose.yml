@@ -49,8 +49,8 @@ services:
     container_name: gestor-backend-ollama
     volumes:
       - ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
+    expose:
+      - "11434"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
@@ -62,9 +62,9 @@ services:
   qdrant:
     image: qdrant/qdrant:latest
     container_name: gestor-backend-qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
+    expose:
+      - "6333"
+      - "6334"
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
@@ -116,6 +116,7 @@ services:
       INGEST_EMBED_CONCURRENCY: "4"
       RAG_DEFAULT_SCORE_THRESHOLD: "0.25"
       MYSQL_URL: mysql+aiomysql://gestor:gestor_pass@mysql:3306/gestor_responsabilidades?charset=utf8mb4
+      REDIS_URL: redis://redis:6379/0
       OCR_ENABLED: "true"
       OCR_LANG: spa
       OCR_DPI: "200"

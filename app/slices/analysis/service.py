@@ -26,6 +26,18 @@ logger = logging.getLogger(__name__)
 
 EmitFn = Callable[[dict[str, Any]], Awaitable[None]]
 
+# Registro de tareas SSE activas: session_id → asyncio.Task
+_active_tasks: dict[str, asyncio.Task[None]] = {}
+
+
+def cancel_analysis(session_id: str) -> bool:
+    """Cancela la tarea de análisis asociada al session_id. Retorna True si existía."""
+    task = _active_tasks.pop(session_id, None)
+    if task and not task.done():
+        task.cancel()
+        return True
+    return False
+
 
 async def _noop_emit(_: dict[str, Any]) -> None:
     """Emisor vacío cuando no se requiere SSE."""
@@ -230,7 +242,10 @@ async def stream_document_analysis(
     Envuelve ``run_document_analysis`` y emite líneas SSE (data: JSON).
 
     Incluye heartbeat cada ~20s si no hay eventos.
+    Emite ``session_started`` como primer evento para que el cliente
+    pueda llamar al endpoint de cancelación.
     """
+    session_id = str(uuid.uuid4())
     queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
 
     async def emit(event: dict[str, Any]) -> None:
@@ -239,13 +254,20 @@ async def stream_document_analysis(
     async def worker() -> None:
         try:
             await run_document_analysis(emit=emit, **kwargs)
+        except asyncio.CancelledError:
+            await queue.put({"type": "cancelled", "msg": "Análisis detenido por el usuario"})
         except Exception as exc:
             logger.exception("Pipeline análisis falló")
             await queue.put({"type": "error", "error": str(exc)})
         finally:
+            _active_tasks.pop(session_id, None)
             await queue.put(None)
 
     task = asyncio.create_task(worker())
+    _active_tasks[session_id] = task
+
+    # Primer evento: expone el session_id al cliente para permitir cancelación
+    yield f"data: {json.dumps({'type': 'session_started', 'session_id': session_id}, ensure_ascii=False)}\n\n"
 
     try:
         while True:
@@ -260,3 +282,4 @@ async def stream_document_analysis(
     finally:
         if not task.done():
             task.cancel()
+        _active_tasks.pop(session_id, None)

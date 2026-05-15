@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # Formato: mysql+aiomysql://usuario:clave@host:puerto/base_datos?charset=utf8mb4
     mysql_url: str | None = None
 
+    # Redis — opcional; si está vacío las sesiones SSE no se persisten
+    # Formato: redis://host:puerto/db
+    redis_url: str | None = None
+
     ocr_enabled: bool = True
     ocr_lang: str = "spa"
     ocr_dpi: int = 200

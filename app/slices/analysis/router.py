@@ -13,7 +13,7 @@ from app.core.database import get_optional_db
 from app.core.openapi import RESPUESTAS_ANALISIS
 from app.dependencies import get_rag_service
 from app.slices.analysis.schemas import AnalisisDocumentoResponse, ProfundidadAnalisis
-from app.slices.analysis.service import run_document_analysis, stream_document_analysis
+from app.slices.analysis.service import cancel_analysis, run_document_analysis, stream_document_analysis
 from app.slices.rag.service import RagService
 
 logger = logging.getLogger(__name__)
@@ -146,3 +146,16 @@ async def analyze_document(
     except Exception as exc:
         logger.exception("analyze-document")
         raise HTTPException(500, str(exc)) from exc
+
+
+@router.post(
+    "/session/{session_id}/cancel",
+    summary="Cancelar un análisis en curso",
+    status_code=200,
+)
+async def cancel_session(session_id: str) -> dict[str, str]:
+    """Cancela la tarea asyncio del pipeline asociada al session_id."""
+    cancelled = cancel_analysis(session_id)
+    if cancelled:
+        return {"status": "cancelled", "session_id": session_id}
+    return {"status": "not_found", "session_id": session_id}
