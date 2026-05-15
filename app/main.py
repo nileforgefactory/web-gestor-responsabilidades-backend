@@ -18,6 +18,7 @@ from app.dependencies import get_rag_service
 from app.slices.rag.router import router as rag_router
 from app.slices.planes.router import router as planes_router
 from app.slices.conocimiento.router import router as conocimiento_router
+from app.slices.documents.router import router as documents_router
 
 
 @asynccontextmanager
@@ -167,6 +168,10 @@ openapi_tags_docs = [
     {"name": "rag",          "description": "Ingesta, busqueda, contexto para agentes y preguntas con modelo local."},
     {"name": "planes",       "description": "CRUD de planes de desarrollo (requiere MySQL)."},
     {"name": "conocimiento", "description": "Registro de documentos indexados en la base de conocimiento RAG (requiere MySQL)."},
+    {
+        "name": "documentos",
+        "description": "Extracción de texto y OCR de archivos (sin indexar en Qdrant).",
+    },
 ]
 
 app = FastAPI(
@@ -206,7 +211,7 @@ async def request_validation_hints(_request: Request, exc: RequestValidationErro
                 "JSON invalido: solo comillas dobles ASCII (\"clave\":\"valor\"). "
                 "Evita comillas simples alrededor del objeto, BOM al inicio, o pegar "
                 "dos comandos en una sola linea (headers/DATA truncados). "
-                "PowerShell: .\\scripts\\demo-ask.ps1 o curl --data-binary @ask.json (UTF-8 sin BOM)."
+                "PowerShell: .\\scripts\\dev-menu.ps1 (opción 12) o JSON con comillas simples externas."
             )
     return JSONResponse(status_code=422, content=payload)
 
@@ -214,6 +219,7 @@ async def request_validation_hints(_request: Request, exc: RequestValidationErro
 app.include_router(rag_router,         prefix="/api/v1")
 app.include_router(planes_router,      prefix="/api/v1")
 app.include_router(conocimiento_router, prefix="/api/v1")
+app.include_router(documents_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)

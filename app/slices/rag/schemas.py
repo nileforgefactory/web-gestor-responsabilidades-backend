@@ -25,6 +25,30 @@ class IngestTextResponse(BaseModel):
     chunks_indexed: int
 
 
+class IngestArchivoResultado(BaseModel):
+    """Resultado por archivo en una ingesta masiva."""
+
+    nombre_archivo: str
+    document_id: str
+    exito: bool
+    chunks_indexados: int = 0
+    metodo_extraccion: str | None = Field(
+        default=None,
+        description="nativo | ocr | hibrido (si aplica)",
+    )
+    caracteres_extraidos: int | None = None
+    error: str | None = None
+
+
+class IngestMasivaResponse(BaseModel):
+    collection_id: str
+    total_archivos: int
+    exitosos: int
+    fallidos: int
+    chunks_totales: int
+    resultados: list[IngestArchivoResultado]
+
+
 class RagSearchRequest(BaseModel):
     collection_ids: list[str] = Field(..., min_length=1)
     query: str = Field(..., min_length=1)

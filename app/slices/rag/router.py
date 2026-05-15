@@ -3,7 +3,9 @@ import logging
 import httpx
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 
+from app.core.config import get_settings
 from app.dependencies import get_rag_service
+from app.slices.rag.bulk import ingestir_archivos_masivo
 from app.slices.rag.extract import (
     derive_document_id_from_filename,
     extract_text_from_upload,
@@ -16,6 +18,7 @@ from app.slices.rag.schemas import (
     AskResponse,
     IngestTextRequest,
     IngestTextResponse,
+    IngestMasivaResponse,
     RagSearchRequest,
     RagSearchResponse,
 )
@@ -108,6 +111,58 @@ async def ingest_file(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except Exception as exc:
         logger.exception("Fallo ingest_file")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post(
+    "/ingest-files",
+    response_model=IngestMasivaResponse,
+    summary="Ingesta masiva de documentos",
+    description=(
+        "Sube varios archivos (PDF, TXT, MD, imágenes) a la misma colección. "
+        "Aplica OCR cuando corresponde. Máximo de archivos y tamaño por archivo "
+        "según configuración (BULK_MAX_FILES, BULK_MAX_FILE_BYTES)."
+    ),
+)
+async def ingest_files_bulk(
+    collection_id: str = Form(..., min_length=1),
+    files: list[UploadFile] = File(
+        ...,
+        description="Lista de archivos (mismo nombre de campo repetido en multipart)",
+    ),
+    chunk_size: int = Form(700, ge=200, le=8000),
+    chunk_overlap: int = Form(120, ge=0, le=2000),
+    document_id_prefix: str | None = Form(
+        None,
+        description="Prefijo opcional para document_id derivado del nombre de archivo",
+    ),
+    continuar_si_error: bool = Form(
+        True,
+        description="Si es false, responde 422 ante el primer archivo fallido",
+    ),
+    service: RagService = Depends(get_rag_service),
+) -> IngestMasivaResponse:
+    await service.ensure_collection()
+    settings = get_settings()
+    try:
+        return await ingestir_archivos_masivo(
+            service=service,
+            settings=settings,
+            collection_id=collection_id,
+            uploads=files,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            document_id_prefix=document_id_prefix,
+            continuar_si_error=continuar_si_error,
+        )
+    except HTTPException:
+        raise
+    except httpx.HTTPError as exc:
+        raise _upstream_http(exc, code=502) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Fallo ingest_files_bulk")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 

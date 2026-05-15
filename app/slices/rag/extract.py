@@ -1,43 +1,45 @@
-import io
+import asyncio
 import re
 from pathlib import Path
 
 from fastapi import UploadFile
-from pypdf import PdfReader
+
+from app.core.config import Settings, get_settings
+from app.slices.ocr.extractor import DocumentExtractor, ExtractionResult, get_document_extractor_from_settings
 
 
-def _suffix(path: str) -> str:
-    return Path(path).suffix.lower()
+def _extractor(settings: Settings | None = None) -> DocumentExtractor:
+    return get_document_extractor_from_settings(settings or get_settings())
 
 
-async def extract_text_from_upload(upload: UploadFile) -> tuple[str, str]:
+async def extract_text_from_upload(
+    upload: UploadFile,
+    *,
+    settings: Settings | None = None,
+) -> tuple[str, str]:
+    """Compatibilidad RAG: devuelve (texto, nombre_archivo)."""
+    result = await extract_document_from_upload(upload, settings=settings)
+    return result.text, result.filename
+
+
+async def extract_document_from_bytes(
+    raw: bytes,
+    filename: str,
+    *,
+    settings: Settings | None = None,
+) -> ExtractionResult:
+    extractor = _extractor(settings)
+    return await asyncio.to_thread(extractor.extract_from_bytes, raw, filename)
+
+
+async def extract_document_from_upload(
+    upload: UploadFile,
+    *,
+    settings: Settings | None = None,
+) -> ExtractionResult:
     raw = await upload.read()
-    if not raw:
-        raise ValueError("Archivo vacío")
-
     filename = upload.filename or "document"
-    suf = _suffix(filename)
-
-    if suf == ".pdf":
-        reader = PdfReader(io.BytesIO(raw))
-        texts: list[str] = []
-        for page in reader.pages:
-            t = page.extract_text() or ""
-            if t.strip():
-                texts.append(t)
-        merged = "\n\n".join(texts).strip()
-        if not merged:
-            raise ValueError(
-                "PDF sin texto seleccionable. Prueba TXT/MD o un PDF exportado desde Word."
-            )
-        return merged, filename
-
-    if suf in (".txt", ".md", ".markdown", ".rst"):
-        return raw.decode("utf-8", errors="replace").strip(), filename
-
-    raise ValueError(
-        "Formato no soportado. Usa PDF, TXT o Markdown (.md)."
-    )
+    return await extract_document_from_bytes(raw, filename, settings=settings)
 
 
 def extract_title(filename: str) -> str:
