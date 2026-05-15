@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     bulk_max_file_bytes: int = 52_428_800  # 50 MiB por archivo
     bulk_ingest_concurrency: int = 2
 
+    # Chunking (Sprint 2)
+    default_chunk_strategy: str = "adaptive"
+    analysis_max_iterations: int = 3
+    analysis_confidence_threshold: float = 0.55
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

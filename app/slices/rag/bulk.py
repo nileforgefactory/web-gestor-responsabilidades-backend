@@ -41,6 +41,7 @@ async def ingestir_archivos_masivo(
     uploads: list[UploadFile],
     chunk_size: int,
     chunk_overlap: int,
+    chunk_strategy: str,
     document_id_prefix: str | None,
     continuar_si_error: bool,
 ) -> IngestMasivaResponse:
@@ -74,6 +75,8 @@ async def ingestir_archivos_masivo(
                     chunk_overlap=chunk_overlap,
                     title=extract_title(item.nombre),
                     source_filename=item.nombre,
+                    chunk_strategy=chunk_strategy,
+                    extraction_method=extraccion.extraction_method.value,
                 )
                 return IngestArchivoResultado(
                     nombre_archivo=item.nombre,

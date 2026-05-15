@@ -10,6 +10,7 @@ from httpx import HTTPStatusError
 from qdrant_client import AsyncQdrantClient
 
 from app.core.config import Settings
+from app.slices.rag.chunking.strategy import chunk_document
 from app.slices.rag.ollama_client import OllamaError, ollama_chat, ollama_embed
 from app.slices.rag.repository import RagRepository
 from app.slices.rag.schemas import (
@@ -28,27 +29,6 @@ T = TypeVar("T")
 _NO_EVIDENCE_ANSWER = (
     "No tengo evidencia suficiente en los documentos cargados para responder con seguridad."
 )
-
-
-def chunk_text_by_chars(content: str, chunk_size: int, overlap: int) -> list[str]:
-    text = content.strip()
-    if not text:
-        return []
-    if overlap >= chunk_size:
-        overlap = max(0, chunk_size // 4)
-    chunks: list[str] = []
-    step = chunk_size - overlap
-    pos = 0
-    length = len(text)
-    while pos < length:
-        end = min(pos + chunk_size, length)
-        piece = text[pos:end].strip()
-        if piece:
-            chunks.append(piece)
-        if end >= length:
-            break
-        pos += step
-    return chunks
 
 
 def pseudo_embedding(text: str, vector_size: int) -> list[float]:
@@ -159,10 +139,18 @@ class RagService:
         title: str | None = None,
         source_filename: str | None = None,
         replace_existing: bool = True,
+        chunk_strategy: str | None = None,
+        extraction_method: str | None = None,
     ) -> IngestTextResponse:
-        chunks = chunk_text_by_chars(
-            content=content, chunk_size=chunk_size, overlap=chunk_overlap
+        strat = chunk_strategy or self.settings.default_chunk_strategy
+        chunking = chunk_document(
+            content,
+            strategy=strat,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            extraction_method=extraction_method,
         )
+        chunks = chunking.chunks
         if replace_existing:
             await self.repository.delete_document_chunks(
                 collection_id=collection_id, document_id=document_id
@@ -173,6 +161,10 @@ class RagService:
                 collection_id=collection_id,
                 document_id=document_id,
                 chunks_indexed=0,
+                chunk_strategy=chunking.strategy.value,
+                chunk_profile=chunking.profile.value,
+                chunk_size_applied=chunking.chunk_size,
+                chunk_overlap_applied=chunking.chunk_overlap,
             )
 
         vectors = await self._embedding_batch(chunks)
@@ -188,6 +180,10 @@ class RagService:
             collection_id=collection_id,
             document_id=document_id,
             chunks_indexed=inserted,
+            chunk_strategy=chunking.strategy.value,
+            chunk_profile=chunking.profile.value,
+            chunk_size_applied=chunking.chunk_size,
+            chunk_overlap_applied=chunking.chunk_overlap,
         )
 
     async def search(

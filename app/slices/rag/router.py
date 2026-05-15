@@ -8,7 +8,7 @@ from app.dependencies import get_rag_service
 from app.slices.rag.bulk import ingestir_archivos_masivo
 from app.slices.rag.extract import (
     derive_document_id_from_filename,
-    extract_text_from_upload,
+    extract_document_from_upload,
     extract_title,
 )
 from app.slices.rag.schemas import (
@@ -16,6 +16,7 @@ from app.slices.rag.schemas import (
     AgentContextResponse,
     AskRequest,
     AskResponse,
+    EstrategiaChunk,
     IngestTextRequest,
     IngestTextResponse,
     IngestMasivaResponse,
@@ -68,6 +69,7 @@ async def ingest_text(
             chunk_overlap=payload.chunk_overlap,
             title=payload.document_id,
             source_filename=None,
+            chunk_strategy=payload.chunk_strategy.value,
         )
     except httpx.HTTPError as exc:
         raise _upstream_http(exc, code=502) from exc
@@ -84,26 +86,33 @@ async def ingest_file(
     document_id: str | None = Form(None),
     chunk_size: int = Form(700, ge=200, le=8000),
     chunk_overlap: int = Form(120, ge=0, le=2000),
+    chunk_strategy: EstrategiaChunk = Form(
+        EstrategiaChunk.ADAPTATIVO,
+        description="fixed | adaptive",
+    ),
     file: UploadFile = File(...),
     service: RagService = Depends(get_rag_service),
 ) -> IngestTextResponse:
     await service.ensure_collection()
     try:
-        text, filename = await extract_text_from_upload(file)
+        extraccion = await extract_document_from_upload(file)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    filename = extraccion.filename
     doc_id = (document_id or "").strip() or derive_document_id_from_filename(filename)
     title = extract_title(filename)
     try:
         return await service.ingest_text(
             collection_id=collection_id,
             document_id=doc_id,
-            content=text,
+            content=extraccion.text,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             title=title,
             source_filename=filename,
+            chunk_strategy=chunk_strategy.value,
+            extraction_method=extraccion.extraction_method.value,
         )
     except httpx.HTTPError as exc:
         raise _upstream_http(exc, code=502) from exc
@@ -132,6 +141,7 @@ async def ingest_files_bulk(
     ),
     chunk_size: int = Form(700, ge=200, le=8000),
     chunk_overlap: int = Form(120, ge=0, le=2000),
+    chunk_strategy: EstrategiaChunk = Form(EstrategiaChunk.ADAPTATIVO),
     document_id_prefix: str | None = Form(
         None,
         description="Prefijo opcional para document_id derivado del nombre de archivo",
@@ -152,6 +162,7 @@ async def ingest_files_bulk(
             uploads=files,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
+            chunk_strategy=chunk_strategy.value,
             document_id_prefix=document_id_prefix,
             continuar_si_error=continuar_si_error,
         )

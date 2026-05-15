@@ -1,4 +1,11 @@
+from enum import Enum
+
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class EstrategiaChunk(str, Enum):
+    FIJO = "fixed"
+    ADAPTATIVO = "adaptive"
 
 
 class IngestTextRequest(BaseModel):
@@ -17,12 +24,20 @@ class IngestTextRequest(BaseModel):
         le=2000,
         description="Solapamiento entre chunks consecutivos en caracteres",
     )
+    chunk_strategy: EstrategiaChunk = Field(
+        default=EstrategiaChunk.ADAPTATIVO,
+        description="fixed = tamaño fijo; adaptive = según tipo de documento/OCR",
+    )
 
 
 class IngestTextResponse(BaseModel):
     collection_id: str
     document_id: str
     chunks_indexed: int
+    chunk_strategy: str | None = None
+    chunk_profile: str | None = None
+    chunk_size_applied: int | None = None
+    chunk_overlap_applied: int | None = None
 
 
 class IngestArchivoResultado(BaseModel):

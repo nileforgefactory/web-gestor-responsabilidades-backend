@@ -19,6 +19,7 @@ from app.slices.rag.router import router as rag_router
 from app.slices.planes.router import router as planes_router
 from app.slices.conocimiento.router import router as conocimiento_router
 from app.slices.documents.router import router as documents_router
+from app.slices.analysis.router import router as analysis_router
 
 
 @asynccontextmanager
@@ -172,6 +173,10 @@ openapi_tags_docs = [
         "name": "documentos",
         "description": "Extracción de texto y OCR de archivos (sin indexar en Qdrant).",
     },
+    {
+        "name": "analisis",
+        "description": "Análisis multi-agente de planes: OCR, indexación, loop coordinador y SSE.",
+    },
 ]
 
 app = FastAPI(
@@ -220,6 +225,7 @@ app.include_router(rag_router,         prefix="/api/v1")
 app.include_router(planes_router,      prefix="/api/v1")
 app.include_router(conocimiento_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
+app.include_router(analysis_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)
