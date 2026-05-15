@@ -1,14 +1,19 @@
+"""Endpoints HTTP del slice RAG (ingesta, búsqueda, ask)."""
+
+from __future__ import annotations
+
 import logging
 
 import httpx
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
 
 from app.core.config import get_settings
+from app.core.openapi import RESPUESTAS_RAG
 from app.dependencies import get_rag_service
 from app.slices.rag.bulk import ingestir_archivos_masivo
 from app.slices.rag.extract import (
     derive_document_id_from_filename,
-    extract_text_from_upload,
+    extract_document_from_upload,
     extract_title,
 )
 from app.slices.rag.schemas import (
@@ -16,9 +21,10 @@ from app.slices.rag.schemas import (
     AgentContextResponse,
     AskRequest,
     AskResponse,
+    EstrategiaChunk,
+    IngestMasivaResponse,
     IngestTextRequest,
     IngestTextResponse,
-    IngestMasivaResponse,
     RagSearchRequest,
     RagSearchResponse,
 )
@@ -28,10 +34,10 @@ logger = logging.getLogger(__name__)
 
 _ASK_BODY_EXAMPLES: dict[str, dict] = {
     "demo_demo_local": {
-        "summary": "Pregunta demo (coleccion demo_local)",
+        "summary": "Pregunta demo (colección demo_local)",
         "description": (
-            "Ingesta antes `demo_policies` con collection_id=demo_local, "
-            "o texto equivalente con la misma coleccion."
+            "Requiere ingesta previa con collection_id=demo_local "
+            "(p. ej. sample_documents/demo_policies.md)."
         ),
         "value": {
             "collection_ids": ["demo_local"],
@@ -41,23 +47,39 @@ _ASK_BODY_EXAMPLES: dict[str, dict] = {
     },
 }
 
-router = APIRouter(prefix="/rag", tags=["rag"])
+router = APIRouter(
+    prefix="/rag",
+    tags=["rag"],
+)
 
 
 def _upstream_http(exc: BaseException, *, code: int) -> HTTPException:
+    """Convierte errores de red/upstream en HTTPException con mensaje orientativo."""
     return HTTPException(
         status_code=code,
         detail=(
-            f"No se pudo completar la operacion (upstream): {exc!s}. "
-            f"Sugerencia GET /health/ready y revisar logs docker: api-rag-ollama, api-rag-api."
+            f"No se pudo completar la operación (upstream): {exc!s}. "
+            "Sugerencia: GET /health/ready y logs docker api-rag-ollama / api-rag-api."
         ),
     )
 
 
-@router.post("/ingest-text", response_model=IngestTextResponse)
+@router.post(
+    "/ingest-text",
+    response_model=IngestTextResponse,
+    summary="Ingestar texto plano en Qdrant",
+    response_description="Documento fragmentado, embebido e indexado.",
+    description=(
+        "Recibe contenido UTF-8 en JSON, aplica chunking (fijo o adaptativo), "
+        "genera embeddings con Ollama y almacena vectores en Qdrant."
+    ),
+    responses=RESPUESTAS_RAG,
+)
 async def ingest_text(
-    payload: IngestTextRequest, service: RagService = Depends(get_rag_service)
+    payload: IngestTextRequest,
+    service: RagService = Depends(get_rag_service),
 ) -> IngestTextResponse:
+    """Indexa texto JSON en la colección indicada."""
     await service.ensure_collection()
     try:
         return await service.ingest_text(
@@ -68,6 +90,7 @@ async def ingest_text(
             chunk_overlap=payload.chunk_overlap,
             title=payload.document_id,
             source_filename=None,
+            chunk_strategy=payload.chunk_strategy.value,
         )
     except httpx.HTTPError as exc:
         raise _upstream_http(exc, code=502) from exc
@@ -78,32 +101,54 @@ async def ingest_text(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.post("/ingest-file", response_model=IngestTextResponse)
+@router.post(
+    "/ingest-file",
+    response_model=IngestTextResponse,
+    summary="Ingestar archivo (PDF, TXT, MD, imagen)",
+    response_description="Texto extraído (OCR si aplica) e indexado en Qdrant.",
+    description=(
+        "Multipart: sube un archivo, extrae texto (OCR automático en PDFs escaneados), "
+        "aplica chunking y indexa en la colección. "
+        "Parámetro `chunk_strategy`: `fixed` o `adaptive` (recomendado)."
+    ),
+    responses=RESPUESTAS_RAG,
+)
 async def ingest_file(
-    collection_id: str = Form(..., min_length=1),
-    document_id: str | None = Form(None),
-    chunk_size: int = Form(700, ge=200, le=8000),
-    chunk_overlap: int = Form(120, ge=0, le=2000),
-    file: UploadFile = File(...),
+    collection_id: str = Form(..., min_length=1, description="ID lógico de la colección Qdrant"),
+    document_id: str | None = Form(
+        None,
+        description="ID del documento; si se omite se deriva del nombre del archivo",
+    ),
+    chunk_size: int = Form(700, ge=200, le=8000, description="Tamaño objetivo de chunk (modo fixed)"),
+    chunk_overlap: int = Form(120, ge=0, le=2000, description="Solapamiento entre chunks"),
+    chunk_strategy: EstrategiaChunk = Form(
+        EstrategiaChunk.ADAPTATIVO,
+        description="Estrategia de fragmentación: fixed | adaptive",
+    ),
+    file: UploadFile = File(..., description="Archivo a indexar"),
     service: RagService = Depends(get_rag_service),
 ) -> IngestTextResponse:
+    """Extrae texto del archivo, fragmenta e indexa en Qdrant."""
     await service.ensure_collection()
     try:
-        text, filename = await extract_text_from_upload(file)
+        extraccion = await extract_document_from_upload(file)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    filename = extraccion.filename
     doc_id = (document_id or "").strip() or derive_document_id_from_filename(filename)
     title = extract_title(filename)
     try:
         return await service.ingest_text(
             collection_id=collection_id,
             document_id=doc_id,
-            content=text,
+            content=extraccion.text,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             title=title,
             source_filename=filename,
+            chunk_strategy=chunk_strategy.value,
+            extraction_method=extraccion.extraction_method.value,
         )
     except httpx.HTTPError as exc:
         raise _upstream_http(exc, code=502) from exc
@@ -118,30 +163,37 @@ async def ingest_file(
     "/ingest-files",
     response_model=IngestMasivaResponse,
     summary="Ingesta masiva de documentos",
+    response_description="Resumen por archivo y total de chunks indexados.",
     description=(
-        "Sube varios archivos (PDF, TXT, MD, imágenes) a la misma colección. "
-        "Aplica OCR cuando corresponde. Máximo de archivos y tamaño por archivo "
-        "según configuración (BULK_MAX_FILES, BULK_MAX_FILE_BYTES)."
+        "Sube varios archivos a la misma colección. OCR automático cuando corresponde. "
+        "Límites: `BULK_MAX_FILES`, `BULK_MAX_FILE_BYTES`. "
+        "Concurrencia controlada por `BULK_INGEST_CONCURRENCY`."
     ),
+    responses=RESPUESTAS_RAG,
 )
 async def ingest_files_bulk(
-    collection_id: str = Form(..., min_length=1),
+    collection_id: str = Form(..., min_length=1, description="Colección destino"),
     files: list[UploadFile] = File(
         ...,
-        description="Lista de archivos (mismo nombre de campo repetido en multipart)",
+        description="Repetir el campo `files` por cada archivo en multipart",
     ),
     chunk_size: int = Form(700, ge=200, le=8000),
     chunk_overlap: int = Form(120, ge=0, le=2000),
+    chunk_strategy: EstrategiaChunk = Form(
+        EstrategiaChunk.ADAPTATIVO,
+        description="Estrategia de chunking aplicada a todos los archivos",
+    ),
     document_id_prefix: str | None = Form(
         None,
-        description="Prefijo opcional para document_id derivado del nombre de archivo",
+        description="Prefijo opcional para document_id (evita colisiones de nombre)",
     ),
     continuar_si_error: bool = Form(
         True,
-        description="Si es false, responde 422 ante el primer archivo fallido",
+        description="Si es false, aborta con 422 al primer archivo fallido",
     ),
     service: RagService = Depends(get_rag_service),
 ) -> IngestMasivaResponse:
+    """Procesa múltiples archivos en paralelo limitado e indexa cada uno."""
     await service.ensure_collection()
     settings = get_settings()
     try:
@@ -152,6 +204,7 @@ async def ingest_files_bulk(
             uploads=files,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
+            chunk_strategy=chunk_strategy.value,
             document_id_prefix=document_id_prefix,
             continuar_si_error=continuar_si_error,
         )
@@ -166,10 +219,22 @@ async def ingest_files_bulk(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.post("/search", response_model=RagSearchResponse)
+@router.post(
+    "/search",
+    response_model=RagSearchResponse,
+    summary="Búsqueda semántica en colecciones",
+    response_description="Chunks ordenados por score de similitud coseno.",
+    description=(
+        "Embede la consulta con Ollama y recupera los `top_k` fragmentos más similares "
+        "de las colecciones indicadas, filtrando por `score_threshold`."
+    ),
+    responses=RESPUESTAS_RAG,
+)
 async def search(
-    payload: RagSearchRequest, service: RagService = Depends(get_rag_service)
+    payload: RagSearchRequest,
+    service: RagService = Depends(get_rag_service),
 ) -> RagSearchResponse:
+    """Búsqueda vectorial sin invocar el modelo de chat."""
     await service.ensure_collection()
     try:
         return await service.search(
@@ -187,10 +252,22 @@ async def search(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.post("/agent-context", response_model=AgentContextResponse)
+@router.post(
+    "/agent-context",
+    response_model=AgentContextResponse,
+    summary="Construir contexto RAG para agentes externos",
+    response_description="Bloque de texto ensamblado y citas de chunks usados.",
+    description=(
+        "Recupera chunks relevantes y devuelve un contexto listo para inyectar "
+        "en prompts de agentes orquestados fuera de este endpoint."
+    ),
+    responses=RESPUESTAS_RAG,
+)
 async def agent_context(
-    payload: AgentContextRequest, service: RagService = Depends(get_rag_service)
+    payload: AgentContextRequest,
+    service: RagService = Depends(get_rag_service),
 ) -> AgentContextResponse:
+    """Ensambla contexto + metadatos de citas sin generar respuesta final."""
     await service.ensure_collection()
     try:
         return await service.build_agent_context(
@@ -207,14 +284,26 @@ async def agent_context(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.post("/ask", response_model=AskResponse)
+@router.post(
+    "/ask",
+    response_model=AskResponse,
+    summary="Pregunta con RAG + modelo local (Ollama)",
+    response_description="Respuesta generada con citas y chunks utilizados.",
+    description=(
+        "Recupera evidencia en Qdrant y genera respuesta con Ollama usando solo "
+        "el contexto recuperado. Puede tardar varios minutos en CPU. "
+        "Use JSON con comillas dobles ASCII (ver ejemplos)."
+    ),
+    responses=RESPUESTAS_RAG,
+)
 async def rag_ask(
     payload: AskRequest = Body(
         openapi_examples=_ASK_BODY_EXAMPLES,
-        description="Consulta conversacional usando solo evidencia recuperada + modelo local en Ollama.",
+        description="Consulta conversacional con evidencia recuperada + Ollama.",
     ),
     service: RagService = Depends(get_rag_service),
 ) -> AskResponse:
+    """Pipeline RAG completo: búsqueda + chat con restricción a evidencia."""
     await service.ensure_collection()
     try:
         return await service.ask(
@@ -228,7 +317,7 @@ async def rag_ask(
             status_code=504,
             detail=(
                 f"Tiempo agotado hablando con Ollama ({exc!s}). "
-                "Swagger puede tardar; reintenta. CPU local + modelos grandes exigen espera prolongada."
+                "Reintente; modelos grandes en CPU requieren espera prolongada."
             ),
         ) from exc
     except httpx.HTTPError as exc:

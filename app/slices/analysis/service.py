@@ -1,356 +1,262 @@
-"""
-Servicio principal de análisis agentico.
-Implementa el loop coordinador + persistencia + SSE con heartbeat.
-"""
+"""Pipeline de análisis: OCR → indexación → agentes → coordinador → matriz."""
+
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-import time
-from collections.abc import AsyncIterator
+import uuid
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
-from app.core.session_store import SessionStore, get_session_store
-from app.slices.analysis.agents import (
-    actores_agent,
-    brechas_agent,
-    leyes_agent,
-    matriz_agent,
-    responsabilidades_agent,
-    run_parallel_agents,
-    search_multi_query,
-)
+from app.core.config import Settings
+from app.slices.analysis.agents import run_agent, run_matriz_agent
 from app.slices.analysis.coordinator import coordinator_decide
-from app.slices.analysis.schemas import AnalyzePlanRequest
-from app.slices.planes import repository as planes_repo
-from app.slices.planes.schemas import (
-    ActorIn,
-    BrechaIn,
-    MatrizIn,
-    NormaIn,
-    PlanUpdate,
-    ResponsabilidadIn,
+from app.slices.analysis.persist import persist_analysis
+from app.slices.analysis.schemas import AnalisisDocumentoResponse
+from app.slices.rag.extract import (
+    derive_document_id_from_filename,
+    extract_document_from_bytes,
 )
 from app.slices.rag.service import RagService
 
 logger = logging.getLogger(__name__)
 
-
-# ── SSE helpers ────────────────────────────────────────────────────────────
-
-async def _stream_with_heartbeat(queue: asyncio.Queue) -> AsyncIterator[str]:
-    """Genera eventos SSE con heartbeat cada 20s para mantener la conexión."""
-    while True:
-        try:
-            event = await asyncio.wait_for(queue.get(), timeout=20.0)
-            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
-            if event.get("type") in ("done", "error"):
-                break
-        except asyncio.TimeoutError:
-            yield 'data: {"type":"heartbeat"}\n\n'
+EmitFn = Callable[[dict[str, Any]], Awaitable[None]]
 
 
-# ── Persistencia ───────────────────────────────────────────────────────────
-
-async def _persist_results(
-    db: AsyncSession,
-    plan_id: str,
-    context: dict[str, Any],
-) -> None:
-    """Persiste los resultados del análisis en MySQL."""
-    responsabilidades = [
-        ResponsabilidadIn(
-            titulo=r["titulo"][:500],
-            descripcion=r.get("descripcion") or None,
-            sector=r.get("sector") or None,
-            tipo=r.get("tipo", "P"),
-            referencia_legal=r.get("referencia_legal") or None,
-        )
-        for r in context.get("responsabilidades", [])
-        if r.get("titulo")
-    ]
-
-    brechas = [
-        BrechaIn(
-            titulo=b["titulo"][:500],
-            descripcion=b.get("descripcion") or None,
-            tipo=b.get("tipo", "critica"),
-            severidad=b.get("severidad", "alta"),
-            referencia_legal=b.get("referencia_legal") or None,
-        )
-        for b in context.get("brechas", [])
-        if b.get("titulo")
-    ]
-
-    normas = [
-        NormaIn(
-            norma_codigo=n.get("norma_codigo") or None,
-            titulo=(n.get("titulo") or n.get("norma_codigo", "Norma"))[:500],
-            articulos=n.get("articulos") or None,
-            extracto=n.get("extracto") or None,
-            tipo=n.get("tipo", "ley"),
-            vigente=n.get("vigente", True),
-        )
-        for n in context.get("leyes", [])
-        if n.get("titulo") or n.get("norma_codigo")
-    ]
-
-    actores = [
-        ActorIn(
-            nombre=a["nombre"][:300],
-            tipo=a.get("tipo", "otro"),
-        )
-        for a in context.get("actores", [])
-        if a.get("nombre")
-    ]
-
-    matriz = [
-        MatrizIn(
-            competencia=m["competencia"][:300],
-            ley_base=m.get("ley_base") or None,
-            nacion=m.get("nacion", "N"),
-            departamento=m.get("departamento", "N"),
-            municipio=m.get("municipio", "N"),
-            especializado=m.get("especializado", "N"),
-            brecha=m.get("brecha", "ok") if m.get("brecha") in ("ok", "critica", "duplicidad", "indefinido") else "ok",
-        )
-        for m in context.get("matriz", [])
-        if m.get("competencia")
-    ]
-
-    # Actualizar totales y sub-entidades en el plan
-    update = PlanUpdate(
-        estado="analizado",
-        resp_total=len(responsabilidades),
-        leyes_total=len(normas),
-        actores_total=len(actores),
-        brechas_total=len(brechas),
-        avance_pct=_calc_avance(context),
-    )
-
-    plane = await planes_repo.get_plane(db, plan_id)
-    if plane is None:
-        logger.error("Plan '%s' no encontrado para persistir resultados", plan_id)
-        return
-
-    await planes_repo.update_plane(db, plan_id, update)
-
-    # Reemplazar sub-entidades: borrar las existentes y crear nuevas
-    await planes_repo.replace_sub_entities(
-        db, plan_id,
-        responsabilidades=responsabilidades,
-        brechas=brechas,
-        normas=normas,
-        actores=actores,
-        matriz=matriz,
-    )
+async def _noop_emit(_: dict[str, Any]) -> None:
+    """Emisor vacío cuando no se requiere SSE."""
+    pass
 
 
-def _calc_avance(context: dict[str, Any]) -> float:
-    """Calcula % de avance basado en brechas vs responsabilidades."""
-    total = len(context.get("responsabilidades", []))
-    if not total:
-        return 0.0
-    brechas_criticas = sum(
-        1 for b in context.get("brechas", [])
-        if b.get("severidad") == "alta"
-    )
-    return round(max(0.0, (1 - brechas_criticas / total) * 100), 2)
+def _merge_unique(items: list[dict], new_items: list[dict], key: str = "titulo") -> None:
+    """Añade ítems evitando duplicados por clave (titulo o codigo)."""
+    seen = {str(i.get(key, "")).lower() for i in items}
+    for row in new_items:
+        k = str(row.get(key, "")).lower()
+        if k and k not in seen:
+            items.append(row)
+            seen.add(k)
 
 
-# ── Pipeline principal ─────────────────────────────────────────────────────
-
-async def analyze_plan_stream(
-    request: AnalyzePlanRequest,
+async def run_document_analysis(
+    *,
     rag: RagService,
-    db: AsyncSession,
-) -> tuple[AsyncIterator[str], str | None]:
+    settings: Settings,
+    raw: bytes,
+    filename: str,
+    collection_id: str,
+    normativa_collection_ids: list[str],
+    nivel: str,
+    profundidad: str,
+    entidad: str,
+    plan_id: str | None,
+    titulo_plan: str | None,
+    guardar_mysql: bool,
+    db: AsyncSession | None,
+    emit: EmitFn = _noop_emit,
+) -> AnalisisDocumentoResponse:
     """
-    Inicia el pipeline de análisis agentico.
-    Retorna (generador_SSE, session_id).
+    Ejecuta el pipeline completo de análisis de un plan de desarrollo.
+
+    Orden: extracción → indexación Qdrant → agentes → coordinador → matriz → MySQL opcional.
+
+    Args:
+        emit: Callback async para eventos SSE (log, agent_done, etc.).
     """
-    settings = get_settings()
-    queue: asyncio.Queue = asyncio.Queue()
-    store: SessionStore | None = get_session_store()
+    await rag.ensure_collection()
 
-    session_id: str | None = None
-    if store:
-        session_id = await store.create_session(
-            plan_id=request.plan_id,
-            meta={"nivel": request.nivel, "depth": request.depth},
-        )
+    await emit({"type": "log", "msg": "Extrayendo texto (OCR si aplica)..."})
+    extraccion = await extract_document_from_bytes(raw, filename, settings=settings)
 
-    async def _emit(event: dict) -> None:
-        await queue.put(event)
-        if store and session_id:
-            try:
-                await store.append_event(session_id, event)
-            except Exception as exc:
-                logger.warning("Error guardando evento en Redis: %s", exc)
+    doc_id = derive_document_id_from_filename(filename)
+    all_collections = list(dict.fromkeys([collection_id, *normativa_collection_ids]))
 
-    async def pipeline() -> None:
-        t_start = time.monotonic()
-        context: dict[str, Any] = {
-            "responsabilidades": [],
-            "leyes": [],
-            "actores": [],
-            "brechas": [],
-            "extra_chunks": [],
-            "matriz": [],
+    await emit({"type": "log", "msg": "Indexando plan en Qdrant..."})
+    ingesta = await rag.ingest_text(
+        collection_id=collection_id,
+        document_id=doc_id,
+        content=extraccion.text,
+        chunk_size=700,
+        chunk_overlap=120,
+        title=titulo_plan or doc_id,
+        source_filename=filename,
+        chunk_strategy=settings.default_chunk_strategy,
+        extraction_method=extraccion.extraction_method.value,
+    )
+
+    await emit(
+        {
+            "type": "indexing_done",
+            "msg": f"{ingesta.chunks_indexed} chunks indexados",
+            "chunks": ingesta.chunks_indexed,
         }
+    )
 
-        try:
-            # ── Análisis inicial paralelo ──────────────────────────────
-            await _emit({"type": "log", "msg": "Iniciando análisis inicial con agentes especializados..."})
+    context: dict[str, Any] = {
+        "responsabilidades": [],
+        "leyes": [],
+        "actores": [],
+        "brechas": [],
+    }
+    plan_excerpt = extraccion.text[:12_000]
+    http = rag.http
 
-            initial_agents = [
-                ("responsabilidades", lambda: responsabilidades_agent(
-                    rag, request.collection_id, request.nivel, request.depth
-                )),
-                ("leyes", lambda: leyes_agent(
-                    rag, request.collection_id, request.nivel, request.depth
-                )),
-                ("actores", lambda: actores_agent(
-                    rag, request.collection_id, request.nivel, request.depth
-                )),
-            ]
-            if request.depth == "profundo":
-                initial_agents.append(("brechas", lambda: brechas_agent(
-                    rag, request.collection_id, request.nivel, request.depth
-                )))
+    async def run_agents_batch(extra_query: str | None = None) -> None:
+        agents = ["responsabilidades", "leyes", "actores"]
+        if profundidad == "profundo":
+            agents.append("brechas")
 
-            initial_results = await run_parallel_agents(initial_agents, _emit)
-            context.update(initial_results)
-
-            # ── Loop agentico ─────────────────────────────────────────
-            max_iter = settings.analysis_max_iterations
-
-            for iteration in range(1, max_iter + 1):
-                if request.depth == "basico":
-                    break
-
-                await _emit({
-                    "type": "log",
-                    "msg": f"Evaluando completitud (iteración {iteration}/{max_iter})...",
-                })
-
-                decision = await coordinator_decide(
+        async def one(name: str) -> None:
+            await emit({"type": "agent_start", "agent": name})
+            try:
+                rows = await run_agent(
                     rag=rag,
-                    context=context,
-                    nivel=request.nivel,
-                    sectores=request.sectores,
-                    profundidad=request.depth,
-                    iteration=iteration,
-                    max_iterations=max_iter,
+                    http=http,
+                    settings=settings,
+                    agent=name,
+                    collection_ids=all_collections,
+                    nivel=nivel,
+                    profundidad=profundidad,
+                    entidad=entidad,
+                    extra_query=extra_query,
+                    plan_excerpt=plan_excerpt,
                 )
+                merge_key = "codigo" if name == "leyes" else "titulo"
+                _merge_unique(context[name], rows, key=merge_key)
+                await emit({"type": "agent_done", "agent": name, "count": len(context[name])})
+            except Exception as exc:
+                logger.exception("Agente %s falló", name)
+                await emit({"type": "agent_error", "agent": name, "error": str(exc)})
 
-                await _emit({
-                    "type": "coordinator_decision",
-                    "accion": decision["accion"],
-                    "razon": decision.get("razon", ""),
-                    "confianza": decision.get("confianza", 1.0),
-                })
+        await asyncio.gather(*(one(a) for a in agents))
 
-                if decision["accion"] == "finalizar":
-                    await _emit({
-                        "type": "log",
-                        "msg": f"Análisis completo con confianza {decision.get('confianza', 1.0):.0%}",
-                    })
-                    break
+    await emit({"type": "log", "msg": "Ejecutando agentes iniciales..."})
+    await run_agents_batch()
 
-                elif decision["accion"] == "buscar_mas":
-                    query = decision.get("query", "responsabilidades territoriales")
-                    await _emit({"type": "log", "msg": f"Buscando contexto adicional: '{query}'"})
-                    new_chunks = await search_multi_query(
-                        rag, [query], request.collection_id, top_k_per_query=5
-                    )
-                    context["extra_chunks"].extend(new_chunks)
+    iteraciones = 0
+    max_iter = settings.analysis_max_iterations if profundidad != "basico" else 0
 
-                    new_results = await run_parallel_agents([
-                        ("responsabilidades", lambda nc=new_chunks: responsabilidades_agent(
-                            rag, request.collection_id, request.nivel, request.depth, extra_chunks=nc
-                        )),
-                        ("leyes", lambda nc=new_chunks: leyes_agent(
-                            rag, request.collection_id, request.nivel, request.depth, extra_chunks=nc
-                        )),
-                    ], _emit)
+    for iteration in range(1, max_iter + 1):
+        iteraciones = iteration
+        await emit({"type": "log", "msg": f"Coordinador iteración {iteration}/{max_iter}..."})
+        decision = await coordinator_decide(
+            http=http,
+            settings=settings,
+            context=context,
+            nivel=nivel,
+            profundidad=profundidad,
+            iteration=iteration,
+            max_iterations=max_iter,
+        )
+        await emit(
+            {
+                "type": "coordinator_decision",
+                "accion": decision.get("accion"),
+                "razon": decision.get("razon"),
+                "confianza": decision.get("confianza"),
+            }
+        )
+        accion = decision.get("accion", "finalizar")
+        if accion == "finalizar":
+            break
+        if accion == "buscar_mas":
+            await run_agents_batch(extra_query=str(decision.get("query", "")))
+        elif accion == "reanalizar_sector":
+            sector = str(decision.get("sector", ""))
+            await run_agents_batch(extra_query=f"responsabilidades sector {sector}")
 
-                    for agent_name, new_items in new_results.items():
-                        existing_titles = {r.get("titulo") for r in context.get(agent_name, [])}
-                        context[agent_name] += [
-                            r for r in (new_items or [])
-                            if r.get("titulo") not in existing_titles
-                        ]
-
-                elif decision["accion"] == "reanalizar_sector":
-                    sector = decision.get("sector", "")
-                    if not sector:
-                        continue
-                    await _emit({"type": "log", "msg": f"Profundizando en sector: {sector}"})
-                    sector_chunks = await search_multi_query(
-                        rag,
-                        [f"responsabilidades {sector} municipal", f"ley norma {sector} colombia"],
-                        request.collection_id,
-                    )
-                    sector_resp = await responsabilidades_agent(
-                        rag, request.collection_id, request.nivel, request.depth,
-                        extra_chunks=sector_chunks,
-                    )
-                    existing_titles = {r.get("titulo") for r in context["responsabilidades"]}
-                    context["responsabilidades"] += [
-                        r for r in (sector_resp or [])
-                        if r.get("titulo") not in existing_titles
-                    ]
-
-            # ── Brechas (estandar/profundo si no se corrió antes) ──────
-            if request.depth in ("estandar", "profundo") and not context.get("brechas"):
-                await _emit({"type": "agent_start", "agent": "brechas"})
-                context["brechas"] = await brechas_agent(
-                    rag, request.collection_id, request.nivel, request.depth
-                )
-                await _emit({
-                    "type": "agent_done", "agent": "brechas",
-                    "count": len(context["brechas"]),
-                })
-
-            # ── Consolidación: Matriz ──────────────────────────────────
-            if request.depth in ("estandar", "profundo"):
-                await _emit({"type": "agent_start", "agent": "matriz"})
-                context["matriz"] = await matriz_agent(rag, request.collection_id, context)
-                await _emit({
-                    "type": "agent_done", "agent": "matriz",
-                    "count": len(context["matriz"]),
-                })
-
-            # ── Persistencia ───────────────────────────────────────────
-            await _emit({"type": "saving", "msg": "Guardando resultados en base de datos..."})
-            await _persist_results(db, request.plan_id, context)
-
-            elapsed = round(time.monotonic() - t_start, 1)
-            if store and session_id:
-                await store.mark_done(session_id)
-
-            await _emit({
-                "type": "done",
-                "plan_id": request.plan_id,
-                "session_id": session_id,
-                "msg": f"Análisis completado en {elapsed}s",
-                "data": {
-                    "responsabilidades": len(context["responsabilidades"]),
-                    "leyes": len(context["leyes"]),
-                    "actores": len(context["actores"]),
-                    "brechas": len(context["brechas"]),
-                    "matriz": len(context["matriz"]),
-                },
-            })
-
+    matriz: list[dict[str, Any]] = []
+    if profundidad in ("estandar", "profundo"):
+        await emit({"type": "agent_start", "agent": "matriz"})
+        try:
+            matriz = await run_matriz_agent(
+                http=http,
+                settings=settings,
+                context=context,
+                nivel=nivel,
+                profundidad=profundidad,
+            )
+            await emit({"type": "agent_done", "agent": "matriz", "count": len(matriz)})
         except Exception as exc:
-            logger.exception("Error fatal en pipeline de análisis")
-            await _emit({"type": "error", "error": str(exc), "session_id": session_id})
+            await emit({"type": "agent_error", "agent": "matriz", "error": str(exc)})
 
-    asyncio.create_task(pipeline())
-    return _stream_with_heartbeat(queue), session_id
+    context["matriz"] = matriz
+    guardado = False
+    final_plan_id = plan_id
+
+    if guardar_mysql and db is not None:
+        await emit({"type": "saving", "msg": "Guardando en MySQL..."})
+        final_plan_id = await persist_analysis(
+            db,
+            plan_id=plan_id,
+            titulo=titulo_plan or doc_id,
+            nivel=nivel,
+            archivo_nombre=filename,
+            qdrant_doc_id=doc_id,
+            result=context,
+        )
+        guardado = True
+
+    response = AnalisisDocumentoResponse(
+        plan_id=final_plan_id,
+        document_id=doc_id,
+        collection_id=collection_id,
+        metodo_extraccion=extraccion.extraction_method.value,
+        caracteres_extraidos=extraccion.char_count,
+        chunks_indexados=ingesta.chunks_indexed,
+        chunk_strategy=ingesta.chunk_strategy,
+        chunk_profile=ingesta.chunk_profile,
+        responsabilidades=context["responsabilidades"],
+        leyes=context["leyes"],
+        actores=context["actores"],
+        brechas=context["brechas"],
+        matriz=matriz,
+        iteraciones_coordinador=iteraciones,
+        guardado_en_mysql=guardado,
+    )
+    session_id = str(uuid.uuid4())
+    await emit({"type": "done", "plan_id": final_plan_id, "session_id": session_id, "result": response.model_dump()})
+    return response
+
+
+async def stream_document_analysis(
+    **kwargs: Any,
+) -> AsyncIterator[str]:
+    """
+    Envuelve ``run_document_analysis`` y emite líneas SSE (data: JSON).
+
+    Incluye heartbeat cada ~20s si no hay eventos.
+    """
+    queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
+
+    async def emit(event: dict[str, Any]) -> None:
+        await queue.put(event)
+
+    async def worker() -> None:
+        try:
+            await run_document_analysis(emit=emit, **kwargs)
+        except Exception as exc:
+            logger.exception("Pipeline análisis falló")
+            await queue.put({"type": "error", "error": str(exc)})
+        finally:
+            await queue.put(None)
+
+    task = asyncio.create_task(worker())
+
+    try:
+        while True:
+            try:
+                event = await asyncio.wait_for(queue.get(), timeout=20.0)
+            except asyncio.TimeoutError:
+                yield f"data: {json.dumps({'type': 'heartbeat'}, ensure_ascii=False)}\n\n"
+                continue
+            if event is None:
+                break
+            yield f"data: {json.dumps(event, ensure_ascii=False, default=str)}\n\n"
+    finally:
+        if not task.done():
+            task.cancel()

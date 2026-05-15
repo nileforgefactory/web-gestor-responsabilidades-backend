@@ -279,6 +279,41 @@ function Invoke-ExtractBulk {
     }
 }
 
+function Invoke-AnalyzeDocument {
+    param([bool]$UseStream)
+    $path = Read-Host "Ruta del plan (PDF/imagen/TXT)"
+    if (-not (Test-Path $path)) { Write-Err "No existe: $path"; return }
+    $col = Read-LineOrDefault "collection_id del plan" "plan_demo"
+    $normas = Read-LineOrDefault "normativa_collection_ids (coma, opcional)" ""
+    $prof = Read-LineOrDefault "profundidad (basico|estandar|profundo)" "estandar"
+    $nivel = Read-LineOrDefault "nivel territorial" "municipal"
+    $guardar = Read-LineOrDefault "guardar_mysql (s/n)" "s"
+    $guardarFlag = if ($guardar -match '^[sSyY]') { "true" } else { "false" }
+
+    $uri = "$($ApiBase.TrimEnd('/'))/api/v1/analysis/analyze-document"
+    $curlArgs = @(
+        "-s", "-X", "POST", $uri,
+        "-F", "file=@$path",
+        "-F", "collection_id=$col",
+        "-F", "profundidad=$prof",
+        "-F", "nivel=$nivel",
+        "-F", "guardar_mysql=$guardarFlag",
+        "-F", "stream=$($UseStream.ToString().ToLower())"
+    )
+    if ($normas) { $curlArgs += @("-F", "normativa_collection_ids=$normas") }
+
+    Write-Title "Análisis de documento (stream=$UseStream)"
+    if ($UseStream) {
+        curl.exe -N @curlArgs
+    } else {
+        $json = curl.exe @curlArgs
+        if ($LASTEXITCODE -ne 0) { Write-Err "curl falló"; return }
+        $obj = $json | ConvertFrom-Json
+        Write-Ok "plan_id=$($obj.plan_id) resp=$($obj.responsabilidades.Count) leyes=$($obj.leyes.Count) matriz=$($obj.matriz.Count)"
+        Write-Host ($obj | ConvertTo-Json -Depth 4)
+    }
+}
+
 function Open-Swagger {
     $url = "$($ApiBase.TrimEnd('/'))/docs"
     Write-Ok "Abriendo $url"
@@ -315,6 +350,10 @@ function Show-Menu {
    14  Extraer texto (un archivo)
    15  Extraer texto masivo
 
+  [ Análisis multi-agente ]
+   17  Analizar documento (JSON)
+   18  Analizar documento (SSE en vivo)
+
   [ Otros ]
    16  Abrir Swagger en el navegador
     0  Salir
@@ -348,6 +387,8 @@ while ($true) {
         "14" { Invoke-ExtractOne }
         "15" { Invoke-ExtractBulk }
         "16" { Open-Swagger }
+        "17" { Invoke-AnalyzeDocument -UseStream $false }
+        "18" { Invoke-AnalyzeDocument -UseStream $true }
         "0" { Write-Ok "Hasta luego."; break }
         default { Write-Warn "Opción no válida." }
     }

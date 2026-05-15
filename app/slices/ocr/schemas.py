@@ -1,16 +1,22 @@
+"""Esquemas de respuesta del slice de extracción/OCR."""
+
 from enum import Enum
 
 from pydantic import BaseModel, Field
 
 
 class MetodoExtraccion(str, Enum):
+    """Cómo se obtuvo el texto del archivo."""
+
     NATIVO = "nativo"
     OCR = "ocr"
     HIBRIDO = "hibrido"
 
 
 class ExtraccionArchivoResultado(BaseModel):
-    nombre_archivo: str
+    """Resultado por archivo en extracción simple o masiva."""
+
+    nombre_archivo: str = Field(..., description="Nombre original del upload")
     exito: bool
     metodo_extraccion: MetodoExtraccion | None = None
     paginas: int = 0
@@ -26,9 +32,11 @@ class ExtraccionArchivoResultado(BaseModel):
 
 
 class ExtraccionMasivaResponse(BaseModel):
-    total_archivos: int
-    exitosos: int
-    fallidos: int
+    """Resumen de extracción de varios archivos sin indexar."""
+
+    total_archivos: int = Field(..., ge=0)
+    exitosos: int = Field(..., ge=0)
+    fallidos: int = Field(..., ge=0)
     resultados: list[ExtraccionArchivoResultado]
 
 

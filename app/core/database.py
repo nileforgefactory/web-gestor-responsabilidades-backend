@@ -68,6 +68,25 @@ async def dispose_engine() -> None:
         await _engine.dispose()
 
 
+async def get_optional_db() -> AsyncGenerator[AsyncSession | None, None]:
+    """
+    Sesión MySQL opcional para endpoints que pueden omitir persistencia.
+
+    Yields:
+        AsyncSession si MYSQL_URL está configurado; None en caso contrario.
+    """
+    if _session_factory is None:
+        yield None
+        return
+    async with _session_factory() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependencia FastAPI que entrega una sesión con commit/rollback automático."""
     if _session_factory is None:

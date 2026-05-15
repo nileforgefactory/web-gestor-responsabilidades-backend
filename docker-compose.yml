@@ -123,9 +123,8 @@ services:
       BULK_MAX_FILES: "50"
       BULK_MAX_FILE_BYTES: "52428800"
       BULK_INGEST_CONCURRENCY: "2"
-      REDIS_URL: redis://redis:6379/0
-      ANALYSIS_MAX_ITERATIONS: "5"
-      ANALYSIS_CONFIDENCE_THRESHOLD: "0.60"
+      DEFAULT_CHUNK_STRATEGY: "adaptive"
+      ANALYSIS_MAX_ITERATIONS: "3"
     ports:
       - "8000:8000"
     volumes:

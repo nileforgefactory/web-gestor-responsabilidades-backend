@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Configuración de la aplicación cargada desde variables de entorno y `.env`."""
+
     app_name: str = "Agentic RAG API"
     app_env: str = "dev"
     app_host: str = "0.0.0.0"
@@ -35,13 +37,10 @@ class Settings(BaseSettings):
     bulk_max_file_bytes: int = 52_428_800  # 50 MiB por archivo
     bulk_ingest_concurrency: int = 2
 
-    # Redis — sesiones SSE; si está vacío el sistema funciona sin replay
-    redis_url: str | None = None
-
-    # Análisis agentico
-    analysis_max_iterations: int = 5
-    analysis_confidence_threshold: float = 0.60
-    analysis_min_chunks_per_agent: int = 3
+    # Chunking (Sprint 2)
+    default_chunk_strategy: str = "adaptive"
+    analysis_max_iterations: int = 3
+    analysis_confidence_threshold: float = 0.55
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -52,4 +51,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Devuelve instancia singleton de configuración (cacheada)."""
     return Settings()

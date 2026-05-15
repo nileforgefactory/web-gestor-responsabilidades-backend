@@ -1,14 +1,23 @@
 # Scripts del proyecto
 
+Punto de entrada recomendado: menú interactivo. Documentación general del API: [README.md](../README.md).
+
 ## Menú interactivo (recomendado)
 
 ```powershell
 .\scripts\dev-menu.ps1
 ```
 
-Integra arranque Docker, salud, humo, ingesta (simple y masiva), RAG ask/search y extracción OCR.
+| Opciones | Área |
+|----------|------|
+| 1–6 | Docker (stack, prod, logs, modelos) |
+| 7–8 | Salud y humo |
+| 9–13 | RAG (ingesta, ask, search) |
+| 14–15 | OCR sin indexar |
+| 17–18 | Análisis multi-agente (JSON / SSE) |
+| 16 | Abrir Swagger |
 
-Parámetro opcional:
+Sprints: [SPRINT_2.md](../docs/SPRINT_2.md) (chunking), [SPRINT_3.md](../docs/SPRINT_3.md) (agentes).
 
 ```powershell
 .\scripts\dev-menu.ps1 -ApiBase http://localhost:8000
