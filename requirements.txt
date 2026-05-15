@@ -12,3 +12,5 @@ Pillow
 sqlalchemy[asyncio]>=2.0
 aiomysql
 cryptography
+# ── Redis (sesiones SSE + pub/sub) ────────────────────────────────────────
+redis[asyncio]>=5.0

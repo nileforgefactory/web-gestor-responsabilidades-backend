@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -15,7 +15,15 @@ from app.slices.planes.models import (
     PlanSector,
     Responsabilidad,
 )
-from app.slices.planes.schemas import PlanCreate, PlanUpdate
+from app.slices.planes.schemas import (
+    ActorIn,
+    BrechaIn,
+    MatrizIn,
+    NormaIn,
+    PlanCreate,
+    PlanUpdate,
+    ResponsabilidadIn,
+)
 
 # ── Opciones de carga eager para evitar N+1 ──────────────────────────────
 
@@ -125,3 +133,34 @@ async def delete_plane(db: AsyncSession, plan_id: str) -> bool:
         return False
     await db.delete(plane)
     return True
+
+
+async def replace_sub_entities(
+    db: AsyncSession,
+    plan_id: str,
+    *,
+    responsabilidades: list[ResponsabilidadIn],
+    brechas: list[BrechaIn],
+    normas: list[NormaIn],
+    actores: list[ActorIn],
+    matriz: list[MatrizIn],
+) -> None:
+    """Elimina y re-inserta todas las sub-entidades del plan en una transacción."""
+    await db.execute(delete(Responsabilidad).where(Responsabilidad.plan_id == plan_id))
+    await db.execute(delete(Brecha).where(Brecha.plan_id == plan_id))
+    await db.execute(delete(PlanNorma).where(PlanNorma.plan_id == plan_id))
+    await db.execute(delete(PlanActor).where(PlanActor.plan_id == plan_id))
+    await db.execute(delete(MatrizCompetencia).where(MatrizCompetencia.plan_id == plan_id))
+
+    for r in responsabilidades:
+        db.add(Responsabilidad(plan_id=plan_id, **r.model_dump()))
+    for b in brechas:
+        db.add(Brecha(plan_id=plan_id, **b.model_dump()))
+    for n in normas:
+        db.add(PlanNorma(plan_id=plan_id, **n.model_dump()))
+    for a in actores:
+        db.add(PlanActor(plan_id=plan_id, **a.model_dump()))
+    for m in matriz:
+        db.add(MatrizCompetencia(plan_id=plan_id, **m.model_dump()))
+
+    await db.flush()

@@ -14,11 +14,14 @@ from starlette.requests import Request
 
 from app.core.config import Settings, get_settings
 from app.core.database import create_tables, dispose_engine, init_db
+from app.core.session_store import get_session_store, init_session_store
 from app.dependencies import get_rag_service
 from app.slices.rag.router import router as rag_router
 from app.slices.planes.router import router as planes_router
 from app.slices.conocimiento.router import router as conocimiento_router
 from app.slices.documents.router import router as documents_router
+from app.slices.analysis.router import router as analysis_router
+from app.slices.alertas.router import router as alertas_router
 
 
 @asynccontextmanager
@@ -31,15 +34,23 @@ async def lifespan(_: FastAPI):
     settings = get_settings()
     if settings.mysql_url:
         # Importar modelos para que estén en Base.metadata antes de create_all
-        import app.slices.planes.models       # noqa: F401
-        import app.slices.conocimiento.models # noqa: F401
+        import app.slices.planes.models        # noqa: F401
+        import app.slices.conocimiento.models  # noqa: F401
+        import app.slices.alertas.models       # noqa: F401
         init_db(settings.mysql_url)
         await create_tables()
+
+    # ── Redis (opcional — sesiones SSE) ──
+    if settings.redis_url:
+        init_session_store(settings.redis_url)
 
     yield
 
     await rag_service.close()
     await dispose_engine()
+    store = get_session_store()
+    if store:
+        await store.close()
 
 
 def _model_tag_present(registry: list[str], want: str) -> bool:
@@ -172,6 +183,8 @@ openapi_tags_docs = [
         "name": "documentos",
         "description": "Extracción de texto y OCR de archivos (sin indexar en Qdrant).",
     },
+    {"name": "analysis", "description": "Loop agentico iterativo: analiza planes con agentes especializados y coordinador IA."},
+    {"name": "alertas",  "description": "Alertas normativas: detecta normas modificadas o derogadas en los planes."},
 ]
 
 app = FastAPI(
@@ -194,7 +207,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS", "HEAD"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
 )
 app.add_middleware(StripUtf8JsonBOMMiddleware)
@@ -216,10 +229,12 @@ async def request_validation_hints(_request: Request, exc: RequestValidationErro
     return JSONResponse(status_code=422, content=payload)
 
 
-app.include_router(rag_router,         prefix="/api/v1")
-app.include_router(planes_router,      prefix="/api/v1")
+app.include_router(rag_router,          prefix="/api/v1")
+app.include_router(planes_router,       prefix="/api/v1")
 app.include_router(conocimiento_router, prefix="/api/v1")
-app.include_router(documents_router, prefix="/api/v1")
+app.include_router(documents_router,    prefix="/api/v1")
+app.include_router(analysis_router,     prefix="/api/v1")
+app.include_router(alertas_router,      prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)

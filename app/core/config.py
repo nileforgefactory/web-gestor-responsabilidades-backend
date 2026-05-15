@@ -35,6 +35,14 @@ class Settings(BaseSettings):
     bulk_max_file_bytes: int = 52_428_800  # 50 MiB por archivo
     bulk_ingest_concurrency: int = 2
 
+    # Redis — sesiones SSE; si está vacío el sistema funciona sin replay
+    redis_url: str | None = None
+
+    # Análisis agentico
+    analysis_max_iterations: int = 5
+    analysis_confidence_threshold: float = 0.60
+    analysis_min_chunks_per_agent: int = 3
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
