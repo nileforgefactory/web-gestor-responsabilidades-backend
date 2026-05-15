@@ -1,15 +1,15 @@
-name: api-rag
+name: gestor-backend
 
 networks:
   default:
-    name: api-rag-net
+    name: gestor-backend-net
 
 services:
 
   # ── Base de datos relacional ──────────────────────────────────────────
   mysql:
     image: mysql:8.0
-    container_name: api-rag-mysql
+    container_name: gestor-backend-mysql
     environment:
       MYSQL_ROOT_PASSWORD: rootpass
       MYSQL_DATABASE: gestor_responsabilidades
@@ -31,7 +31,7 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    container_name: api-rag-ollama
+    container_name: gestor-backend-ollama
     volumes:
       - ollama_data:/root/.ollama
     ports:
@@ -46,7 +46,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: api-rag-qdrant
+    container_name: gestor-backend-qdrant
     ports:
       - "6333:6333"
       - "6334:6334"
@@ -58,8 +58,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.ollama-pull
-    image: api-rag-ollama-pull:local
-    container_name: api-rag-ollama-pull
+    image: gestor-backend-ollama-pull:local
+    container_name: gestor-backend-ollama-pull
     depends_on:
       ollama:
         condition: service_healthy
@@ -74,8 +74,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: api-rag-api:local
-    container_name: api-rag-api
+    image: gestor-backend-api:local
+    container_name: gestor-backend-api
     depends_on:
       qdrant:
         condition: service_started
