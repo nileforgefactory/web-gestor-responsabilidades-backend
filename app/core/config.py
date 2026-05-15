@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Configuración de la aplicación cargada desde variables de entorno y `.env`."""
+
     app_name: str = "Agentic RAG API"
     app_env: str = "dev"
     app_host: str = "0.0.0.0"
@@ -49,4 +51,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Devuelve instancia singleton de configuración (cacheada)."""
     return Settings()

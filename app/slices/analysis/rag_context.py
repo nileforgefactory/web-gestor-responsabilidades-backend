@@ -37,6 +37,11 @@ async def fetch_agent_chunks(
     extra_query: str | None = None,
     top_k: int = 5,
 ) -> list[RagChunk]:
+    """
+    Ejecuta varias búsquedas RAG por agente y deduplica chunks por ``chunk_id``.
+
+    Re-rankea por score máximo y limita a ``top_k * 2`` fragmentos.
+    """
     queries = list(AGENT_QUERIES.get(agent, [agent]))
     if extra_query:
         queries.insert(0, extra_query)
@@ -58,6 +63,7 @@ async def fetch_agent_chunks(
 
 
 def chunks_to_context_blob(chunks: list[RagChunk]) -> str:
+    """Formatea chunks numerados para inyectar en el prompt del LLM."""
     blocks = []
     for i, c in enumerate(chunks, start=1):
         blocks.append(f"[{i}] ({c.collection_id}/{c.document_id})\n{c.text}")

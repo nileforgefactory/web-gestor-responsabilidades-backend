@@ -32,6 +32,12 @@ async def run_agent(
     extra_query: str | None = None,
     plan_excerpt: str = "",
 ) -> list[dict[str, Any]]:
+    """
+    Ejecuta un agente especializado: RAG + prompt + parseo de líneas estructuradas.
+
+    Returns:
+        Lista de dicts con campos del agente y ``chunk_ids`` / ``confidence_score``.
+    """
     chunks = await fetch_agent_chunks(
         rag,
         collection_ids=collection_ids,
@@ -80,6 +86,7 @@ async def run_matriz_agent(
     nivel: str,
     profundidad: str,
 ) -> list[dict[str, Any]]:
+    """Consolida resultados previos en una matriz JSON de competencias."""
     system = build_agent_prompt("matriz", nivel=nivel, profundidad=profundidad)
     summary = {
         "responsabilidades": context.get("responsabilidades", [])[:40],

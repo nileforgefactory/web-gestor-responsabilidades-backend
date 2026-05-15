@@ -1,10 +1,12 @@
+"""Cliente HTTP mínimo para la API REST de Ollama (embeddings y chat)."""
+
 from typing import Any
 
 import httpx
 
 
 class OllamaError(RuntimeError):
-    pass
+    """Error de respuesta inesperada o vacía desde Ollama."""
 
 
 async def ollama_embed(
@@ -14,6 +16,18 @@ async def ollama_embed(
     model: str,
     prompt: str,
 ) -> list[float]:
+    """
+    Obtiene el vector de embeddings para un texto.
+
+    Args:
+        http: Cliente HTTP reutilizable.
+        base_url: URL base del daemon Ollama.
+        model: Nombre del modelo (ej. nomic-embed-text).
+        prompt: Texto a embeder.
+
+    Returns:
+        Lista de floats de dimensión fija del modelo.
+    """
     url = base_url.rstrip("/") + "/api/embeddings"
     response = await http.post(url, json={"model": model, "prompt": prompt})
     response.raise_for_status()
@@ -31,6 +45,15 @@ async def ollama_chat(
     model: str,
     messages: list[dict[str, str]],
 ) -> str:
+    """
+    Invoca el endpoint de chat de Ollama (sin streaming).
+
+    Args:
+        messages: Lista de dicts con roles ``system`` / ``user`` / ``assistant``.
+
+    Returns:
+        Contenido textual de la respuesta del asistente.
+    """
     url = base_url.rstrip("/") + "/api/chat"
     response = await http.post(
         url,
@@ -47,6 +70,7 @@ async def ollama_chat(
 
 
 async def ollama_health(http: httpx.AsyncClient, base_url: str) -> bool:
+    """Comprueba si el daemon Ollama responde en ``/api/tags``."""
     url = base_url.rstrip("/") + "/api/tags"
     response = await http.get(url)
     response.raise_for_status()

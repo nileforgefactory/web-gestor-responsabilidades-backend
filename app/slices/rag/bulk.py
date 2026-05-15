@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def _document_id_unico(base: str, usados: set[str]) -> str:
+    """Genera document_id único en un mismo lote (sufijo -2, -3...)."""
     if base not in usados:
         usados.add(base)
         return base
@@ -45,6 +46,11 @@ async def ingestir_archivos_masivo(
     document_id_prefix: str | None,
     continuar_si_error: bool,
 ) -> IngestMasivaResponse:
+    """
+    Ingesta paralela limitada de varios archivos en una colección.
+
+    Extrae (OCR), fragmenta, embede e indexa cada archivo; agrega resultado por ítem.
+    """
     validar_lote_archivos(uploads, settings)
     cargados = await leer_archivos_cargados(uploads, settings)
 
@@ -60,6 +66,7 @@ async def ingestir_archivos_masivo(
     sem = asyncio.Semaphore(max(1, settings.bulk_ingest_concurrency))
 
     async def procesar(item: ArchivoCargado, doc_id: str) -> IngestArchivoResultado:
+        """Procesa un archivo: extracción + ingesta indexada."""
         async with sem:
             try:
                 extraccion = await extract_document_from_bytes(

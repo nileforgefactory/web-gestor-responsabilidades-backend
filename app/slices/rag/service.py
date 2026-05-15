@@ -32,6 +32,7 @@ _NO_EVIDENCE_ANSWER = (
 
 
 def pseudo_embedding(text: str, vector_size: int) -> list[float]:
+    """Vector determinista desde SHA-256 cuando Ollama está deshabilitado (demo/tests)."""
     digest = hashlib.sha256(text.encode("utf-8")).digest()
     base_values = [byte / 255.0 for byte in digest]
     vector: list[float] = []
@@ -41,6 +42,7 @@ def pseudo_embedding(text: str, vector_size: int) -> list[float]:
 
 
 async def _with_retries(call: Callable[[], Awaitable[T]], *, attempts: int = 8) -> T:
+    """Reintenta llamadas a Ollama ante timeouts y errores HTTP transitorios."""
     last_exc: BaseException | None = None
     for attempt in range(attempts):
         try:
@@ -62,6 +64,15 @@ async def _with_retries(call: Callable[[], Awaitable[T]], *, attempts: int = 8) 
 
 @dataclass
 class RagService:
+    """
+    Orquesta ingesta, búsqueda vectorial y chat RAG sobre Qdrant + Ollama.
+
+    Attributes:
+        repository: Acceso a Qdrant.
+        settings: Configuración de modelos y umbrales.
+        http: Cliente HTTP compartido hacia Ollama.
+    """
+
     repository: RagRepository
     vector_size: int
     settings: Settings
@@ -70,6 +81,7 @@ class RagService:
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "RagService":
+        """Construye el servicio a partir de configuración de entorno."""
         client = AsyncQdrantClient(url=settings.qdrant_url)
         repository = RagRepository(
             client=client,
@@ -86,13 +98,16 @@ class RagService:
         )
 
     async def ensure_collection(self) -> None:
+        """Crea la colección Qdrant si no existe."""
         await self.repository.ensure_collection()
 
     async def close(self) -> None:
+        """Cierra cliente Qdrant y pool HTTP (lifespan shutdown)."""
         await self.client.close()
         await self.http.aclose()
 
     async def _embedding_for(self, text: str) -> list[float]:
+        """Vector de un fragmento vía Ollama o pseudo-embedding local."""
         if not self.settings.use_ollama:
             return pseudo_embedding(text, self.vector_size)
 
@@ -120,6 +135,7 @@ class RagService:
             raise
 
     async def _embedding_batch(self, texts: list[str]) -> list[list[float]]:
+        """Embeddings en paralelo con semáforo de concurrencia configurada."""
         semaphore = asyncio.Semaphore(max(1, self.settings.ingest_embed_concurrency))
 
         async def one(t: str) -> list[float]:
@@ -142,6 +158,11 @@ class RagService:
         chunk_strategy: str | None = None,
         extraction_method: str | None = None,
     ) -> IngestTextResponse:
+        """
+        Fragmenta contenido, genera embeddings e indexa en Qdrant.
+
+        Si ``replace_existing``, borra chunks previos del mismo document_id.
+        """
         strat = chunk_strategy or self.settings.default_chunk_strategy
         chunking = chunk_document(
             content,
@@ -194,6 +215,7 @@ class RagService:
         top_k: int,
         score_threshold: float,
     ) -> RagSearchResponse:
+        """Búsqueda por similitud coseno en una o más colecciones."""
         query_vector = await self._embedding_for(query)
         results = await self.repository.search_chunks(
             query_vector=query_vector,
@@ -225,6 +247,7 @@ class RagService:
     async def build_agent_context(
         self, *, user_message: str, collection_ids: list[str], top_k: int
     ) -> AgentContextResponse:
+        """Recupera chunks y arma bloque de contexto + citas para agentes externos."""
         thr = float(self.settings.rag_default_score_threshold)
         search_response = await self.search(
             query=user_message,
@@ -255,6 +278,7 @@ class RagService:
         top_k: int,
         score_threshold: float | None,
     ) -> AskResponse:
+        """RAG conversacional: recuperación + generación con Ollama restringida a evidencia."""
         thr = score_threshold if score_threshold is not None else float(
             self.settings.rag_default_score_threshold
         )

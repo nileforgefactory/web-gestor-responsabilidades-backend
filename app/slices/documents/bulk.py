@@ -26,6 +26,7 @@ async def extraer_archivos_masivo(
     incluir_texto: bool,
     continuar_si_error: bool,
 ) -> ExtraccionMasivaResponse:
+    """Extrae texto de varios archivos en paralelo sin indexar en Qdrant."""
     validar_lote_archivos(uploads, settings)
     cargados = await leer_archivos_cargados(uploads, settings)
 

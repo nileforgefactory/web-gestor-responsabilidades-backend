@@ -27,6 +27,12 @@ async def persist_analysis(
     qdrant_doc_id: str,
     result: dict[str, Any],
 ) -> str:
+    """
+    Inserta o actualiza plan y entidades hijas desde el resultado del análisis.
+
+    Returns:
+        ID del plan persistido (existente o nuevo UUID).
+    """
     pid = plan_id or str(uuid.uuid4())
     plane = await db.get(Plane, pid)
     if plane is None:

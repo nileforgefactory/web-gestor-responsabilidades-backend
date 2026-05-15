@@ -37,14 +37,22 @@ class ExtractionResult:
 
 
 def _suffix(filename: str) -> str:
+    """Extensión en minúsculas (``.pdf``, ``.png``, etc.)."""
     return Path(filename).suffix.lower()
 
 
 def _page_separator(page_num: int) -> str:
+    """Marcador de página para concatenar texto multi-página."""
     return f"\n\n--- Página {page_num} ---\n\n"
 
 
 class DocumentExtractor:
+    """
+    Extrae texto de PDF, imágenes y archivos de texto.
+
+    PDF: primero capa nativa (pypdf); páginas pobres → OCR Tesseract.
+    """
+
     def __init__(
         self,
         *,
@@ -59,6 +67,12 @@ class DocumentExtractor:
         self.min_chars_per_page = min_chars_per_page
 
     def extract_from_bytes(self, raw: bytes, filename: str) -> ExtractionResult:
+        """
+        Punto de entrada síncrono (ejecutar en hilo desde código async).
+
+        Raises:
+            ValueError: archivo vacío, formato no soportado o sin texto extraíble.
+        """
         if not raw:
             raise ValueError("Archivo vacío")
 
@@ -88,6 +102,7 @@ class DocumentExtractor:
         native_pages: int = 0,
         ocr_confidence_avg: float | None = None,
     ) -> ExtractionResult:
+        """Valida texto no vacío y arma ``ExtractionResult`` con metadatos de páginas."""
         merged = text.strip()
         if not merged:
             raise ValueError(
@@ -106,6 +121,7 @@ class DocumentExtractor:
         )
 
     def _extract_image(self, raw: bytes, filename: str) -> ExtractionResult:
+        """OCR obligatorio para PNG/JPG/TIFF."""
         if not self.ocr_enabled:
             raise ValueError(
                 "Imagen sin OCR habilitado. Configura OCR_ENABLED=true o usa PDF/TXT."
@@ -121,6 +137,7 @@ class DocumentExtractor:
         )
 
     def _extract_pdf(self, raw: bytes, filename: str) -> ExtractionResult:
+        """Capa nativa por página; OCR selectivo en páginas con poco texto."""
         reader = PdfReader(io.BytesIO(raw))
         num_pages = len(reader.pages)
         if num_pages == 0:
@@ -211,6 +228,7 @@ class DocumentExtractor:
         raw: bytes,
         page_numbers: list[int],
     ) -> tuple[dict[int, str], float | None]:
+        """Rasteriza páginas indicadas y aplica Tesseract por imagen."""
         from pdf2image import convert_from_bytes
 
         if not page_numbers:
@@ -241,12 +259,14 @@ class DocumentExtractor:
         return out, avg
 
     def _ocr_image_bytes(self, raw: bytes) -> tuple[str, float | None]:
+        """Abre bytes como imagen PIL y delega en ``_ocr_pil_image``."""
         from PIL import Image
 
         img = Image.open(io.BytesIO(raw))
         return self._ocr_pil_image(img)
 
     def _ocr_pil_image(self, img) -> tuple[str, float | None]:
+        """Ejecuta Tesseract y calcula confianza media de palabras reconocidas."""
         import pytesseract
 
         data = pytesseract.image_to_data(
@@ -266,6 +286,7 @@ class DocumentExtractor:
 
 
 def get_document_extractor_from_settings(settings) -> DocumentExtractor:
+    """Factory que lee flags OCR desde ``Settings``."""
     return DocumentExtractor(
         ocr_enabled=settings.ocr_enabled,
         ocr_lang=settings.ocr_lang,

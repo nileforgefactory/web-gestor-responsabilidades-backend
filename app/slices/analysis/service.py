@@ -28,10 +28,12 @@ EmitFn = Callable[[dict[str, Any]], Awaitable[None]]
 
 
 async def _noop_emit(_: dict[str, Any]) -> None:
+    """Emisor vacío cuando no se requiere SSE."""
     pass
 
 
 def _merge_unique(items: list[dict], new_items: list[dict], key: str = "titulo") -> None:
+    """Añade ítems evitando duplicados por clave (titulo o codigo)."""
     seen = {str(i.get(key, "")).lower() for i in items}
     for row in new_items:
         k = str(row.get(key, "")).lower()
@@ -57,6 +59,14 @@ async def run_document_analysis(
     db: AsyncSession | None,
     emit: EmitFn = _noop_emit,
 ) -> AnalisisDocumentoResponse:
+    """
+    Ejecuta el pipeline completo de análisis de un plan de desarrollo.
+
+    Orden: extracción → indexación Qdrant → agentes → coordinador → matriz → MySQL opcional.
+
+    Args:
+        emit: Callback async para eventos SSE (log, agent_done, etc.).
+    """
     await rag.ensure_collection()
 
     await emit({"type": "log", "msg": "Extrayendo texto (OCR si aplica)..."})
@@ -216,6 +226,11 @@ async def run_document_analysis(
 async def stream_document_analysis(
     **kwargs: Any,
 ) -> AsyncIterator[str]:
+    """
+    Envuelve ``run_document_analysis`` y emite líneas SSE (data: JSON).
+
+    Incluye heartbeat cada ~20s si no hay eventos.
+    """
     queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
 
     async def emit(event: dict[str, Any]) -> None:

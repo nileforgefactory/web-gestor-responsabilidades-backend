@@ -21,6 +21,12 @@ async def coordinator_decide(
     iteration: int,
     max_iterations: int,
 ) -> dict[str, Any]:
+    """
+    Pide al LLM decidir si finalizar, buscar más contexto o profundizar un sector.
+
+    Returns:
+        Dict con claves accion, razon, query, sector, confianza.
+    """
     resumen_lines = []
     for key in ("responsabilidades", "leyes", "actores", "brechas"):
         items = context.get(key) or []

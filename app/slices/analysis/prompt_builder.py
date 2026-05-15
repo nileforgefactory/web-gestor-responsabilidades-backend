@@ -29,6 +29,12 @@ def build_agent_prompt(
     profundidad: str,
     entidad: str = "",
 ) -> str:
+    """
+    Ensambla system prompt: jerarquía jurídica + nivel + profundidad + template MD.
+
+    Args:
+        agent_type: Nombre del archivo en ``data/prompts/{agent_type}.md``.
+    """
     parts = [_JERARQUIA, _NIVEL_CTX.get(nivel, ""), _PROFUNDIDAD.get(profundidad, _PROFUNDIDAD["estandar"])]
     tpl = _TEMPLATES / f"{agent_type}.md"
     if tpl.exists():

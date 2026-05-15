@@ -69,7 +69,12 @@ async def dispose_engine() -> None:
 
 
 async def get_optional_db() -> AsyncGenerator[AsyncSession | None, None]:
-    """Sesión MySQL si está configurada; si no, None (análisis sin persistencia)."""
+    """
+    Sesión MySQL opcional para endpoints que pueden omitir persistencia.
+
+    Yields:
+        AsyncSession si MYSQL_URL está configurado; None en caso contrario.
+    """
     if _session_factory is None:
         yield None
         return

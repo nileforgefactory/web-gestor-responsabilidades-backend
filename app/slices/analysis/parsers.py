@@ -8,10 +8,12 @@ from typing import Any
 
 
 def _split_pipe_line(line: str) -> list[str]:
+    """Divide una línea delimitada por ``|`` en columnas recortadas."""
     return [p.strip() for p in line.split("|")]
 
 
 def parse_responsabilidades(text: str) -> list[dict[str, Any]]:
+    """Parsea líneas ``- titulo | descripcion | ...`` del agente responsabilidades."""
     out: list[dict[str, Any]] = []
     for raw in text.splitlines():
         line = raw.strip().lstrip("-").strip()
@@ -34,6 +36,7 @@ def parse_responsabilidades(text: str) -> list[dict[str, Any]]:
 
 
 def parse_leyes(text: str) -> list[dict[str, Any]]:
+    """Parsea líneas de marco normativo citado en el plan."""
     out: list[dict[str, Any]] = []
     for raw in text.splitlines():
         line = raw.strip().lstrip("-").strip()
@@ -57,6 +60,7 @@ def parse_leyes(text: str) -> list[dict[str, Any]]:
 
 
 def parse_actores(text: str) -> list[dict[str, Any]]:
+    """Parsea líneas de actores institucionales."""
     out: list[dict[str, Any]] = []
     for raw in text.splitlines():
         line = raw.strip().lstrip("-").strip()
@@ -78,6 +82,7 @@ def parse_actores(text: str) -> list[dict[str, Any]]:
 
 
 def parse_brechas(text: str) -> list[dict[str, Any]]:
+    """Parsea líneas de brechas de competencias."""
     out: list[dict[str, Any]] = []
     for raw in text.splitlines():
         line = raw.strip().lstrip("-").strip()
@@ -100,6 +105,7 @@ def parse_brechas(text: str) -> list[dict[str, Any]]:
 
 
 def parse_matriz_json(text: str) -> list[dict[str, Any]]:
+    """Extrae el primer array JSON válido de la respuesta del agente matriz."""
     cleaned = text.strip()
     match = re.search(r"\[[\s\S]*\]", cleaned)
     if not match:
@@ -114,6 +120,7 @@ def parse_matriz_json(text: str) -> list[dict[str, Any]]:
 
 
 def parse_coordinator_json(text: str) -> dict[str, Any]:
+    """Parsea decisión del coordinador; fallback a finalizar si JSON inválido."""
     cleaned = text.strip()
     match = re.search(r"\{[\s\S]*\}", cleaned)
     if not match:

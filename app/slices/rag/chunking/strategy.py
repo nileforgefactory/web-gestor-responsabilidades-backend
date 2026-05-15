@@ -8,11 +8,14 @@ from enum import Enum
 
 
 class ChunkStrategy(str, Enum):
+    """Modo de fragmentación del texto antes de embeder."""
+
     FIXED = "fixed"
     ADAPTIVE = "adaptive"
 
 
 class ChunkProfile(str, Enum):
+    """Perfil detectado en modo adaptativo."""
     FIXED = "fixed"
     DEFAULT = "default"
     LEGAL_DENSE = "legal_dense"
@@ -41,6 +44,8 @@ _MIN_CHUNK = 200
 
 @dataclass(frozen=True)
 class ChunkingResult:
+    """Resultado de fragmentación con metadatos para trazabilidad."""
+
     chunks: list[str]
     strategy: ChunkStrategy
     profile: ChunkProfile
@@ -49,6 +54,11 @@ class ChunkingResult:
 
 
 def chunk_text_by_chars(content: str, chunk_size: int, overlap: int) -> list[str]:
+    """
+    Divide texto en fragmentos de tamaño fijo con solapamiento.
+
+    Aplica límites mínimos/máximos de caracteres por chunk.
+    """
     text = content.strip()
     if not text:
         return []
@@ -72,6 +82,7 @@ def chunk_text_by_chars(content: str, chunk_size: int, overlap: int) -> list[str
 
 
 def _detect_profile(text: str, extraction_method: str | None) -> ChunkProfile:
+    """Infiere perfil según método de extracción y densidad de referencias legales."""
     if extraction_method in ("ocr", "hibrido"):
         return ChunkProfile.OCR_NOISY
 
@@ -141,6 +152,19 @@ def chunk_document(
     chunk_overlap: int = 120,
     extraction_method: str | None = None,
 ) -> ChunkingResult:
+    """
+    Punto de entrada: aplica estrategia fija o adaptativa al contenido.
+
+    Args:
+        content: Texto completo del documento.
+        strategy: ``fixed`` o ``adaptive``.
+        chunk_size: Tamaño objetivo (modo fixed o techo de referencia).
+        chunk_overlap: Solapamiento entre chunks consecutivos.
+        extraction_method: ``nativo``, ``ocr`` o ``hibrido`` (afecta perfil adaptativo).
+
+    Returns:
+        ChunkingResult con lista de fragmentos y metadatos aplicados.
+    """
     strat = ChunkStrategy(str(strategy).lower())
     text = content.strip()
     if not text:
