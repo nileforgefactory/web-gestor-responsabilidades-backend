@@ -173,6 +173,14 @@ _DOCS_SUMMARY_ES = """\
 - **Estado**: `GET /health/ready`.
 """
 
+import logging as _logging
+_logging.basicConfig(
+    level=_logging.DEBUG,
+    format="%(levelname)s [%(name)s] %(message)s",
+)
+for _noisy in ("httpx", "httpcore", "urllib3", "asyncio", "multipart"):
+    _logging.getLogger(_noisy).setLevel(_logging.WARNING)
+
 openapi_tags_docs = [
     {
         "name": "salud",

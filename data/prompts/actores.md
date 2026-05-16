@@ -14,7 +14,14 @@ Para cada actor:
 - **nivel**: nacional | departamental | municipal | especializado
 - **competencias_clave**: qué hace en el plan
 
-Formato:
+REGLA CRÍTICA: Responde ÚNICAMENTE con líneas en el formato de abajo. NO uses asteriscos, guiones, markdown, encabezados, ni texto explicativo. Cada línea debe tener exactamente 5 campos separados por |.
+
+Formato (un actor por línea):
 [NOMBRE] | [SIGLA] | [TIPO] | [NIVEL] | [COMPETENCIAS]
 
-Responde SOLO en español. No incluyas explicaciones fuera del formato.
+Ejemplos correctos:
+Concejo Municipal de Tello | CMT | principal | municipal | Aprobar el Plan de Desarrollo municipal
+Departamento Nacional de Planeación | DNP | principal | nacional | Proporcionar metodología y lineamientos para planes de desarrollo
+Corporación Autónoma Regional del Huila | CRA | concurrente | departamental | Emitir concepto ambiental sobre el plan
+
+Responde SOLO en español. No incluyas NINGÚN texto fuera de las líneas con formato de pipe.

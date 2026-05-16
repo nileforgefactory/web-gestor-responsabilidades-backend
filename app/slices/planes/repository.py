@@ -110,8 +110,8 @@ async def create_plane(db: AsyncSession, data: PlanCreate) -> Plane:
         db.add(PlanNorma(plan_id=plane.id, **n.model_dump()))
 
     await db.flush()
-    await db.refresh(plane)
-    return plane
+    await db.commit()
+    return await get_plane(db, plane.id)  # recarga con eager loading
 
 
 async def update_plane(

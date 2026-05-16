@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -90,6 +91,10 @@ async def analyze_document(
         True,
         description="Persistir responsabilidades, leyes, actores, brechas y matriz",
     ),
+    max_iteraciones: int = Form(
+        None,
+        description="Iteraciones máximas del coordinador (sobreescribe settings). None = usa el valor por defecto.",
+    ),
     stream: bool = Form(
         False,
         description="true = SSE en vivo; false = JSON único al finalizar",
@@ -124,6 +129,7 @@ async def analyze_document(
         titulo_plan=titulo_plan,
         guardar_mysql=guardar_mysql,
         db=db if guardar_mysql and db is not None else None,
+        max_iteraciones=max_iteraciones,
     )
 
     if stream:
@@ -146,6 +152,45 @@ async def analyze_document(
     except Exception as exc:
         logger.exception("analyze-document")
         raise HTTPException(500, str(exc)) from exc
+
+
+class SaveResultRequest(BaseModel):
+    titulo:        str
+    nombre_corto:  str | None = None
+    nivel:         str = "municipal"
+    entidad:       str = ""
+    periodo:       str | None = None
+    archivo_nombre: str | None = None
+    qdrant_doc_id: str | None = None
+    result:        dict
+
+
+@router.post(
+    "/save-result",
+    summary="Persistir en MySQL el resultado de un análisis ya ejecutado",
+    status_code=200,
+)
+async def save_analysis_result(
+    body: SaveResultRequest,
+    db: AsyncSession | None = Depends(get_optional_db),
+) -> dict:
+    """Guarda responsabilidades, leyes, actores, brechas y matriz de un análisis previo."""
+    from app.slices.analysis.persist import persist_analysis
+
+    if db is None:
+        raise HTTPException(503, "MySQL no configurado")
+
+    plan_id = await persist_analysis(
+        db,
+        plan_id=None,
+        titulo=body.titulo,
+        nivel=body.nivel,
+        archivo_nombre=body.archivo_nombre or "",
+        qdrant_doc_id=body.qdrant_doc_id or "",
+        result=body.result,
+    )
+    await db.commit()
+    return {"plan_id": plan_id, "guardado": True}
 
 
 @router.post(

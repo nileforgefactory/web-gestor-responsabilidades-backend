@@ -1,8 +1,12 @@
 """Cliente HTTP mínimo para la API REST de Ollama (embeddings y chat)."""
 
+import logging
+import time
 from typing import Any
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class OllamaError(RuntimeError):
@@ -55,18 +59,36 @@ async def ollama_chat(
         Contenido textual de la respuesta del asistente.
     """
     url = base_url.rstrip("/") + "/api/chat"
+
+    # Log del prompt enviado al LLM
+    for i, m in enumerate(messages):
+        role = m.get("role", "?")
+        body = m.get("content", "")
+        logger.debug(
+            "[OLLAMA][%s] mensaje[%d] rol=%s (%d chars):\n%s",
+            model, i, role, len(body), body[:3000]
+        )
+
+    t0 = time.monotonic()
     response = await http.post(
         url,
         json={"model": model, "messages": messages, "stream": False},
         timeout=httpx.Timeout(300.0),
     )
+    elapsed = time.monotonic() - t0
     response.raise_for_status()
     payload: dict[str, Any] = response.json()
     msg = payload.get("message") or {}
     content = msg.get("content") if isinstance(msg, dict) else None
     if not content or not isinstance(content, str):
         raise OllamaError(f"Respuesta chat inválida: {payload!r}")
-    return content.strip()
+
+    result = content.strip()
+    logger.debug(
+        "[OLLAMA][%s] respuesta (%.1fs, %d chars):\n%s",
+        model, elapsed, len(result), result[:3000]
+    )
+    return result
 
 
 async def ollama_health(http: httpx.AsyncClient, base_url: str) -> bool:

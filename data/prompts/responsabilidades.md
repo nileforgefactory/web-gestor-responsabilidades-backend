@@ -13,7 +13,14 @@ Para cada responsabilidad, indica:
 - **referencia_legal**: qué norma la obliga (ej: "Ley 715/2001 art. 43")
 - **nivel_obligatoriedad**: obligatoria | recomendada | opcional
 
-Formato de respuesta — lista de items, uno por línea:
-- [TITULO] | [DESCRIPCION] | [TIPO] | [SECTOR] | [REF_LEGAL] | [OBLIGATORIEDAD]
+REGLA CRÍTICA: Responde ÚNICAMENTE con líneas en el formato de abajo. NO uses asteriscos, guiones sueltos, markdown, encabezados, ni texto explicativo. Cada línea debe tener exactamente 6 campos separados por |.
 
-Responde SOLO en español. No incluyas explicaciones fuera del formato.
+Formato (una responsabilidad por línea):
+[TITULO] | [DESCRIPCION] | [TIPO] | [SECTOR] | [REF_LEGAL] | [OBLIGATORIEDAD]
+
+Ejemplos correctos:
+Aprobar Plan de Desarrollo | El Concejo debe aprobar el plan mediante acuerdo | P | gobierno | Ley 152/1994 art. 40 | obligatoria
+Prestar servicio de acueducto | Garantizar agua potable a la población | P | agua | Ley 142/1994 | obligatoria
+Cofinanciar infraestructura vial | Concurrir con departamento en vías secundarias | C | transporte | Ley 105/1993 | recomendada
+
+Responde SOLO en español. No incluyas NINGÚN texto fuera de las líneas con formato de pipe.

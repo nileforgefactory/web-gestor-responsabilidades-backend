@@ -18,7 +18,13 @@ Para cada brecha:
 - **norma_base**: qué norma obliga a resolverla
 - **recomendacion**: cómo resolverla
 
-Formato:
+REGLA CRÍTICA: Responde ÚNICAMENTE con líneas en el formato de abajo. NO uses asteriscos, guiones, markdown, encabezados, ni texto explicativo. Cada línea debe tener exactamente 6 campos separados por |.
+
+Formato (una brecha por línea):
 [TITULO] | [DESCRIPCION] | [TIPO] | [SEVERIDAD] | [NORMA_BASE] | [RECOMENDACION]
 
-Responde SOLO en español. No incluyas explicaciones fuera del formato.
+Ejemplos correctos:
+Sin actor en salud rural | El plan no asigna responsable para atención en zona rural | sin_responsable | alta | Ley 715/2001 art. 44 | Asignar Secretaría de Salud como responsable
+Duplicidad en vías | Alcaldía y gobernación reclaman competencia sobre vía Tello-Pitalito | duplicidad | media | Ley 105/1993 | Definir nivel de vía mediante acto administrativo
+
+Responde SOLO en español. No incluyas NINGÚN texto fuera de las líneas con formato de pipe.

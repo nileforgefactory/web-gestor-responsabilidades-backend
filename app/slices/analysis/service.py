@@ -70,6 +70,7 @@ async def run_document_analysis(
     guardar_mysql: bool,
     db: AsyncSession | None,
     emit: EmitFn = _noop_emit,
+    max_iteraciones: int | None = None,
 ) -> AnalisisDocumentoResponse:
     """
     Ejecuta el pipeline completo de análisis de un plan de desarrollo.
@@ -137,7 +138,7 @@ async def run_document_analysis(
                     extra_query=extra_query,
                     plan_excerpt=plan_excerpt,
                 )
-                merge_key = "codigo" if name == "leyes" else "titulo"
+                merge_key = {"leyes": "codigo", "actores": "nombre"}.get(name, "titulo")
                 _merge_unique(context[name], rows, key=merge_key)
                 await emit({"type": "agent_done", "agent": name, "count": len(context[name])})
             except Exception as exc:
@@ -150,7 +151,9 @@ async def run_document_analysis(
     await run_agents_batch()
 
     iteraciones = 0
-    max_iter = settings.analysis_max_iterations if profundidad != "basico" else 0
+    max_iter = 0 if profundidad == "basico" else (
+        max_iteraciones if max_iteraciones is not None else settings.analysis_max_iterations
+    )
 
     for iteration in range(1, max_iter + 1):
         iteraciones = iteration
