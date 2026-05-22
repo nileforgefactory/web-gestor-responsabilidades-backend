@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import Response
 
 from app.core.config import get_settings
 from app.core.database import get_optional_db
@@ -34,7 +35,6 @@ def _parse_normativa_ids(raw: str | None) -> list[str]:
 
 @router.post(
     "/analyze-document",
-    response_model=AnalisisDocumentoResponse,
     summary="Analizar plan: OCR → indexar → agentes → coordinador",
     response_description="JSON con extracciones o flujo SSE si stream=true.",
     description=(
@@ -53,8 +53,8 @@ def _parse_normativa_ids(raw: str | None) -> list[str]:
                 "JSON con resultados (`stream=false`) o flujo SSE (`stream=true`, "
                 "Content-Type: text/event-stream)."
             ),
+            "model": AnalisisDocumentoResponse,
             "content": {
-                "application/json": {"schema": {"$ref": "#/components/schemas/AnalisisDocumentoResponse"}},
                 "text/event-stream": {
                     "schema": {"type": "string", "description": "Eventos SSE (type: log, agent_done, done, ...)"},
                 },
@@ -101,7 +101,7 @@ async def analyze_document(
     ),
     rag: RagService = Depends(get_rag_service),
     db: AsyncSession | None = Depends(get_optional_db),
-) -> AnalisisDocumentoResponse | StreamingResponse:
+) -> Response:
     """
     Orquesta el análisis completo de un documento de plan de desarrollo.
 
@@ -132,17 +132,17 @@ async def analyze_document(
         max_iteraciones=max_iteraciones,
     )
 
+    if guardar_mysql and db is None:
+        raise HTTPException(
+            503,
+            "MySQL no configurado. Usa guardar_mysql=false o define MYSQL_URL.",
+        )
+
     if stream:
         return StreamingResponse(
             stream_document_analysis(**kwargs),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-        )
-
-    if guardar_mysql and db is None:
-        raise HTTPException(
-            503,
-            "MySQL no configurado. Usa guardar_mysql=false o define MYSQL_URL.",
         )
 
     try:
