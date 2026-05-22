@@ -1,0 +1,20 @@
+# Perfil producción: solo la API expone puerto al host.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+name: api-rag
+
+services:
+  mysql:
+    ports: !reset []
+    expose:
+      - "3306"
+
+  ollama:
+    ports: !reset []
+    expose:
+      - "11434"
+
+  qdrant:
+    ports: !reset []
+    expose:
+      - "6333"
+      - "6334"

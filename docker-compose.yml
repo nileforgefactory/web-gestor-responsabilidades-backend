@@ -1,20 +1,58 @@
-name: api-rag
+name: gestor-backend
 
 networks:
   default:
-    name: api-rag-net
+    name: gestor-backend-net
 
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: api-rag-ollama
+
+  # ── Cache / sesiones SSE ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: gestor-backend-redis
+    expose:
+      - "6379"
     volumes:
-      - ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
+      - redis_data:/data
     restart: unless-stopped
     healthcheck:
-      # La imagen ollama trae CLI; equivale a comprobar que el daemon contesta por red local.
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Base de datos relacional ──────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: gestor-backend-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: gestor_responsabilidades
+      MYSQL_USER: gestor
+      MYSQL_PASSWORD: gestor_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gestor-backend-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    expose:
+      - "11434"
+    restart: unless-stopped
+    healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 10s
@@ -23,49 +61,47 @@ services:
 
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: api-rag-qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
+    container_name: gestor-backend-qdrant
+    expose:
+      - "6333"
+      - "6334"
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6333/collections >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 60
-      start_period: 15s
 
-  # Descarga embeddings + modelo de chat dentro del daemon antes de exponer la API (evita errores en Swagger por modelos ausentes).
   ollama-pull:
     build:
       context: .
       dockerfile: Dockerfile.ollama-pull
-    image: api-rag-ollama-pull:local
-    container_name: api-rag-ollama-pull
+    image: gestor-backend-ollama-pull:local
+    container_name: gestor-backend-ollama-pull
     depends_on:
       ollama:
         condition: service_healthy
     environment:
       OLLAMA_HOST: http://ollama:11434
-      EMBED_MODEL: nomic-embed-text
-      CHAT_MODEL: llama3.2:3b
-      BOOTSTRAP_MAX_WAIT_SEC: "300"
+      EMBED_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-llama3.1:8b}
+      BOOTSTRAP_MAX_WAIT_SEC: "600"
     restart: "no"
 
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: api-rag-api
+    image: gestor-backend-api:local
+    container_name: gestor-backend-api
     depends_on:
       qdrant:
-        condition: service_healthy
+        condition: service_started
       ollama:
         condition: service_healthy
       ollama-pull:
         condition: service_completed_successfully
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       APP_ENV: docker
       APP_HOST: 0.0.0.0
@@ -75,16 +111,35 @@ services:
       VECTOR_SIZE: "768"
       USE_OLLAMA: "true"
       OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
-      OLLAMA_CHAT_MODEL: llama3.2:3b
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-llama3.1:8b}
       INGEST_EMBED_CONCURRENCY: "4"
       RAG_DEFAULT_SCORE_THRESHOLD: "0.25"
+      MYSQL_URL: mysql+aiomysql://gestor:gestor_pass@mysql:3306/gestor_responsabilidades?charset=utf8mb4
+      REDIS_URL: redis://redis:6379/0
+      OCR_ENABLED: "true"
+      OCR_LANG: spa
+      OCR_DPI: "200"
+      OCR_MIN_CHARS_PER_PAGE: "50"
+      BULK_MAX_FILES: "50"
+      BULK_MAX_FILE_BYTES: "52428800"
+      BULK_INGEST_CONCURRENCY: "2"
+      DEFAULT_CHUNK_STRATEGY: "adaptive"
+      ANALYSIS_MAX_ITERATIONS: "3"
     ports:
       - "8000:8000"
     volumes:
       - ./sample_documents:/samples:ro
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8000/health/ready"]
+      interval: 20s
+      timeout: 15s
+      retries: 8
+      start_period: 120s
 
 volumes:
   qdrant_data:
   ollama_data:
+  mysql_data:
+  redis_data:

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"D:\\\\Proyectos\\\\Empresa\\\\proyecto - David\\\\web-gestor-responsabilidades-backend\" -Directory)",
+      "Bash(python -c \"import ast, sys; files = ['app/core/session_store.py','app/slices/analysis/schemas.py','app/slices/analysis/agents.py','app/slices/analysis/coordinator.py','app/slices/analysis/service.py','app/slices/analysis/router.py','app/slices/alertas/models.py','app/slices/alertas/schemas.py','app/slices/alertas/service.py','app/slices/alertas/router.py','app/slices/planes/repository.py','app/main.py']; errors=[]; [errors.append\\(\\(f, str\\(e\\)\\)\\) for f in files for e in [None] if \\(lambda: ast.parse\\(open\\(f\\).read\\(\\)\\)\\)\\(\\) is None or False]; [errors.append\\(\\(f, str\\(e\\)\\)\\) for f in files if \\(lambda fi=f: exec\\(compile\\(open\\(fi\\).read\\(\\), fi, 'exec'\\), {'__builtins__': __builtins__}\\)\\)\\(\\) if False]; print\\('Checking syntax...'\\); [print\\(f'  OK: {f}'\\) or None for f in files if \\(lambda fi=f: ast.parse\\(open\\(fi\\).read\\(\\)\\)\\)\\(\\)]\")",
+      "Bash(python -c ' *)"
+    ]
+  }
+}

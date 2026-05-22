@@ -13,19 +13,48 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from app.core.config import Settings, get_settings
+from app.core.database import create_tables, dispose_engine, init_db
+from app.core.session_store import get_session_store, init_session_store
 from app.dependencies import get_rag_service
 from app.slices.rag.router import router as rag_router
+from app.slices.planes.router import router as planes_router
+from app.slices.conocimiento.router import router as conocimiento_router
+from app.slices.documents.router import router as documents_router
+from app.slices.analysis.router import router as analysis_router
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    """Arranque: colección Qdrant y tablas MySQL opcionales; cierre de clientes al apagar."""
+    # ── RAG (Qdrant + Ollama) ──
     rag_service = get_rag_service()
     await rag_service.ensure_collection()
+
+    # ── MySQL (opcional) ──
+    settings = get_settings()
+    if settings.mysql_url:
+        # Importar modelos para que estén en Base.metadata antes de create_all
+        import app.slices.planes.models        # noqa: F401
+        import app.slices.conocimiento.models  # noqa: F401
+        import app.slices.alertas.models       # noqa: F401
+        init_db(settings.mysql_url)
+        await create_tables()
+
+    # ── Redis (opcional — sesiones SSE) ──
+    if settings.redis_url:
+        init_session_store(settings.redis_url)
+
     yield
+
     await rag_service.close()
+    await dispose_engine()
+    store = get_session_store()
+    if store:
+        await store.close()
 
 
 def _model_tag_present(registry: list[str], want: str) -> bool:
+    """True si el modelo solicitado (o su base sin tag) está en el listado de Ollama."""
     target = want.strip().lower()
     base = target.split(":")[0]
     for raw in registry:
@@ -38,6 +67,7 @@ def _model_tag_present(registry: list[str], want: str) -> bool:
 
 
 def _blocking_readiness(settings: Settings) -> tuple[dict[str, Any], bool]:
+    """Comprueba Qdrant y Ollama de forma síncrona (ejecutar en hilo desde async)."""
     snapshot: dict[str, Any] = {
         "app_env": settings.app_env,
         "checks": {},
@@ -143,12 +173,30 @@ _DOCS_SUMMARY_ES = """\
 - **Estado**: `GET /health/ready`.
 """
 
+import logging as _logging
+_logging.basicConfig(
+    level=_logging.DEBUG,
+    format="%(levelname)s [%(name)s] %(message)s",
+)
+for _noisy in ("httpx", "httpcore", "urllib3", "asyncio", "multipart"):
+    _logging.getLogger(_noisy).setLevel(_logging.WARNING)
+
 openapi_tags_docs = [
     {
         "name": "salud",
         "description": "Comprobaciones ligeras para depuracion (Swagger, Compose, soporte local).",
     },
-    {"name": "rag", "description": "Ingesta, busqueda, contexto para agentes y preguntas con modelo local."},
+    {"name": "rag",          "description": "Ingesta, busqueda, contexto para agentes y preguntas con modelo local."},
+    {"name": "planes",       "description": "CRUD de planes de desarrollo (requiere MySQL)."},
+    {"name": "conocimiento", "description": "Registro de documentos indexados en la base de conocimiento RAG (requiere MySQL)."},
+    {
+        "name": "documentos",
+        "description": "Extracción de texto y OCR de archivos (sin indexar en Qdrant).",
+    },
+    {
+        "name": "analisis",
+        "description": "Análisis multi-agente de planes: OCR, indexación, loop coordinador y SSE.",
+    },
 ]
 
 app = FastAPI(
@@ -171,7 +219,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS", "HEAD"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
 )
 app.add_middleware(StripUtf8JsonBOMMiddleware)
@@ -179,6 +227,7 @@ app.add_middleware(StripUtf8JsonBOMMiddleware)
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_hints(_request: Request, exc: RequestValidationError):
+    """Añade pistas en español cuando el cuerpo JSON es inválido (comillas, BOM)."""
     errs = exc.errors()
     payload: dict[str, Any] = {"detail": errs}
     if errs and isinstance(errs[0], dict):
@@ -188,27 +237,51 @@ async def request_validation_hints(_request: Request, exc: RequestValidationErro
                 "JSON invalido: solo comillas dobles ASCII (\"clave\":\"valor\"). "
                 "Evita comillas simples alrededor del objeto, BOM al inicio, o pegar "
                 "dos comandos en una sola linea (headers/DATA truncados). "
-                "PowerShell: .\\scripts\\demo-ask.ps1 o curl --data-binary @ask.json (UTF-8 sin BOM)."
+                "PowerShell: .\\scripts\\dev-menu.ps1 (opción 12) o JSON con comillas simples externas."
             )
     return JSONResponse(status_code=422, content=payload)
 
 
-app.include_router(rag_router, prefix="/api/v1")
+app.include_router(rag_router,          prefix="/api/v1")
+app.include_router(planes_router,       prefix="/api/v1")
+app.include_router(conocimiento_router, prefix="/api/v1")
+app.include_router(documents_router, prefix="/api/v1")
+app.include_router(analysis_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)
 async def root() -> RedirectResponse:
+    """Redirige la raíz a la documentación Swagger."""
     return RedirectResponse(url="/docs", status_code=307)
 
 
-@app.get("/health", tags=["salud"])
+@app.get(
+    "/health",
+    tags=["salud"],
+    summary="Ping mínimo de la API",
+    response_description="Estado básico sin comprobar dependencias.",
+)
 async def health() -> dict[str, str]:
+    """Responde si el proceso HTTP está activo (no valida Qdrant ni Ollama)."""
     return {"status": "ok", "env": settings.app_env}
 
 
-@app.get("/health/ready", tags=["salud"])
+@app.get(
+    "/health/ready",
+    tags=["salud"],
+    summary="Preparación para ingesta y análisis",
+    response_description="JSON con checks de Qdrant y Ollama; 503 si no está listo.",
+    description=(
+        "Comprueba Qdrant, daemon Ollama y modelos de embeddings/chat registrados. "
+        "Ejecutar antes de ingest, ask o analyze-document desde Swagger."
+    ),
+    responses={
+        200: {"description": "Sistema listo (healthy=true)."},
+        503: {"description": "Alguna dependencia no está lista (healthy=false)."},
+    },
+)
 async def health_ready() -> JSONResponse:
-    """Combina pings baratos antes de ejecutar ingest/ask desde Swagger."""
+    """Valida dependencias críticas antes de operaciones costosas."""
 
     snapshot, healthy = await asyncio.to_thread(_blocking_readiness, get_settings())
 

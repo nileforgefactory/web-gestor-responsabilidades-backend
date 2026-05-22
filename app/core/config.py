@@ -4,6 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Configuración de la aplicación cargada desde variables de entorno y `.env`."""
+
     app_name: str = "Agentic RAG API"
     app_env: str = "dev"
     app_host: str = "0.0.0.0"
@@ -21,6 +23,29 @@ class Settings(BaseSettings):
     ingest_embed_concurrency: int = 4
     rag_default_score_threshold: float = 0.25
 
+    # MySQL — opcional; si está vacío las rutas DB devuelven 503
+    # Formato: mysql+aiomysql://usuario:clave@host:puerto/base_datos?charset=utf8mb4
+    mysql_url: str | None = None
+
+    # Redis — opcional; si está vacío las sesiones SSE no se persisten
+    # Formato: redis://host:puerto/db
+    redis_url: str | None = None
+
+    ocr_enabled: bool = True
+    ocr_lang: str = "spa"
+    ocr_dpi: int = 200
+    ocr_min_chars_per_page: int = 50
+
+    # Subida masiva
+    bulk_max_files: int = 50
+    bulk_max_file_bytes: int = 52_428_800  # 50 MiB por archivo
+    bulk_ingest_concurrency: int = 2
+
+    # Chunking (Sprint 2)
+    default_chunk_strategy: str = "adaptive"
+    analysis_max_iterations: int = 3
+    analysis_confidence_threshold: float = 0.55
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -30,4 +55,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Devuelve instancia singleton de configuración (cacheada)."""
     return Settings()

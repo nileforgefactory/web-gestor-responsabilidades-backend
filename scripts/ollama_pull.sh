@@ -5,7 +5,7 @@ set -eu
 
 OLLAMA_HOST="${OLLAMA_HOST:-http://ollama:11434}"
 EMBED_MODEL="${EMBED_MODEL:-nomic-embed-text}"
-CHAT_MODEL="${CHAT_MODEL:-llama3.2:3b}"
+CHAT_MODEL="${CHAT_MODEL:-llama3.1:8b}"
 MAX_WAIT="${BOOTSTRAP_MAX_WAIT_SEC:-240}"
 
 wait_for_daemon() {
