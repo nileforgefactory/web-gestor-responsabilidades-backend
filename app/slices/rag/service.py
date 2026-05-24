@@ -10,6 +10,7 @@ from httpx import HTTPStatusError
 from qdrant_client import AsyncQdrantClient
 
 from app.core.config import Settings
+from app.slices.common.network_errors import classify_http_error, is_transient_network_error
 from app.slices.rag.chunking.strategy import chunk_document
 from app.slices.rag.ollama_client import OllamaError, ollama_chat, ollama_embed
 from app.slices.rag.repository import RagRepository
@@ -51,8 +52,30 @@ async def _with_retries(call: Callable[[], Awaitable[T]], *, attempts: int = 8) 
         except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError, OSError) as exc:
             last_exc = exc
             wait_s = min(30.0, 2.0**attempt)
-            logger.warning("Reintento %s tras error de red %s", attempt + 1, exc)
+            info = classify_http_error(exc)
+            logger.warning(
+                "Reintento %s/%s tras error de red (%s): %s",
+                attempt + 1,
+                attempts,
+                info.kind.value,
+                info.message,
+            )
             await asyncio.sleep(wait_s)
+        except Exception as exc:
+            if is_transient_network_error(exc) and attempt < attempts - 1:
+                last_exc = exc
+                info = classify_http_error(exc)
+                wait_s = min(30.0, 2.0**attempt)
+                logger.warning(
+                    "Reintento %s/%s tras error de red (%s): %s",
+                    attempt + 1,
+                    attempts,
+                    info.kind.value,
+                    info.message,
+                )
+                await asyncio.sleep(wait_s)
+                continue
+            raise
         except HTTPStatusError as exc:
             if exc.response.status_code in (408, 429, 502, 503, 504) and attempt < attempts - 1:
                 last_exc = exc
@@ -191,15 +214,19 @@ class RagService:
             )
 
         vectors = await self._embedding_batch(chunks)
-        inserted = await self.repository.upsert_chunks(
-            collection_id=collection_id,
-            document_id=document_id,
-            chunks=chunks,
-            vectors=vectors,
-            title=title or document_id,
-            source_filename=source_filename or "",
-            territorio=territorio,
-        )
+
+        async def upsert() -> int:
+            return await self.repository.upsert_chunks(
+                collection_id=collection_id,
+                document_id=document_id,
+                chunks=chunks,
+                vectors=vectors,
+                title=title or document_id,
+                source_filename=source_filename or "",
+                territorio=territorio,
+            )
+
+        inserted = await _with_retries(upsert, attempts=3)
         return IngestTextResponse(
             collection_id=collection_id,
             document_id=document_id,

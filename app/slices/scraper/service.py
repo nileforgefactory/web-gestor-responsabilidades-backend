@@ -17,7 +17,9 @@ from app.slices.conocimiento.schemas import (
     ConocimientoUpdate,
     TipoDocumento,
 )
+from app.slices.rag.ollama_client import OllamaError
 from app.slices.rag.service import RagService
+from app.slices.common.network_errors import classify_http_error, is_transient_network_error
 from app.slices.scraper.fetcher import fetch_and_extract
 from app.slices.scraper.schemas import (
     NormaScraperResultado,
@@ -188,10 +190,14 @@ class ScraperService:
                 settings=self.settings,
             )
         except httpx.HTTPError as exc:
+            info = classify_http_error(exc)
             logger.warning(
-                "[SCRAPER] norma=%r descarga_fallo url=%s error=%s", norma, hit.url, exc
+                "[SCRAPER] norma=%r descarga_fallo url=%s tipo=%s",
+                norma,
+                hit.url,
+                info.kind.value,
             )
-            return None, None, f"No se pudo descargar {hit.url}: {exc}"
+            return None, None, f"No se pudo descargar {hit.url} ({info.kind.value}): {info.message}"
         except ValueError as exc:
             logger.warning(
                 "[SCRAPER] norma=%r extraccion_fallo url=%s error=%s", norma, hit.url, exc
@@ -207,9 +213,35 @@ class ScraperService:
                 url=hit.url,
                 titulo_resultado=hit.title,
             )
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError, OllamaError) as exc:
+            info = classify_http_error(exc)
+            logger.error(
+                "[SCRAPER] norma=%r validacion_llm_fallo url=%s tipo=%s error=%s",
+                norma,
+                hit.url,
+                info.kind.value,
+                info.message,
+            )
+            return (
+                None,
+                None,
+                f"Validación IA no disponible ({info.kind.value}): {info.message}",
+            )
+        except httpx.HTTPStatusError as exc:
+            info = classify_http_error(exc)
+            logger.error(
+                "[SCRAPER] norma=%r validacion_llm_fallo url=%s tipo=%s error=%s",
+                norma,
+                hit.url,
+                info.kind.value,
+                info.message,
+            )
+            return None, None, f"Error HTTP en validación IA: {info.message}"
         except Exception as exc:
-            logger.exception("[SCRAPER] norma=%r validacion_error url=%s", norma, hit.url)
-            return None, None, f"Error en validación IA: {exc}"
+            logger.exception(
+                "[SCRAPER] norma=%r validacion_error_inesperado url=%s", norma, hit.url
+            )
+            return None, None, f"Error inesperado en validación IA: {exc}"
 
         val_out = validation.outcome
         if not validation.accepted:
@@ -258,7 +290,18 @@ class ScraperService:
                 territorio=val_out.territorio,
             )
         except Exception as exc:
-            logger.exception("[SCRAPER] norma=%r indexacion_fallo", norma)
+            if is_transient_network_error(exc):
+                info = classify_http_error(exc)
+                logger.error(
+                    "[SCRAPER] norma=%r indexacion_red_fallo tipo=%s error=%s",
+                    norma,
+                    info.kind.value,
+                    info.message,
+                )
+                motivo_idx = f"Error de red al indexar en Qdrant ({info.kind.value}): {info.message}"
+            else:
+                logger.exception("[SCRAPER] norma=%r indexacion_fallo", norma)
+                motivo_idx = f"Error al indexar en RAG: {exc}"
             if db is not None and catalog_id:
                 try:
                     await conocimiento_repo.update_doc(
@@ -281,11 +324,11 @@ class ScraperService:
                     estado="error",
                     url=hit.url,
                     document_id=document_id,
-                    motivo=f"Error al indexar en RAG: {exc}",
+                    motivo=motivo_idx,
                     validacion=val_out,
                 ),
                 val_out,
-                str(exc),
+                motivo_idx,
             )
 
         if db is not None and catalog_id:

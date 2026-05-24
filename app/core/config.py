@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     scraper_validation_text_max_chars: int = 12_000
     scraper_fetch_timeout_sec: float = 45.0
     scraper_fetch_max_bytes: int = 25_000_000
+    # Reintentos de descarga ante timeout/red; SSL puede reintentarse sin verificar certificado
+    scraper_fetch_retries: int = 2
+    scraper_fetch_verify_ssl: bool = True
+    scraper_fetch_ssl_fallback: bool = True
     scraper_min_extracted_chars: int = 200
     scraper_user_agent: str = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "

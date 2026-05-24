@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ import httpx
 from app.core.config import Settings
 from app.slices.ocr.extractor import ExtractionResult
 from app.slices.rag.extract import extract_document_from_bytes
+from app.slices.common.network_errors import NetworkErrorKind, classify_http_error
 
 logger = logging.getLogger(__name__)
 
@@ -91,15 +93,85 @@ async def fetch_and_extract(
     """
     Descarga una URL y devuelve texto extraído.
 
+    Reintenta ante timeout/red; opcionalmente reintenta sin verificar SSL en sitios
+    gubernamentales con certificados intermedios incompletos.
+
     Raises:
         ValueError: descarga vacía, formato no soportado o texto insuficiente.
-        httpx.HTTPError: error de red.
+        httpx.HTTPError: error de red tras agotar reintentos.
     """
-    logger.debug("[SCRAPER] fase=descarga url=%s", url)
+    attempts = max(1, settings.scraper_fetch_retries)
+    verify = settings.scraper_fetch_verify_ssl
+    last_exc: BaseException | None = None
+
+    for attempt in range(attempts):
+        try:
+            return await _fetch_and_extract_once(
+                url,
+                http=http,
+                settings=settings,
+                verify=verify,
+            )
+        except httpx.HTTPError as exc:
+            last_exc = exc
+            info = classify_http_error(exc)
+            is_last = attempt >= attempts - 1
+
+            if (
+                info.kind == NetworkErrorKind.SSL
+                and settings.scraper_fetch_ssl_fallback
+                and verify
+            ):
+                logger.warning(
+                    "[SCRAPER] descarga_ssl url=%s reintento_sin_verificar=true",
+                    url,
+                )
+                verify = False
+                continue
+
+            if info.retryable and not is_last:
+                logger.warning(
+                    "[SCRAPER] descarga_reintento url=%s intento=%d/%d tipo=%s",
+                    url,
+                    attempt + 1,
+                    attempts,
+                    info.kind.value,
+                )
+                await asyncio.sleep(min(2.0, 0.5 * (attempt + 1)))
+                continue
+
+            logger.warning(
+                "[SCRAPER] descarga_fallo url=%s tipo=%s error=%s",
+                url,
+                info.kind.value,
+                info.message,
+            )
+            raise
+
+    assert last_exc is not None
+    raise last_exc
+
+
+async def _fetch_and_extract_once(
+    url: str,
+    *,
+    http: httpx.AsyncClient,
+    settings: Settings,
+    verify: bool,
+) -> FetchedDocument:
+    """Un intento de descarga y extracción."""
+    logger.debug("[SCRAPER] fase=descarga url=%s verify_ssl=%s", url, verify)
     headers = {"User-Agent": settings.scraper_user_agent}
     timeout = httpx.Timeout(settings.scraper_fetch_timeout_sec, connect=20.0)
 
-    async with http.stream("GET", url, headers=headers, timeout=timeout, follow_redirects=True) as resp:
+    async with http.stream(
+        "GET",
+        url,
+        headers=headers,
+        timeout=timeout,
+        follow_redirects=True,
+        verify=verify,
+    ) as resp:
         resp.raise_for_status()
         content_type = resp.headers.get("content-type", "")
         chunks: list[bytes] = []
