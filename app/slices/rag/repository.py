@@ -1,8 +1,19 @@
 import uuid
+from collections import defaultdict
 from collections.abc import Iterable
+from dataclasses import dataclass
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models
+
+
+@dataclass(frozen=True)
+class LogicalCollectionStats:
+    """Estadísticas de una colección lógica (``collection_id`` en payload)."""
+
+    collection_id: str
+    chunks: int
+    documentos: int
 
 
 class RagRepository:
@@ -56,24 +67,28 @@ class RagRepository:
         vectors: Iterable[list[float]],
         title: str | None,
         source_filename: str | None,
+        territorio: list[str | None] | None = None,
     ) -> int:
         points: list[models.PointStruct] = []
         for text_chunk, vector in zip(chunks, vectors, strict=True):
             point_id = str(uuid.uuid4())
             safe_title = title or document_id
             safe_src = source_filename or ""
+            payload: dict = {
+                "chunk_id": point_id,
+                "document_id": document_id,
+                "collection_id": collection_id,
+                "text": text_chunk,
+                "title": safe_title,
+                "source_filename": safe_src,
+            }
+            if territorio is not None:
+                payload["territorio"] = territorio
             points.append(
                 models.PointStruct(
                     id=point_id,
                     vector=vector,
-                    payload={
-                        "chunk_id": point_id,
-                        "document_id": document_id,
-                        "collection_id": collection_id,
-                        "text": text_chunk,
-                        "title": safe_title,
-                        "source_filename": safe_src,
-                    },
+                    payload=payload,
                 )
             )
 
@@ -107,3 +122,54 @@ class RagRepository:
             with_payload=True,
         )
         return list(resp.points)
+
+    async def list_logical_collections(
+        self,
+        *,
+        scroll_batch: int = 256,
+        max_points: int = 50_000,
+    ) -> list[LogicalCollectionStats]:
+        """
+        Enumera ``collection_id`` distintos en Qdrant con conteo de chunks y documentos.
+
+        Recorre puntos por lotes (sin vectores) hasta ``max_points`` por seguridad.
+        """
+        chunk_counts: dict[str, int] = defaultdict(int)
+        doc_ids: dict[str, set[str]] = defaultdict(set)
+
+        offset: str | int | None = None
+        scanned = 0
+
+        while scanned < max_points:
+            limit = min(scroll_batch, max_points - scanned)
+            records, offset = await self.client.scroll(
+                collection_name=self.collection_name,
+                limit=limit,
+                offset=offset,
+                with_payload=["collection_id", "document_id"],
+                with_vectors=False,
+            )
+            if not records:
+                break
+            for point in records:
+                scanned += 1
+                payload = point.payload or {}
+                cid = payload.get("collection_id")
+                if not cid:
+                    continue
+                cid_s = str(cid)
+                chunk_counts[cid_s] += 1
+                doc_id = payload.get("document_id")
+                if doc_id:
+                    doc_ids[cid_s].add(str(doc_id))
+            if offset is None:
+                break
+
+        return [
+            LogicalCollectionStats(
+                collection_id=cid,
+                chunks=chunk_counts[cid],
+                documentos=len(doc_ids.get(cid, set())),
+            )
+            for cid in sorted(chunk_counts.keys())
+        ]

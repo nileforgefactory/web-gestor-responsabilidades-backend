@@ -133,6 +133,7 @@ CREATE TABLE base_conocimiento (
     tipo            ENUM('ley','decreto','resolucion','circular','pdf','texto','otro') DEFAULT 'otro',
     coleccion_id    VARCHAR(100)  DEFAULT 'normas_legales',
     descripcion     TEXT,
+    territorio      TEXT          COMMENT 'JSON [País, Departamento, Municipio]',
     archivo_nombre  VARCHAR(500),
     archivo_tamano  BIGINT,                      -- bytes
     qdrant_doc_id   VARCHAR(100),

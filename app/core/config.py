@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8000
 
+    # Logging: INFO en producción; DEBUG solo si hace falta
+    app_log_level: str = "INFO"
+    scraper_log_level: str | None = None
+    ollama_log_llm_bodies: bool = False
+    sqlalchemy_log_engine: bool = False
+
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "rag_chunks"
     vector_size: int = 768
@@ -26,6 +32,8 @@ class Settings(BaseSettings):
     # MySQL — opcional; si está vacío las rutas DB devuelven 503
     # Formato: mysql+aiomysql://usuario:clave@host:puerto/base_datos?charset=utf8mb4
     mysql_url: str | None = None
+    # pool_pre_ping con aiomysql async falla en algunas versiones (ping/reconnect)
+    mysql_pool_pre_ping: bool = False
 
     # Redis — opcional; si está vacío las sesiones SSE no se persisten
     # Formato: redis://host:puerto/db
@@ -45,6 +53,28 @@ class Settings(BaseSettings):
     default_chunk_strategy: str = "adaptive"
     analysis_max_iterations: int = 3
     analysis_confidence_threshold: float = 0.55
+
+    # Scraper de normativa (búsqueda en red + validación IA)
+    scraper_collection_id: str = "normas_legales"
+    scraper_search_max_results: int = 8
+    scraper_search_query_suffix: str = "normativa PDF"
+    scraper_validation_min_confidence: float = 0.72
+    scraper_validation_text_max_chars: int = 12_000
+    scraper_fetch_timeout_sec: float = 45.0
+    scraper_fetch_max_bytes: int = 25_000_000
+    scraper_min_extracted_chars: int = 200
+    scraper_user_agent: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
+    scraper_search_query_variants: int = 3
+    # Dominios permitidos (coma-separados); vacío = sin restricción
+    scraper_allowed_domains: str = ""
+    # Proveedor: duckduckgo | tavily
+    scraper_search_provider: str = "duckduckgo"
+    scraper_tavily_api_key: str | None = None
+    # Normas procesadas en paralelo (asyncio; no saturar Ollama ni búsqueda)
+    scraper_max_concurrency: int = 3
 
     model_config = SettingsConfigDict(
         env_file=".env",

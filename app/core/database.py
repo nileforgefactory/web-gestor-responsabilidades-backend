@@ -14,6 +14,9 @@ Uso:
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
+import logging
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import (
@@ -29,11 +32,19 @@ class Base(DeclarativeBase):
     pass
 
 
+logger = logging.getLogger(__name__)
+
 _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
-def init_db(db_url: str) -> None:
+def init_db(
+    db_url: str,
+    *,
+    pool_pre_ping: bool = False,
+    pool_size: int = 5,
+    max_overflow: int = 10,
+) -> None:
     """Inicializa el engine y la fábrica de sesiones. Llamar una sola vez al arrancar."""
     global _engine, _session_factory
     if _engine is not None:
@@ -41,11 +52,12 @@ def init_db(db_url: str) -> None:
     _engine = create_async_engine(
         db_url,
         echo=False,
-        pool_pre_ping=True,
+        pool_pre_ping=pool_pre_ping,
         pool_recycle=3600,
-        pool_size=5,
-        max_overflow=10,
+        pool_size=max(5, pool_size),
+        max_overflow=max_overflow,
     )
+    logger.info("MySQL async engine listo (pool_pre_ping=%s)", pool_pre_ping)
     _session_factory = async_sessionmaker(
         _engine,
         expire_on_commit=False,
@@ -66,6 +78,30 @@ async def create_tables() -> None:
 async def dispose_engine() -> None:
     if _engine is not None:
         await _engine.dispose()
+
+
+def mysql_available() -> bool:
+    """True si MYSQL_URL fue configurado y el pool de sesiones está activo."""
+    return _session_factory is not None
+
+
+@asynccontextmanager
+async def session_scope() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Sesión independiente con commit/rollback (segura para tareas en paralelo).
+
+    Raises:
+        RuntimeError: si MySQL no está inicializado.
+    """
+    if _session_factory is None:
+        raise RuntimeError("MySQL no configurado")
+    async with _session_factory() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def get_optional_db() -> AsyncGenerator[AsyncSession | None, None]:

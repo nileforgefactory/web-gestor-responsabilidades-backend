@@ -22,6 +22,10 @@ class BaseConocimiento(Base):
     )
     coleccion_id:   Mapped[str]      = mapped_column(String(100), default="normas_legales")
     descripcion:    Mapped[str | None] = mapped_column(Text)
+    territorio:     Mapped[str | None] = mapped_column(
+        Text,
+        comment="JSON [País, Departamento, Municipio]",
+    )
     archivo_nombre: Mapped[str | None] = mapped_column(String(500))
     archivo_tamano: Mapped[int | None] = mapped_column(Integer)
     qdrant_doc_id:  Mapped[str | None] = mapped_column(String(100))

@@ -16,6 +16,7 @@ from app.slices.rag.repository import RagRepository
 from app.slices.rag.schemas import (
     AgentContextResponse,
     AskResponse,
+    ColeccionesListResponse,
     IngestTextResponse,
     RagChunk,
     RagCitation,
@@ -157,6 +158,7 @@ class RagService:
         replace_existing: bool = True,
         chunk_strategy: str | None = None,
         extraction_method: str | None = None,
+        territorio: list[str | None] | None = None,
     ) -> IngestTextResponse:
         """
         Fragmenta contenido, genera embeddings e indexa en Qdrant.
@@ -196,6 +198,7 @@ class RagService:
             vectors=vectors,
             title=title or document_id,
             source_filename=source_filename or "",
+            territorio=territorio,
         )
         return IngestTextResponse(
             collection_id=collection_id,
@@ -205,6 +208,41 @@ class RagService:
             chunk_profile=chunking.profile.value,
             chunk_size_applied=chunking.chunk_size,
             chunk_overlap_applied=chunking.chunk_overlap,
+        )
+
+    async def list_logical_collections(
+        self,
+        *,
+        catalog_collection_ids: set[str] | None = None,
+    ) -> ColeccionesListResponse:
+        """Lista colecciones lógicas indexadas en Qdrant (y marca presencia en catálogo MySQL)."""
+        from app.slices.rag.schemas import ColeccionLogicaItem
+
+        stats = await self.repository.list_logical_collections()
+        catalog = catalog_collection_ids or set()
+        items = [
+            ColeccionLogicaItem(
+                collection_id=s.collection_id,
+                chunks=s.chunks,
+                documentos=s.documentos,
+                en_catalogo_mysql=s.collection_id in catalog,
+            )
+            for s in stats
+        ]
+        for cid in sorted(catalog - {i.collection_id for i in items}):
+            items.append(
+                ColeccionLogicaItem(
+                    collection_id=cid,
+                    chunks=0,
+                    documentos=0,
+                    en_catalogo_mysql=True,
+                )
+            )
+        items.sort(key=lambda x: x.collection_id)
+        return ColeccionesListResponse(
+            coleccion_fisica_qdrant=self.settings.qdrant_collection,
+            total=len(items),
+            colecciones=items,
         )
 
     async def search(

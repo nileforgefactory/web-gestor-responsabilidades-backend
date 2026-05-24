@@ -116,6 +116,10 @@ services:
       INGEST_EMBED_CONCURRENCY: "4"
       RAG_DEFAULT_SCORE_THRESHOLD: "0.25"
       MYSQL_URL: mysql+aiomysql://gestor:gestor_pass@mysql:3306/gestor_responsabilidades?charset=utf8mb4
+      MYSQL_POOL_PRE_PING: "false"
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      OLLAMA_LOG_LLM_BODIES: ${OLLAMA_LOG_LLM_BODIES:-false}
+      SCRAPER_MAX_CONCURRENCY: ${SCRAPER_MAX_CONCURRENCY:-3}
       REDIS_URL: redis://redis:6379/0
       OCR_ENABLED: "true"
       OCR_LANG: spa

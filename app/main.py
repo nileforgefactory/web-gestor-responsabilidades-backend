@@ -13,6 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 from app.core.config import Settings, get_settings
+from app.core.logging_config import configure_logging
 from app.core.database import create_tables, dispose_engine, init_db
 from app.core.session_store import get_session_store, init_session_store
 from app.dependencies import get_rag_service
@@ -21,6 +22,7 @@ from app.slices.planes.router import router as planes_router
 from app.slices.conocimiento.router import router as conocimiento_router
 from app.slices.documents.router import router as documents_router
 from app.slices.analysis.router import router as analysis_router
+from app.slices.scraper.router import router as scraper_router
 
 
 @asynccontextmanager
@@ -37,7 +39,12 @@ async def lifespan(_: FastAPI):
         import app.slices.planes.models        # noqa: F401
         import app.slices.conocimiento.models  # noqa: F401
         import app.slices.alertas.models       # noqa: F401
-        init_db(settings.mysql_url)
+        init_db(
+            settings.mysql_url,
+            pool_pre_ping=settings.mysql_pool_pre_ping,
+            pool_size=settings.scraper_max_concurrency + 4,
+            max_overflow=settings.scraper_max_concurrency + 6,
+        )
         await create_tables()
 
     # ── Redis (opcional — sesiones SSE) ──
@@ -173,13 +180,7 @@ _DOCS_SUMMARY_ES = """\
 - **Estado**: `GET /health/ready`.
 """
 
-import logging as _logging
-_logging.basicConfig(
-    level=_logging.DEBUG,
-    format="%(levelname)s [%(name)s] %(message)s",
-)
-for _noisy in ("httpx", "httpcore", "urllib3", "asyncio", "multipart"):
-    _logging.getLogger(_noisy).setLevel(_logging.WARNING)
+configure_logging(settings)
 
 openapi_tags_docs = [
     {
@@ -196,6 +197,10 @@ openapi_tags_docs = [
     {
         "name": "analisis",
         "description": "Análisis multi-agente de planes: OCR, indexación, loop coordinador y SSE.",
+    },
+    {
+        "name": "scraper",
+        "description": "Búsqueda de normativa en internet, validación IA e indexación en RAG.",
     },
 ]
 
@@ -247,6 +252,7 @@ app.include_router(planes_router,       prefix="/api/v1")
 app.include_router(conocimiento_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(analysis_router, prefix="/api/v1")
+app.include_router(scraper_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)
