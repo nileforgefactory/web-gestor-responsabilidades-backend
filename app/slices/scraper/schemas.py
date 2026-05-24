@@ -55,7 +55,7 @@ class NormaScraperResultado(BaseModel):
         None,
         description=(
             "Colección Qdrant/MySQL derivada del territorio "
-            "(ej. Colombia, Colombia_Huila, Colombia_Huila_Neiva)."
+            "(ej. COLOMBIA, COLOMBIA_CAUCA, COLOMBIA_CAUCA_CAJIBIO)."
         ),
     )
     chunks_indexados: int = 0

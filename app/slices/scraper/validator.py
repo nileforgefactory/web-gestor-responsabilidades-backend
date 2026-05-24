@@ -14,7 +14,7 @@ import httpx
 from app.core.config import Settings
 from app.slices.rag.ollama_client import ollama_chat
 from app.slices.rag.service import _with_retries
-from app.slices.common.territorio import normalize_territorio
+from app.slices.common.territorio import normalize_territorio, territorio_normalization_warnings
 from app.slices.scraper.schemas import ValidacionNormaOut
 
 logger = logging.getLogger(__name__)
@@ -79,9 +79,11 @@ def _to_outcome(data: dict[str, Any]) -> ValidacionNormaOut:
     advertencias = data.get("advertencias") or []
     if not isinstance(advertencias, list):
         advertencias = []
-    territorio = normalize_territorio(
-        data.get("territorio") or data.get("ambito_territorial")
-    )
+    territorio_raw = data.get("territorio") or data.get("ambito_territorial")
+    territorio = normalize_territorio(territorio_raw)
+    extra_warnings = territorio_normalization_warnings(territorio_raw)
+    if extra_warnings:
+        advertencias = [*advertencias, *extra_warnings]
     return ValidacionNormaOut(
         es_documento_esperado=esperado,
         confianza=confianza,

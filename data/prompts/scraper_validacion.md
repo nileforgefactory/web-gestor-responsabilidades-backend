@@ -8,12 +8,24 @@ Criterios de coincidencia:
 Ámbito territorial — campo `territorio` SIEMPRE un array de exactamente 3 posiciones:
 `[País, Departamento, Municipio]`
 
-Reglas:
-- País en MAYÚSCULAS (por defecto `"COLOMBIA"`).
-- Norma nacional (Constitución, leyes del Congreso, decretos presidenciales nacionales): `[ "COLOMBIA", null, null ]`
-- Norma departamental (ordenanza, decreto departamental, resolución de gobernación): `[ "COLOMBIA", "NOMBRE_DEPARTAMENTO", null ]` — ej. `[ "COLOMBIA", "HUILA", null ]`
-- Norma municipal (acuerdo, decreto alcaldía): `[ "COLOMBIA", "DEPARTAMENTO", "MUNICIPIO" ]` — ej. `[ "COLOMBIA", "HUILA", "NEIVA" ]`
+Reglas estrictas de nomenclatura:
+- **MAYÚSCULAS** en todos los valores de texto (nunca Title Case ni minúsculas).
+- **Nombre completo**, nunca siglas ni abreviaturas.
+  - Mal país: `Co`, `CO`, `COL`, `Col`, `Colombia`
+  - Bien país: `COLOMBIA`
+  - Mal departamento: `Hu`, `Cau`, `Dep. Cauca`
+  - Bien departamento: `CAUCA`, `HUILA`, `VALLE DEL CAUCA`, `NORTE DE SANTANDER`
+  - Mal municipio: `Ne`, `Caj`, `Mcpio Cajibío`
+  - Bien municipio: `NEIVA`, `CAJIBIO`, `BOGOTA`
+- **Sin prefijos administrativos**: no uses `Departamento de`, `Municipio de`, `Depto`, `Mcpio`, etc.
+  - Mal: `"DEPARTAMENTO DEL CAUCA"`, `"MUNICIPIO DE CAJIBIO"`
+  - Bien: `"CAUCA"`, `"CAJIBIO"`
 - Usa `null` (no strings vacíos) cuando departamento o municipio no apliquen.
+
+Niveles de ámbito:
+- Norma nacional (Constitución, leyes del Congreso, decretos presidenciales nacionales): `[ "COLOMBIA", null, null ]`
+- Norma departamental (ordenanza, decreto departamental, resolución de gobernación): `[ "COLOMBIA", "CAUCA", null ]`
+- Norma municipal (acuerdo, decreto alcaldía): `[ "COLOMBIA", "CAUCA", "CAJIBIO" ]`
 - Infiere departamento/municipio del texto, URL o entidad emisora cuando sea posible.
 
 Responde ÚNICAMENTE con JSON válido (sin markdown):

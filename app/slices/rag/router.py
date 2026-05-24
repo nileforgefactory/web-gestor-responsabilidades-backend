@@ -72,7 +72,7 @@ async def listar_colecciones(
     service: RagService = Depends(get_rag_service),
     db: AsyncSession | None = Depends(get_optional_db),
 ) -> ColeccionesListResponse:
-    """Inventario de namespaces de ingesta (p. ej. Colombia, Colombia_Huila, demo_local)."""
+    """Inventario de namespaces de ingesta (p. ej. COLOMBIA, COLOMBIA_CAUCA, demo_local)."""
     await service.ensure_collection()
     catalog_ids: set[str] = set()
     if db is not None:

@@ -20,7 +20,7 @@ class BaseConocimiento(Base):
         Enum("ley", "decreto", "resolucion", "circular", "pdf", "texto", "otro"),
         default="otro",
     )
-    coleccion_id:   Mapped[str]      = mapped_column(String(100), default="Colombia")
+    coleccion_id:   Mapped[str]      = mapped_column(String(100), default="COLOMBIA")
     descripcion:    Mapped[str | None] = mapped_column(Text)
     territorio:     Mapped[str | None] = mapped_column(
         Text,

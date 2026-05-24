@@ -126,12 +126,12 @@ CREATE TABLE plan_normas (
 
 -- ── BASE DE CONOCIMIENTO RAG ─────────────────────────────────────────────
 --  Catálogo de documentos indexados en Qdrant. coleccion_id = ámbito territorial
---  (ej. Colombia, Colombia_Huila, Colombia_Huila_Neiva). qdrant_doc_id = document_id en ingesta.
+--  (ej. COLOMBIA, COLOMBIA_CAUCA, COLOMBIA_CAUCA_CAJIBIO). qdrant_doc_id = document_id en ingesta.
 CREATE TABLE base_conocimiento (
     id              VARCHAR(36)   PRIMARY KEY,
     nombre          VARCHAR(500)  NOT NULL,
     tipo            ENUM('ley','decreto','resolucion','circular','pdf','texto','otro') DEFAULT 'otro',
-    coleccion_id    VARCHAR(100)  DEFAULT 'Colombia',
+    coleccion_id    VARCHAR(100)  DEFAULT 'COLOMBIA',
     descripcion     TEXT,
     territorio      TEXT          COMMENT 'JSON [País, Departamento, Municipio]',
     archivo_nombre  VARCHAR(500),

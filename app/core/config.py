@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     analysis_confidence_threshold: float = 0.55
 
     # Scraper de normativa (búsqueda en red + validación IA)
-    # Obsoleto para el scraper: la colección se deriva del territorio (ej. Colombia_Huila).
+    # Obsoleto para el scraper: la colección se deriva del territorio (ej. COLOMBIA_CAUCA).
     scraper_collection_id: str = "normas_legales"
     scraper_search_max_results: int = 8
     scraper_search_query_suffix: str = "normativa PDF"
