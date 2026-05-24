@@ -10,7 +10,7 @@ Punto de entrada recomendado: menú interactivo. Documentación general del API:
 
 | Opciones | Área |
 |----------|------|
-| 1–6, 21–22 | Docker (stack, GPU Ollama, prod, logs, modelos) |
+| 1–6, 21–22 | Docker (stack CPU/GPU, prod, logs, modelos) |
 | 7–8 | Salud y humo |
 | 9–13 | RAG (ingesta, ask, search) |
 | 14–15 | OCR sin indexar |
@@ -30,7 +30,7 @@ Sprints: [SPRINT_2.md](../docs/SPRINT_2.md) (chunking), [SPRINT_3.md](../docs/SP
 | `wait_services.py` | Entrypoint del contenedor API: espera Qdrant y Ollama |
 | `ollama_pull.sh` | Job Docker `ollama-pull`: descarga modelos al arrancar |
 | `smoke_test.py` | Prueba de humo no interactiva (CI o menú opción 8) |
-| `verify_ollama_gpu.ps1` | Comprueba `nvidia-smi` e inferencia en el contenedor Ollama (menú 22) |
+| `verify_ollama_gpu.ps1` | Comprueba GPU en Ollama (menú 22) |
 
 ```powershell
 $env:API_BASE_URL = "http://localhost:8000"

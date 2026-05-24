@@ -14,8 +14,10 @@ from starlette.requests import Request
 
 from app.core.config import Settings, get_settings
 from app.core.logging_config import configure_logging
-from app.core.database import create_tables, dispose_engine, init_db
+from app.core.database import dispose_engine, init_db
 from app.core.session_store import get_session_store, init_session_store
+from app.db import models_registry  # noqa: F401
+from app.db.migrate import run_migrations
 from app.dependencies import get_rag_service
 from app.slices.rag.router import router as rag_router
 from app.slices.planes.router import router as planes_router
@@ -35,17 +37,14 @@ async def lifespan(_: FastAPI):
     # ── MySQL (opcional) ──
     settings = get_settings()
     if settings.mysql_url:
-        # Importar modelos para que estén en Base.metadata antes de create_all
-        import app.slices.planes.models        # noqa: F401
-        import app.slices.conocimiento.models  # noqa: F401
-        import app.slices.alertas.models       # noqa: F401
         init_db(
             settings.mysql_url,
             pool_pre_ping=settings.mysql_pool_pre_ping,
             pool_size=settings.scraper_max_concurrency + 4,
             max_overflow=settings.scraper_max_concurrency + 6,
         )
-        await create_tables()
+        if settings.effective_mysql_run_migrations:
+            await asyncio.to_thread(run_migrations)
 
     # ── Redis (opcional — sesiones SSE) ──
     if settings.redis_url:

@@ -13,6 +13,7 @@ Todo el stack corre en Docker; no se requieren APIs de nube para el MVP.
 | **RAG** | Ingesta de texto o archivos (PDF, TXT, MD, imágenes), chunking fijo/adaptativo, búsqueda vectorial y respuestas con citas (`/rag/ask`). |
 | **OCR** | PDF nativo + OCR híbrido (Tesseract/Poppler en la imagen API); extracción sin indexar (`/documents/extract*`). |
 | **Análisis** | Un endpoint orquesta OCR → indexación → agentes (responsabilidades, leyes, actores, brechas) → coordinador → matriz; JSON o **SSE** en vivo. |
+| **Scraper** | Búsqueda de normas en internet, validación IA, indexación RAG por territorio (`/scraper/buscar-normas`). |
 | **Catálogo** | CRUD de planes y documentos indexados en MySQL (opcional si `MYSQL_URL` está definido). |
 
 Documentación interactiva: **[Swagger UI](http://localhost:8000/docs)** · **[ReDoc](http://localhost:8000/redoc)** · OpenAPI en `/openapi.json` (descripciones y códigos de respuesta en español).
@@ -37,7 +38,7 @@ Antes de ingest, ask o análisis desde Swagger, comprueba **`GET /health/ready`*
 
 | Bloque | Opciones | Acción |
 |--------|----------|--------|
-| Docker | 1–6, 21–22 | Levantar/parar stack, GPU Ollama, logs, modelos |
+| Docker | 1–6, 21–22 | Levantar/parar stack (CPU o GPU), logs, modelos |
 | Salud | 7–8 | `/health`, `/health/ready`, humo automatizado |
 | RAG | 9–13 | Ingesta demo/archivo/masiva, ask, search |
 | OCR | 14–15 | Extracción sin Qdrant |
@@ -48,20 +49,28 @@ Parámetro opcional: `.\scripts\dev-menu.ps1 -ApiBase http://localhost:8000`
 
 ### Docker Compose (manual)
 
+**CPU (por defecto):**
+
 ```powershell
 docker compose up --build -d
 ```
 
-**Primera vez:** el servicio `ollama-pull` descarga modelos de embeddings y chat antes de arrancar la API (puede tardar varios minutos).
-
-**Con GPU NVIDIA** (opcional, mucho más rápido en RAG y scraper):
+**GPU NVIDIA:**
 
 ```powershell
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
-.\scripts\verify_ollama_gpu.ps1
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
 ```
 
-Detalle: [docs/OLLAMA_GPU.md](docs/OLLAMA_GPU.md).
+**Producción** (solo `:8000` al host; migraciones MySQL **manuales**):
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+docker compose exec api alembic upgrade head
+```
+
+Detalle GPU: [docs/OLLAMA_GPU.md](docs/OLLAMA_GPU.md). Migraciones: [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
+
+**Primera vez:** el servicio `ollama-pull` descarga modelos antes de arrancar la API (puede tardar varios minutos). En dev/docker, Alembic crea las tablas MySQL al iniciar la API.
 
 | Recurso | URL |
 |---------|-----|
@@ -196,7 +205,9 @@ Copia `.env.example` a `.env` para desarrollo fuera de Docker. En Compose, la ma
 | `VECTOR_SIZE` | Debe coincidir con el modelo de embeddings (768 para `nomic-embed-text`) |
 | `USE_OLLAMA` | `false` + `VECTOR_SIZE=128` → embeddings sintéticos (solo pruebas, no semántica real) |
 | `OLLAMA_*_MODEL` | Embeddings y chat |
-| `MYSQL_URL` | Opcional; habilita planes, conocimiento y persistencia de análisis |
+| `MYSQL_URL` | Habilita planes, conocimiento y persistencia de análisis |
+| `MYSQL_RUN_MIGRATIONS` | `true` en dev/docker (auto). Ignorado en `APP_ENV=prod` — migrar a mano |
+| `APP_ENV` | `docker` / `dev` / `prod` — controla migraciones automáticas |
 | `OCR_*` | Idioma, DPI, umbral de caracteres por página |
 | `BULK_*` | Límites de ingesta/extracción masiva |
 | `DEFAULT_CHUNK_STRATEGY` | `adaptive` (por defecto) o `fixed` |
@@ -223,6 +234,7 @@ El API elimina BOM UTF-8 en cuerpos JSON y devuelve pistas en español ante `422
 | Sprint | Tema | Archivo |
 |--------|------|---------|
 | 0 | Docker, healthchecks, Ollama, menú | [docs/SPRINT_0.md](docs/SPRINT_0.md) |
+| — | Migraciones MySQL (Alembic) | [docs/MIGRATIONS.md](docs/MIGRATIONS.md) |
 | 1 | OCR PDF/imagen | [docs/SPRINT_1.md](docs/SPRINT_1.md) |
 | 2 | Chunking adaptativo | [docs/SPRINT_2.md](docs/SPRINT_2.md) |
 | 3 | Agentes y análisis | [docs/SPRINT_3.md](docs/SPRINT_3.md) |
@@ -241,7 +253,7 @@ Nombre del proyecto: **`gestor-backend`** (`docker-compose.yml`). Contenedores t
 - `gestor-backend-mysql` — datos relacionales (**3307** en host)
 - `gestor-backend-ollama-pull` — job único de descarga de modelos
 
-La API espera Qdrant, Ollama sano, `ollama-pull` completado y MySQL sano antes de uvicorn (`scripts/wait_services.py` en el entrypoint).
+La API espera Qdrant, Ollama, `ollama-pull` y MySQL antes de uvicorn. En entornos no productivos aplica Alembic al iniciar; en **prod** las migraciones son manuales (`docker compose exec api alembic upgrade head`).
 
 ---
 

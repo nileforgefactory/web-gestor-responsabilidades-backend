@@ -1,11 +1,10 @@
 """Motor asíncrono SQLAlchemy + fábrica de sesiones.
 
 Uso:
-    from app.core.database import Base, init_db, create_tables, get_db
+    from app.core.database import Base, init_db, get_db
 
-    # al arrancar la app:
+    # al arrancar la app (Alembic aplica el esquema; ver app/db/migrate.py):
     init_db(settings.mysql_url)
-    await create_tables()
 
     # en un endpoint (via Depends):
     async def mi_endpoint(db: AsyncSession = Depends(get_db)): ...
@@ -63,16 +62,6 @@ def init_db(
         expire_on_commit=False,
         class_=AsyncSession,
     )
-
-
-async def create_tables() -> None:
-    """Crea todas las tablas registradas en Base.metadata si no existen."""
-    if _engine is None:
-        return
-    # Los modelos deben estar importados antes de llamar a esta función
-    # para que sus tablas estén registradas en Base.metadata.
-    async with _engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
 
 async def dispose_engine() -> None:

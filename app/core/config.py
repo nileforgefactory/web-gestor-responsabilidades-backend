@@ -2,6 +2,12 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Mismo endpoint que docker-compose (MySQL expuesto en host :3307).
+DEFAULT_MYSQL_URL = (
+    "mysql+aiomysql://gestor:gestor_pass@localhost:3307/"
+    "gestor_responsabilidades?charset=utf8mb4"
+)
+
 
 class Settings(BaseSettings):
     """Configuración de la aplicación cargada desde variables de entorno y `.env`."""
@@ -34,6 +40,8 @@ class Settings(BaseSettings):
     mysql_url: str | None = None
     # pool_pre_ping con aiomysql async falla en algunas versiones (ping/reconnect)
     mysql_pool_pre_ping: bool = False
+    # En prod (APP_ENV=prod) nunca se auto-aplican; en dev/docker sí (ver effective_mysql_run_migrations)
+    mysql_run_migrations: bool = True
 
     # Redis — opcional; si está vacío las sesiones SSE no se persisten
     # Formato: redis://host:puerto/db
@@ -81,6 +89,19 @@ class Settings(BaseSettings):
     scraper_tavily_api_key: str | None = None
     # Normas procesadas en paralelo (asyncio; no saturar Ollama ni búsqueda)
     scraper_max_concurrency: int = 3
+
+    @property
+    def mysql_url_for_migrations(self) -> str:
+        """URL MySQL para Alembic; usa DEFAULT_MYSQL_URL si no hay .env."""
+        explicit = (self.mysql_url or "").strip()
+        return explicit or DEFAULT_MYSQL_URL
+
+    @property
+    def effective_mysql_run_migrations(self) -> bool:
+        """Migraciones automáticas al arrancar: desactivadas en producción."""
+        if self.app_env.lower() in ("prod", "production"):
+            return False
+        return self.mysql_run_migrations
 
     model_config = SettingsConfigDict(
         env_file=".env",

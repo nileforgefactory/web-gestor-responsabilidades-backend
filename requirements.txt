@@ -12,6 +12,8 @@ Pillow
 # ── MySQL / SQLAlchemy ────────────────────────────────────────────────────
 sqlalchemy[asyncio]>=2.0.43,<2.1
 aiomysql>=0.2.0
+pymysql>=1.1.0
 cryptography
+alembic>=1.14.0,<2
 # ── Redis (sesiones SSE + pub/sub) ────────────────────────────────────────
 redis[asyncio]>=5.0
