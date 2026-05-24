@@ -76,3 +76,26 @@ def territorio_from_json(raw: str | None) -> list[str | None] | None:
         return normalize_territorio(json.loads(raw))
     except json.JSONDecodeError:
         return None
+
+
+def _segment_for_collection_id(value: str) -> str:
+    """Convierte un segmento territorial a forma legible (ej. HUILA → Huila)."""
+    words = value.strip().split()
+    return "_".join(w[:1].upper() + w[1:].lower() if w else "" for w in words)
+
+
+def collection_id_from_territorio(territorio: list[str | None] | Any) -> str:
+    """
+    ID de colección lógica según ámbito territorial.
+
+    - Nacional: ``Colombia``
+    - Departamental: ``Colombia_Huila``
+    - Municipal: ``Colombia_Huila_Neiva``
+    """
+    pais, departamento, municipio = normalize_territorio(territorio)
+    parts = [_segment_for_collection_id(pais)]
+    if departamento:
+        parts.append(_segment_for_collection_id(departamento))
+    if municipio:
+        parts.append(_segment_for_collection_id(municipio))
+    return "_".join(parts)

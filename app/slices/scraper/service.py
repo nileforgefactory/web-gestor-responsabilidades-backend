@@ -20,6 +20,7 @@ from app.slices.conocimiento.schemas import (
 from app.slices.rag.ollama_client import OllamaError
 from app.slices.rag.service import RagService
 from app.slices.common.network_errors import classify_http_error, is_transient_network_error
+from app.slices.common.territorio import collection_id_from_territorio
 from app.slices.scraper.fetcher import fetch_and_extract
 from app.slices.scraper.schemas import (
     NormaScraperResultado,
@@ -144,10 +145,19 @@ class ScraperService:
 
         if not hits:
             logger.info("[SCRAPER] norma=%r fase=fin estado=no_encontrada", norma)
+            motivo = "La búsqueda en red no devolvió resultados."
+            if db is not None:
+                await self._registrar_catalogo_fallo(
+                    db,
+                    norma=norma,
+                    territorio=None,
+                    motivo=motivo,
+                )
             return NormaScraperResultado(
                 norma=norma,
                 estado="no_encontrada",
-                motivo="La búsqueda en red no devolvió resultados.",
+                motivo=motivo,
+                coleccion_id=collection_id_from_territorio(None),
             )
 
         for hit in hits:
@@ -161,13 +171,30 @@ class ScraperService:
                 return indexado
 
         logger.info("[SCRAPER] norma=%r fase=fin estado=no_indexada", norma)
+        motivo = (
+            ultimo_motivo
+            or "Se encontraron enlaces pero ninguno pasó la validación o no tenía texto utilizable."
+        )
+        territorio_fallo = (
+            ultima_validacion.territorio if ultima_validacion is not None else None
+        )
+        coleccion_fallo = collection_id_from_territorio(territorio_fallo)
+        if db is not None:
+            await self._registrar_catalogo_fallo(
+                db,
+                norma=norma,
+                territorio=territorio_fallo,
+                motivo=motivo,
+                url=urls_intentadas[-1] if urls_intentadas else None,
+            )
         return NormaScraperResultado(
             norma=norma,
             estado="no_indexada",
-            motivo=ultimo_motivo
-            or "Se encontraron enlaces pero ninguno pasó la validación o no tenía texto utilizable.",
+            motivo=motivo,
             urls_intentadas=urls_intentadas,
             validacion=ultima_validacion,
+            coleccion_id=coleccion_fallo,
+            territorio=territorio_fallo,
         )
 
     async def _evaluar_candidato(
@@ -249,7 +276,7 @@ class ScraperService:
             return None, val_out, motivo
 
         document_id = derive_document_id(norma)
-        collection_id = self.settings.scraper_collection_id
+        collection_id = collection_id_from_territorio(val_out.territorio)
 
         catalog_id: str | None = None
         if db is not None:
@@ -324,7 +351,9 @@ class ScraperService:
                     estado="error",
                     url=hit.url,
                     document_id=document_id,
+                    coleccion_id=collection_id,
                     motivo=motivo_idx,
+                    territorio=val_out.territorio,
                     validacion=val_out,
                 ),
                 val_out,
@@ -361,6 +390,7 @@ class ScraperService:
                 estado="indexada",
                 url=hit.url,
                 document_id=document_id,
+                coleccion_id=collection_id,
                 chunks_indexados=ingest.chunks_indexed,
                 territorio=val_out.territorio,
                 validacion=val_out,
@@ -393,6 +423,39 @@ class ScraperService:
             ),
         )
         return doc.id
+
+    async def _registrar_catalogo_fallo(
+        self,
+        db: AsyncSession,
+        *,
+        norma: str,
+        territorio: list[str | None] | None,
+        motivo: str,
+        url: str | None = None,
+    ) -> None:
+        """Registra en MySQL un intento fallido (sin chunks en Qdrant)."""
+        collection_id = collection_id_from_territorio(territorio)
+        try:
+            await conocimiento_repo.create_doc(
+                db,
+                ConocimientoCreate(
+                    nombre=norma,
+                    tipo=cast(TipoDocumento, infer_tipo_norma(norma)),
+                    coleccion_id=collection_id,
+                    descripcion=motivo,
+                    archivo_nombre=url,
+                    qdrant_doc_id=derive_document_id(norma),
+                    estado="error",
+                    error_mensaje=motivo,
+                    territorio=territorio,
+                ),
+            )
+        except Exception as exc:
+            logger.warning(
+                "[SCRAPER] norma=%r catalogo_mysql_fallo_registro_error: %s",
+                norma,
+                exc,
+            )
 
     async def _buscar_en_red(self, norma: str) -> list[SearchHit]:
         """Prueba varias formulaciones de consulta hasta obtener enlaces."""

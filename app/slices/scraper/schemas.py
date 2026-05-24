@@ -51,6 +51,13 @@ class NormaScraperResultado(BaseModel):
     estado: EstadoNormaScraper
     url: str | None = None
     document_id: str | None = None
+    coleccion_id: str | None = Field(
+        None,
+        description=(
+            "Colección Qdrant/MySQL derivada del territorio "
+            "(ej. Colombia, Colombia_Huila, Colombia_Huila_Neiva)."
+        ),
+    )
     chunks_indexados: int = 0
     territorio: list[str | None] | None = Field(
         None,

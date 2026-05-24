@@ -14,7 +14,7 @@ EstadoDoc     = Literal["pendiente", "procesando", "indexado", "error"]
 class ConocimientoCreate(BaseModel):
     nombre:         str
     tipo:           TipoDocumento  = "otro"
-    coleccion_id:   str            = "normas_legales"
+    coleccion_id:   str            = "Colombia"
     descripcion:    str | None     = None
     territorio:     list[str | None] | None = Field(
         None,
