@@ -95,8 +95,17 @@ class RagRepository:
         if not points:
             return 0
 
-        await self.client.upsert(collection_name=self.collection_name, points=points, wait=True)
-        return len(points)
+        batch_size = 64
+        inserted = 0
+        for start in range(0, len(points), batch_size):
+            batch = points[start : start + batch_size]
+            await self.client.upsert(
+                collection_name=self.collection_name,
+                points=batch,
+                wait=True,
+            )
+            inserted += len(batch)
+        return inserted
 
     async def search_chunks(
         self,

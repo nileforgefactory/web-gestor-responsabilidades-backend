@@ -226,7 +226,7 @@ class RagService:
                 territorio=territorio,
             )
 
-        inserted = await _with_retries(upsert, attempts=3)
+        inserted = await _with_retries(upsert, attempts=5)
         return IngestTextResponse(
             collection_id=collection_id,
             document_id=document_id,

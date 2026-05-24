@@ -26,11 +26,21 @@ class NetworkErrorInfo:
     retryable: bool
 
 
+def _iter_exception_chain(exc: BaseException) -> list[BaseException]:
+    """Recorre ``__cause__`` y ``__context__`` (excepciones encadenadas)."""
+    chain: list[BaseException] = []
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        chain.append(current)
+        current = current.__cause__ or current.__context__
+    return chain
+
+
 def _root_cause(exc: BaseException) -> BaseException:
-    current: BaseException = exc
-    while current.__cause__ is not None:
-        current = current.__cause__
-    return current
+    chain = _iter_exception_chain(exc)
+    return chain[-1] if chain else exc
 
 
 def classify_http_error(exc: BaseException) -> NetworkErrorInfo:
@@ -89,6 +99,23 @@ def classify_http_error(exc: BaseException) -> NetworkErrorInfo:
 
 def is_transient_network_error(exc: BaseException) -> bool:
     """True si el error es de red/timeout y conviene reintentar o continuar sin traceback."""
+    for link in _iter_exception_chain(exc):
+        if link.__class__.__name__ == "ResponseHandlingException":
+            info = classify_http_error(link)
+            if info.retryable:
+                return True
+        if isinstance(
+            link,
+            (
+                httpx.TimeoutException,
+                httpx.ConnectError,
+                httpx.ReadError,
+                httpx.WriteError,
+                OSError,
+            ),
+        ):
+            return True
+
     info = classify_http_error(exc)
     return info.kind in {
         NetworkErrorKind.TIMEOUT,

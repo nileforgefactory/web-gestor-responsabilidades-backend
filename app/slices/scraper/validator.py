@@ -160,10 +160,11 @@ Texto del documento (extracto):
         and outcome.confianza >= settings.scraper_validation_min_confidence
     )
     logger.info(
-        "[SCRAPER] norma=%r fase=validacion_ia aceptada=%s confianza=%.2f territorio=%s",
+        "[SCRAPER] norma=%r fase=validacion_ia aceptada=%s confianza=%.2f esperado=%s territorio=%s",
         norma_solicitada,
         accepted,
         outcome.confianza,
+        outcome.es_documento_esperado,
         outcome.territorio,
     )
     return ValidationResult(outcome=outcome, accepted=accepted)
