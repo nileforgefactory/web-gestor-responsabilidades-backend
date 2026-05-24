@@ -164,25 +164,39 @@ async def _fetch_and_extract_once(
     headers = {"User-Agent": settings.scraper_user_agent}
     timeout = httpx.Timeout(settings.scraper_fetch_timeout_sec, connect=20.0)
 
-    async with http.stream(
-        "GET",
-        url,
-        headers=headers,
-        timeout=timeout,
-        follow_redirects=True,
-        verify=verify,
-    ) as resp:
-        resp.raise_for_status()
-        content_type = resp.headers.get("content-type", "")
-        chunks: list[bytes] = []
-        total = 0
-        max_bytes = settings.scraper_fetch_max_bytes
-        async for block in resp.aiter_bytes():
-            total += len(block)
-            if total > max_bytes:
-                raise ValueError(f"Documento supera el límite de {max_bytes} bytes")
-            chunks.append(block)
-        raw = b"".join(chunks)
+    # httpx no admite ``verify`` por petición en stream(); solo en el constructor del cliente.
+    own_client: httpx.AsyncClient | None = None
+    client = http
+    if not verify:
+        own_client = httpx.AsyncClient(
+            verify=False,
+            timeout=timeout,
+            follow_redirects=True,
+        )
+        client = own_client
+
+    try:
+        async with client.stream(
+            "GET",
+            url,
+            headers=headers,
+            timeout=timeout if own_client is None else None,
+            follow_redirects=True,
+        ) as resp:
+            resp.raise_for_status()
+            content_type = resp.headers.get("content-type", "")
+            chunks: list[bytes] = []
+            total = 0
+            max_bytes = settings.scraper_fetch_max_bytes
+            async for block in resp.aiter_bytes():
+                total += len(block)
+                if total > max_bytes:
+                    raise ValueError(f"Documento supera el límite de {max_bytes} bytes")
+                chunks.append(block)
+            raw = b"".join(chunks)
+    finally:
+        if own_client is not None:
+            await own_client.aclose()
 
     if not raw:
         raise ValueError("Respuesta vacía")
