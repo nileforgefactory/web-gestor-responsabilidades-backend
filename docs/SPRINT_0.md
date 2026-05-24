@@ -52,6 +52,15 @@ $env:OLLAMA_CHAT_MODEL = "llama3.2:3b"
 docker compose up --build -d
 ```
 
+### Compose con GPU NVIDIA (opcional)
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+.\scripts\verify_ollama_gpu.ps1
+```
+
+Ver [OLLAMA_GPU.md](OLLAMA_GPU.md).
+
 Comprobar:
 
 ```powershell

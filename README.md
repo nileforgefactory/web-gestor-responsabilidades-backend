@@ -27,6 +27,7 @@ Antes de ingest, ask o análisis desde Swagger, comprueba **`GET /health/ready`*
 
 - Docker Desktop con **Compose v2.20+** (`depends_on: service_completed_successfully`).
 - ~8 GB RAM libres con `llama3.1:8b`; en equipos limitados usa `llama3.2:3b` (ver [Sprint 0](docs/SPRINT_0.md)).
+- **GPU NVIDIA (opcional):** acelera Ollama — ver [docs/OLLAMA_GPU.md](docs/OLLAMA_GPU.md).
 
 ### Menú de desarrollo (recomendado)
 
@@ -36,7 +37,7 @@ Antes de ingest, ask o análisis desde Swagger, comprueba **`GET /health/ready`*
 
 | Bloque | Opciones | Acción |
 |--------|----------|--------|
-| Docker | 1–6 | Levantar/parar stack, logs, modelos Ollama |
+| Docker | 1–6, 21–22 | Levantar/parar stack, GPU Ollama, logs, modelos |
 | Salud | 7–8 | `/health`, `/health/ready`, humo automatizado |
 | RAG | 9–13 | Ingesta demo/archivo/masiva, ask, search |
 | OCR | 14–15 | Extracción sin Qdrant |
@@ -52,6 +53,15 @@ docker compose up --build -d
 ```
 
 **Primera vez:** el servicio `ollama-pull` descarga modelos de embeddings y chat antes de arrancar la API (puede tardar varios minutos).
+
+**Con GPU NVIDIA** (opcional, mucho más rápido en RAG y scraper):
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+.\scripts\verify_ollama_gpu.ps1
+```
+
+Detalle: [docs/OLLAMA_GPU.md](docs/OLLAMA_GPU.md).
 
 | Recurso | URL |
 |---------|-----|
