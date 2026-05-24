@@ -210,11 +210,6 @@ def territorio_from_json(raw: str | None) -> list[str | None] | None:
         return None
 
 
-def _segment_for_collection_id(clean_name: str) -> str:
-    """Token de colección: MAYÚSCULAS, sin tildes, palabras unidas con ``_``."""
-    return "_".join(_tokenize(clean_name))
-
-
 def collection_id_from_territorio(territorio: list[str | None] | Any) -> str:
     """
     ID de colección lógica: ``PAIS[_DEPARTAMENTO[_MUNICIPIO]]`` en MAYÚSCULAS.
@@ -230,3 +225,36 @@ def collection_id_from_territorio(territorio: list[str | None] | Any) -> str:
     if municipio:
         parts.append(_segment_for_collection_id(municipio))
     return "_".join(parts)
+
+
+def _segment_for_collection_id(clean_name: str) -> str:
+    """Token de colección: MAYÚSCULAS, sin tildes, palabras unidas con ``_``."""
+    return "_".join(_tokenize(clean_name))
+
+
+def resolve_scraper_pais(value: str | None, *, default: str = DEFAULT_PAIS) -> str:
+    """País efectivo del scraper (MAYÚSCULAS, nombre completo)."""
+    if value is not None and str(value).strip():
+        return normalize_territorio([value, None, None])[0]
+    return normalize_territorio([default, None, None])[0]
+
+
+def pais_label_for_search(pais: str) -> str:
+    """Etiqueta legible para consultas web (``COLOMBIA`` → ``Colombia``)."""
+    return " ".join(part.capitalize() for part in pais.split())
+
+
+def apply_pais_scope(
+    territorio: list[str | None],
+    pais: str,
+) -> tuple[list[str | None], list[str]]:
+    """Fija el país del territorio al ámbito solicitado en la búsqueda."""
+    scoped = normalize_territorio(territorio)
+    pais_norm = resolve_scraper_pais(pais)
+    warnings: list[str] = []
+    if scoped[0] != pais_norm:
+        warnings.append(
+            f"País ajustado al ámbito de búsqueda ({scoped[0]!r} → {pais_norm!r})."
+        )
+        scoped[0] = pais_norm
+    return scoped, warnings

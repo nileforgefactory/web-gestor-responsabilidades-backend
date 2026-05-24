@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.slices.common.territorio import TERRITORIO_LEN, normalize_territorio
+from app.slices.common.territorio import TERRITORIO_LEN, normalize_territorio, resolve_scraper_pais
 
 EstadoNormaScraper = Literal["indexada", "no_encontrada", "no_indexada", "error"]
 
@@ -20,6 +20,22 @@ class ScraperBuscarRequest(BaseModel):
         max_length=50,
         description="Referencias normativas (ej. 'Ley 1523 de 2012', 'Decreto 1077 art. 5').",
     )
+    pais: str | None = Field(
+        None,
+        description=(
+            "País objetivo para acotar búsquedas web e inferencia territorial. "
+            "Nombre completo en MAYÚSCULAS (ej. COLOMBIA). "
+            "Si se omite, usa SCRAPER_DEFAULT_PAIS del entorno."
+        ),
+        json_schema_extra={"example": "COLOMBIA"},
+    )
+
+    @field_validator("pais", mode="before")
+    @classmethod
+    def _norm_pais(cls, v: object) -> str | None:
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return None
+        return resolve_scraper_pais(str(v))
 
 
 class ValidacionNormaOut(BaseModel):
@@ -79,6 +95,10 @@ class ScraperResumen(BaseModel):
     no_encontradas: int
     no_indexadas: int
     errores: int = 0
+    pais: str = Field(
+        ...,
+        description="País usado para acotar las búsquedas web en este lote.",
+    )
     concurrencia: int = Field(
         1,
         description="Número máximo de normas procesadas en paralelo en esta solicitud.",

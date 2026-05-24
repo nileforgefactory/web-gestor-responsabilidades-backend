@@ -14,7 +14,11 @@ import httpx
 from app.core.config import Settings
 from app.slices.rag.ollama_client import ollama_chat
 from app.slices.rag.service import _with_retries
-from app.slices.common.territorio import normalize_territorio, territorio_normalization_warnings
+from app.slices.common.territorio import (
+    normalize_territorio,
+    resolve_scraper_pais,
+    territorio_normalization_warnings,
+)
 from app.slices.scraper.schemas import ValidacionNormaOut
 
 logger = logging.getLogger(__name__)
@@ -102,8 +106,10 @@ async def validate_norm_document(
     texto: str,
     url: str,
     titulo_resultado: str | None = None,
+    pais_esperado: str = "COLOMBIA",
 ) -> ValidationResult:
     """Pide al LLM confirmar si el texto corresponde a la norma pedida."""
+    pais_objetivo = resolve_scraper_pais(pais_esperado)
     if not settings.use_ollama:
         logger.warning("[SCRAPER] norma=%r validacion omitida (use_ollama=false)", norma_solicitada)
         outcome = ValidacionNormaOut(
@@ -111,7 +117,7 @@ async def validate_norm_document(
             confianza=0.5,
             motivo="Validación IA deshabilitada; se acepta por configuración.",
             advertencias=["use_ollama=false"],
-            territorio=normalize_territorio(None),
+            territorio=normalize_territorio([pais_objetivo, None, None]),
         )
         return ValidationResult(
             outcome=outcome,
@@ -120,7 +126,8 @@ async def validate_norm_document(
 
     max_chars = settings.scraper_validation_text_max_chars
     muestra = texto[:max_chars]
-    user = f"""Norma solicitada: {norma_solicitada}
+    user = f"""País objetivo de búsqueda: {pais_objetivo}
+Norma solicitada: {norma_solicitada}
 URL origen: {url}
 Título en resultados de búsqueda: {titulo_resultado or "(sin título)"}
 

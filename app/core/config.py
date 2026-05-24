@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     scraper_collection_id: str = "normas_legales"
     scraper_search_max_results: int = 8
     scraper_search_query_suffix: str = "normativa PDF"
+    scraper_default_pais: str = "COLOMBIA"
     scraper_validation_min_confidence: float = 0.72
     scraper_validation_text_max_chars: int = 12_000
     scraper_fetch_timeout_sec: float = 45.0

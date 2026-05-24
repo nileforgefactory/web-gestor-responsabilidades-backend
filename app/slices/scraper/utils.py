@@ -6,44 +6,69 @@ import re
 import unicodedata
 from urllib.parse import urlparse
 
+from app.slices.common.territorio import pais_label_for_search
 
-def build_search_query(norma: str, *, suffix: str) -> str:
+
+def build_search_query(norma: str, *, suffix: str, pais: str | None = None) -> str:
     """
-    Arma la consulta principal añadiendo palabras del sufijo que aún no estén en la norma.
+    Arma la consulta principal añadiendo país (si aplica) y palabras del sufijo.
 
-    Evita duplicar \"Colombia\" y siempre separa con espacio (nunca ``1991Colombia``).
+    Evita duplicar el país y siempre separa con espacio (nunca ``1991Colombia``).
     """
     base = norma.strip()
     if not base:
         return base
+
+    prefix_words: list[str] = []
+    if pais:
+        label = pais_label_for_search(pais)
+        if label.lower() not in base.lower():
+            prefix_words.append(label)
+
     extra_words: list[str] = []
     for word in suffix.split():
         w = word.strip()
         if not w:
             continue
-        if w.lower() not in base.lower():
-            extra_words.append(w)
-    if not extra_words:
-        return base
-    return f"{base} {' '.join(extra_words)}"
+        if w.lower() in base.lower():
+            continue
+        if any(w.lower() == p.lower() for p in prefix_words):
+            continue
+        extra_words.append(w)
+
+    parts = [*prefix_words, base, *extra_words]
+    return " ".join(parts)
 
 
-def build_search_query_variants(norma: str, *, suffix: str, max_variants: int = 3) -> list[str]:
+def build_search_query_variants(
+    norma: str,
+    *,
+    suffix: str,
+    max_variants: int = 3,
+    pais: str | None = None,
+) -> list[str]:
     """Variantes de búsqueda para mejorar recall (Constitución, leyes conocidas, etc.)."""
     base = norma.strip()
     if not base:
         return []
 
-    primary = build_search_query(base, suffix=suffix)
+    pais_label = pais_label_for_search(pais) if pais else None
+    primary = build_search_query(base, suffix=suffix, pais=pais)
     candidates: list[str] = [
         primary,
-        base,
+        build_search_query(base, suffix="PDF", pais=pais),
+        build_search_query(base, suffix="texto oficial", pais=pais),
         f"{base} PDF",
-        f"{base} texto oficial",
         f"{_strip_accents(base)} PDF",
     ]
+    if pais_label and pais_label.lower() not in base.lower():
+        candidates.insert(1, f"{pais_label} {base} PDF")
+
     if "constitucion" in base.lower() or "constitución" in base.lower():
-        candidates.insert(1, "Constitución Política de Colombia 1991 PDF")
+        if pais_label:
+            candidates.insert(1, f"Constitución Política de {pais_label} 1991 PDF")
+        else:
+            candidates.insert(1, "Constitución Política de Colombia 1991 PDF")
 
     seen: set[str] = set()
     out: list[str] = []

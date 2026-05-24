@@ -31,7 +31,8 @@ def _scraper_service(
     summary="Buscar normas en red e indexar",
     description=(
         "Por cada referencia normativa (en **paralelo**, límite `SCRAPER_MAX_CONCURRENCY`): "
-        "búsqueda en internet, descarga, validación con Ollama e indexación en Qdrant si coincide. "
+        "búsqueda en internet acotada por **país** (cuerpo o `SCRAPER_DEFAULT_PAIS`), "
+        "descarga, validación con Ollama e indexación en Qdrant si coincide. "
         "Requiere Ollama y Qdrant listos (`GET /health/ready`). "
         "Catálogo MySQL opcional (`MYSQL_URL`); cada norma usa sesión DB propia."
     ),
@@ -42,5 +43,9 @@ async def buscar_normas(
     service: ScraperService = Depends(_scraper_service),
 ) -> ScraperBuscarResponse:
     """Ejecuta el flujo completo para todas las normas del cuerpo."""
-    logger.info("[SCRAPER] solicitud normas=%d", len(payload.normas))
-    return await service.buscar_normas(payload.normas)
+    logger.info(
+        "[SCRAPER] solicitud normas=%d pais=%s",
+        len(payload.normas),
+        payload.pais or "(env)",
+    )
+    return await service.buscar_normas(payload.normas, pais=payload.pais)

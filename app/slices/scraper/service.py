@@ -20,7 +20,11 @@ from app.slices.conocimiento.schemas import (
 from app.slices.rag.ollama_client import OllamaError
 from app.slices.rag.service import RagService
 from app.slices.common.network_errors import classify_http_error, is_transient_network_error
-from app.slices.common.territorio import collection_id_from_territorio
+from app.slices.common.territorio import (
+    apply_pais_scope,
+    collection_id_from_territorio,
+    resolve_scraper_pais,
+)
 from app.slices.scraper.fetcher import fetch_and_extract
 from app.slices.scraper.schemas import (
     NormaScraperResultado,
@@ -54,12 +58,20 @@ class ScraperService:
         self._http = http or rag.http
         self._search = build_web_search_provider(http=self._http, settings=settings)
 
-    async def buscar_normas(self, normas: list[str]) -> ScraperBuscarResponse:
+    async def buscar_normas(
+        self,
+        normas: list[str],
+        *,
+        pais: str | None = None,
+    ) -> ScraperBuscarResponse:
         """
         Procesa las normas en paralelo (asyncio) con límite de concurrencia.
 
         Cada norma usa su propia sesión MySQL cuando el catálogo está activo.
         """
+        pais_efectivo = resolve_scraper_pais(
+            pais, default=self.settings.scraper_default_pais
+        )
         items: list[tuple[int, str, str | None]] = []
         for idx, raw in enumerate(normas):
             nombre = raw.strip() or None
@@ -72,8 +84,9 @@ class ScraperService:
         sem = asyncio.Semaphore(concurrencia)
 
         logger.info(
-            "[SCRAPER] lote normas=%d concurrencia=%d (paralelo asyncio)",
+            "[SCRAPER] lote normas=%d pais=%s concurrencia=%d (paralelo asyncio)",
             len(items),
+            pais_efectivo,
             concurrencia,
         )
 
@@ -90,9 +103,13 @@ class ScraperService:
                 try:
                     if mysql_available():
                         async with session_scope() as db:
-                            resultado = await self._procesar_norma(nombre, db=db)
+                            resultado = await self._procesar_norma(
+                                nombre, db=db, pais=pais_efectivo
+                            )
                     else:
-                        resultado = await self._procesar_norma(nombre, db=None)
+                        resultado = await self._procesar_norma(
+                            nombre, db=None, pais=pais_efectivo
+                        )
                     return index, resultado
                 except Exception as exc:
                     logger.exception(
@@ -117,6 +134,7 @@ class ScraperService:
                 no_encontradas=sum(1 for r in resultados if r.estado == "no_encontrada"),
                 no_indexadas=sum(1 for r in resultados if r.estado == "no_indexada"),
                 errores=sum(1 for r in resultados if r.estado == "error"),
+                pais=pais_efectivo,
                 concurrencia=concurrencia,
             ),
             resultados=resultados,
@@ -127,14 +145,15 @@ class ScraperService:
         norma: str,
         *,
         db: AsyncSession | None,
+        pais: str,
     ) -> NormaScraperResultado:
-        logger.info("[SCRAPER] norma=%r fase=inicio", norma)
+        logger.info("[SCRAPER] norma=%r pais=%s fase=inicio", norma, pais)
         urls_intentadas: list[str] = []
         ultima_validacion: ValidacionNormaOut | None = None
         ultimo_motivo: str | None = None
 
         try:
-            hits = await self._buscar_en_red(norma)
+            hits = await self._buscar_en_red(norma, pais=pais)
         except Exception as exc:
             logger.exception("[SCRAPER] norma=%r error busqueda_red", norma)
             return NormaScraperResultado(
@@ -150,19 +169,22 @@ class ScraperService:
                 await self._registrar_catalogo_fallo(
                     db,
                     norma=norma,
-                    territorio=None,
+                    territorio=[pais, None, None],
                     motivo=motivo,
                 )
             return NormaScraperResultado(
                 norma=norma,
                 estado="no_encontrada",
                 motivo=motivo,
-                coleccion_id=collection_id_from_territorio(None),
+                coleccion_id=collection_id_from_territorio([pais, None, None]),
+                territorio=[pais, None, None],
             )
 
         for hit in hits:
             urls_intentadas.append(hit.url)
-            indexado, validacion, motivo = await self._evaluar_candidato(norma, hit, db=db)
+            indexado, validacion, motivo = await self._evaluar_candidato(
+                norma, hit, db=db, pais=pais
+            )
             if validacion is not None:
                 ultima_validacion = validacion
             if motivo:
@@ -176,8 +198,9 @@ class ScraperService:
             or "Se encontraron enlaces pero ninguno pasó la validación o no tenía texto utilizable."
         )
         territorio_fallo = (
-            ultima_validacion.territorio if ultima_validacion is not None else None
+            ultima_validacion.territorio if ultima_validacion is not None else [pais, None, None]
         )
+        territorio_fallo, _ = apply_pais_scope(territorio_fallo, pais)
         coleccion_fallo = collection_id_from_territorio(territorio_fallo)
         if db is not None:
             await self._registrar_catalogo_fallo(
@@ -203,6 +226,7 @@ class ScraperService:
         hit: SearchHit,
         *,
         db: AsyncSession | None,
+        pais: str,
     ) -> tuple[NormaScraperResultado | None, ValidacionNormaOut | None, str | None]:
         """
         Returns:
@@ -239,6 +263,7 @@ class ScraperService:
                 texto=fetched.text,
                 url=hit.url,
                 titulo_resultado=hit.title,
+                pais_esperado=pais,
             )
         except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError, OllamaError) as exc:
             info = classify_http_error(exc)
@@ -271,6 +296,15 @@ class ScraperService:
             return None, None, f"Error inesperado en validación IA: {exc}"
 
         val_out = validation.outcome
+        territorio, scope_warnings = apply_pais_scope(val_out.territorio, pais)
+        if territorio != val_out.territorio or scope_warnings:
+            val_out = val_out.model_copy(
+                update={
+                    "territorio": territorio,
+                    "advertencias": [*val_out.advertencias, *scope_warnings],
+                }
+            )
+
         if not validation.accepted:
             motivo = val_out.motivo or "El documento no coincide con la norma solicitada."
             return None, val_out, motivo
@@ -457,12 +491,13 @@ class ScraperService:
                 exc,
             )
 
-    async def _buscar_en_red(self, norma: str) -> list[SearchHit]:
+    async def _buscar_en_red(self, norma: str, *, pais: str) -> list[SearchHit]:
         """Prueba varias formulaciones de consulta hasta obtener enlaces."""
         variants = build_search_query_variants(
             norma,
             suffix=self.settings.scraper_search_query_suffix,
             max_variants=self.settings.scraper_search_query_variants,
+            pais=pais,
         )
         if not variants:
             return []
