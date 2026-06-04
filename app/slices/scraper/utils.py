@@ -3,10 +3,26 @@
 from __future__ import annotations
 
 import re
-import unicodedata
 from urllib.parse import urlparse
 
 from app.slices.common.territorio import pais_label_for_search
+
+
+def url_looks_like_pdf(url: str) -> bool:
+    """True si la URL apunta probablemente a un archivo PDF."""
+    try:
+        parsed = urlparse(url.strip())
+    except ValueError:
+        return False
+    path = parsed.path.lower()
+    if path.endswith(".pdf") or ".pdf" in path:
+        return True
+    query = parsed.query.lower()
+    if "pdf=" in query:
+        return True
+    if re.search(r"(?:^|[&?])(?:format|type|download)=[^&]*pdf", query):
+        return True
+    return False
 
 
 def build_search_query(norma: str, *, suffix: str, pais: str | None = None) -> str:
@@ -47,7 +63,7 @@ def build_search_query_variants(
     max_variants: int = 3,
     pais: str | None = None,
 ) -> list[str]:
-    """Variantes de búsqueda para mejorar recall (Constitución, leyes conocidas, etc.)."""
+    """Variantes de búsqueda orientadas a PDF oficial (no HTML ni resúmenes)."""
     base = norma.strip()
     if not base:
         return []
@@ -56,19 +72,18 @@ def build_search_query_variants(
     primary = build_search_query(base, suffix=suffix, pais=pais)
     candidates: list[str] = [
         primary,
-        build_search_query(base, suffix="PDF", pais=pais),
-        build_search_query(base, suffix="texto oficial", pais=pais),
-        f"{base} PDF",
-        f"{_strip_accents(base)} PDF",
+        build_search_query(base, suffix="filetype:pdf", pais=pais),
+        f"{base} filetype:pdf",
+        f'"{base}" filetype:pdf',
     ]
     if pais_label and pais_label.lower() not in base.lower():
-        candidates.insert(1, f"{pais_label} {base} PDF")
+        candidates.insert(1, f"{pais_label} {base} filetype:pdf")
 
     if "constitucion" in base.lower() or "constitución" in base.lower():
         if pais_label:
-            candidates.insert(1, f"Constitución Política de {pais_label} 1991 PDF")
+            candidates.insert(1, f"Constitución Política de {pais_label} 1991 filetype:pdf")
         else:
-            candidates.insert(1, "Constitución Política de Colombia 1991 PDF")
+            candidates.insert(1, "Constitución Política de Colombia 1991 filetype:pdf")
 
     seen: set[str] = set()
     out: list[str] = []
@@ -81,11 +96,6 @@ def build_search_query_variants(
         if len(out) >= max(1, max_variants):
             break
     return out
-
-
-def _strip_accents(text: str) -> str:
-    normalized = unicodedata.normalize("NFD", text)
-    return "".join(c for c in normalized if unicodedata.category(c) != "Mn")
 
 
 def derive_document_id(norma: str) -> str:
