@@ -31,8 +31,9 @@ def _scraper_service(
     summary="Buscar normas en red e indexar",
     description=(
         "Por cada referencia normativa (en **paralelo**, límite `SCRAPER_MAX_CONCURRENCY`): "
-        "búsqueda en internet acotada por **país** (cuerpo o `SCRAPER_DEFAULT_PAIS`), "
-        "descarga, validación con Ollama e indexación en Qdrant si coincide. "
+        "búsqueda en internet (solo **PDF** oficiales) acotada por **país**, "
+        "descarga del PDF, validación IA (debe ser el **texto de la norma**, no un documento sobre ella) "
+        "e indexación en Qdrant si coincide. "
         "Requiere Ollama y Qdrant listos (`GET /health/ready`). "
         "Catálogo MySQL opcional (`MYSQL_URL`); cada norma usa sesión DB propia."
     ),

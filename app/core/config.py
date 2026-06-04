@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     # Obsoleto para el scraper: la colección se deriva del territorio (ej. COLOMBIA_CAUCA).
     scraper_collection_id: str = "normas_legales"
     scraper_search_max_results: int = 8
-    scraper_search_query_suffix: str = "normativa PDF"
+    scraper_search_query_suffix: str = "filetype:pdf"
     scraper_default_pais: str = "COLOMBIA"
     scraper_validation_min_confidence: float = 0.72
     scraper_validation_text_max_chars: int = 12_000

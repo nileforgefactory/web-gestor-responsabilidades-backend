@@ -164,7 +164,7 @@ class ScraperService:
 
         if not hits:
             logger.info("[SCRAPER] norma=%r fase=fin estado=no_encontrada", norma)
-            motivo = "La búsqueda en red no devolvió resultados."
+            motivo = "La búsqueda en red no devolvió enlaces PDF de la norma."
             if db is not None:
                 await self._registrar_catalogo_fallo(
                     db,

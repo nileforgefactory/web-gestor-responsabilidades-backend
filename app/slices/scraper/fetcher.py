@@ -1,10 +1,9 @@
-"""Descarga de URLs y extracción de texto para validación."""
+"""Descarga de URLs PDF y extracción de texto para validación."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -15,10 +14,10 @@ from app.core.config import Settings
 from app.slices.ocr.extractor import ExtractionResult
 from app.slices.rag.extract import extract_document_from_bytes
 from app.slices.common.network_errors import NetworkErrorKind, classify_http_error
+from app.slices.scraper.utils import url_looks_like_pdf
 
 logger = logging.getLogger(__name__)
 
-_HTML_SUFFIXES = {".html", ".htm", ".asp", ".aspx", ".php"}
 _PDF_HINT = ".pdf"
 _PDF_MAGIC = b"%PDF"
 
@@ -61,27 +60,9 @@ def _guess_filename(url: str, content_type: str | None) -> str:
     name = Path(path).name
     if name and "." in name:
         return name
-    ct = (content_type or "").lower()
-    if "pdf" in ct:
+    if "pdf" in (content_type or "").lower():
         return "documento.pdf"
-    if "html" in ct:
-        return "documento.html"
-    return "documento.txt"
-
-
-def html_to_text(raw_html: str) -> str:
-    """Convierte HTML a texto plano (sin dependencias extra)."""
-    text = raw_html
-    text = re.sub(r"(?is)<script[^>]*>.*?</script>", " ", text)
-    text = re.sub(r"(?is)<style[^>]*>.*?</style>", " ", text)
-    text = re.sub(r"(?is)<br\s*/?>", "\n", text)
-    text = re.sub(r"(?is)</p\s*>", "\n", text)
-    text = re.sub(r"(?is)<[^>]+>", " ", text)
-    text = re.sub(r"&nbsp;", " ", text, flags=re.IGNORECASE)
-    text = re.sub(r"&#(\d+);", lambda m: chr(int(m.group(1))), text)
-    text = re.sub(r"\s+\n", "\n", text)
-    text = re.sub(r"[ \t]{2,}", " ", text)
-    return text.strip()
+    return "documento.pdf"
 
 
 async def fetch_and_extract(
@@ -91,13 +72,13 @@ async def fetch_and_extract(
     settings: Settings,
 ) -> FetchedDocument:
     """
-    Descarga una URL y devuelve texto extraído.
+    Descarga una URL PDF y devuelve texto extraído.
 
-    Reintenta ante timeout/red; opcionalmente reintenta sin verificar SSL en sitios
-    gubernamentales con certificados intermedios incompletos.
+    Solo acepta archivos PDF (URL con indicio de PDF y contenido ``%PDF`` o
+    ``application/pdf``). Rechaza HTML, texto plano y otros formatos.
 
     Raises:
-        ValueError: descarga vacía, formato no soportado o texto insuficiente.
+        ValueError: enlace no PDF, descarga vacía, PDF ilegible o texto insuficiente.
         httpx.HTTPError: error de red tras agotar reintentos.
     """
     attempts = max(1, settings.scraper_fetch_retries)
@@ -159,7 +140,10 @@ async def _fetch_and_extract_once(
     settings: Settings,
     verify: bool,
 ) -> FetchedDocument:
-    """Un intento de descarga y extracción."""
+    """Un intento de descarga y extracción de PDF."""
+    if not url_looks_like_pdf(url):
+        raise ValueError("Solo se aceptan enlaces a archivos PDF")
+
     logger.debug("[SCRAPER] fase=descarga url=%s verify_ssl=%s", url, verify)
     headers = {"User-Agent": settings.scraper_user_agent}
     timeout = httpx.Timeout(settings.scraper_fetch_timeout_sec, connect=20.0)
@@ -208,22 +192,14 @@ async def _fetch_and_extract_once(
         filename = Path(filename).stem + ".pdf" if suf != ".pdf" else filename
 
     ct = (content_type or "").lower()
-    if "html" in ct or suf in _HTML_SUFFIXES or path_lower.endswith(tuple(_HTML_SUFFIXES)):
-        text = html_to_text(raw.decode("utf-8", errors="replace"))
-        if len(text) < settings.scraper_min_extracted_chars:
-            raise ValueError("HTML sin texto normativo suficiente")
-        return FetchedDocument(
-            url=url,
-            text=text,
-            filename=filename,
-            extraction_method="html",
-            char_count=len(text),
+    if not _looks_like_pdf(raw, ct, path_lower, filename):
+        raise ValueError(
+            "El enlace no devolvió un PDF válido (solo se indexan archivos PDF normativos)."
         )
 
-    if _looks_like_pdf(raw, ct, path_lower, filename):
-        raw = _sanitize_pdf_bytes(raw)
-        if not filename.lower().endswith(".pdf"):
-            filename = Path(filename).stem + ".pdf"
+    raw = _sanitize_pdf_bytes(raw)
+    if not filename.lower().endswith(".pdf"):
+        filename = Path(filename).stem + ".pdf"
 
     try:
         result: ExtractionResult = await extract_document_from_bytes(
@@ -231,29 +207,17 @@ async def _fetch_and_extract_once(
         )
     except ValueError as exc:
         msg = str(exc)
-        if "Formato no soportado" in msg and ("text/" in ct or "json" in ct):
-            text = raw.decode("utf-8", errors="replace").strip()
-            if len(text) >= settings.scraper_min_extracted_chars:
-                return FetchedDocument(
-                    url=url,
-                    text=text,
-                    filename="documento.txt",
-                    extraction_method="texto_plano",
-                    char_count=len(text),
-                )
-        if _looks_like_pdf(raw, ct, path_lower, filename):
-            logger.warning(
-                "[SCRAPER] pdf_ilegible url=%s motivo=%s",
-                url,
-                msg[:200],
-            )
-            raise ValueError(
-                f"PDF ilegible o corrupto ({msg}). Se probará otro enlace."
-            ) from exc
-        raise
+        logger.warning(
+            "[SCRAPER] pdf_ilegible url=%s motivo=%s",
+            url,
+            msg[:200],
+        )
+        raise ValueError(
+            f"PDF ilegible o corrupto ({msg}). Se probará otro enlace."
+        ) from exc
 
     if result.char_count < settings.scraper_min_extracted_chars:
-        raise ValueError("Texto extraído demasiado corto")
+        raise ValueError("Texto extraído del PDF demasiado corto")
 
     return FetchedDocument(
         url=url,
