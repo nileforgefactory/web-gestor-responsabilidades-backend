@@ -12,6 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.slices.alertas.models import AlertaNormativa
+from app.slices.common.territorio import collection_id_from_territorio
+from app.slices.conocimiento import repository as conocimiento_repo
 from app.slices.planes.models import PlanNorma
 from app.slices.rag.service import RagService
 
@@ -43,6 +45,9 @@ async def check_normas_actualizadas(
 
     alertas_creadas: list[AlertaNormativa] = []
     thr = rag.settings.rag_default_score_threshold
+    collection_ids = await conocimiento_repo.distinct_coleccion_ids(db)
+    if not collection_ids:
+        collection_ids = [collection_id_from_territorio(None)]
 
     for norma in normas:
         codigo = norma.norma_codigo or norma.titulo[:50]
@@ -51,7 +56,7 @@ async def check_normas_actualizadas(
         try:
             search_result = await rag.search(
                 query=query,
-                collection_ids=["normas_legales"],
+                collection_ids=collection_ids,
                 top_k=3,
                 score_threshold=thr,
             )

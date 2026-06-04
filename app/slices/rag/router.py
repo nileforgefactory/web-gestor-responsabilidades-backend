@@ -6,10 +6,13 @@ import logging
 
 import httpx
 from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.database import get_optional_db
 from app.core.openapi import RESPUESTAS_RAG
 from app.dependencies import get_rag_service
+from app.slices.conocimiento import repository as conocimiento_repo
 from app.slices.rag.bulk import ingestir_archivos_masivo
 from app.slices.rag.extract import (
     derive_document_id_from_filename,
@@ -25,6 +28,7 @@ from app.slices.rag.schemas import (
     IngestMasivaResponse,
     IngestTextRequest,
     IngestTextResponse,
+    ColeccionesListResponse,
     RagSearchRequest,
     RagSearchResponse,
 )
@@ -51,6 +55,29 @@ router = APIRouter(
     prefix="/rag",
     tags=["rag"],
 )
+
+
+@router.get(
+    "/colecciones",
+    response_model=ColeccionesListResponse,
+    summary="Listar colecciones lógicas disponibles",
+    description=(
+        "Devuelve los ``collection_id`` con datos en Qdrant (chunks y documentos) "
+        "y marca cuáles existen en el catálogo MySQL. "
+        "Las colecciones lógicas comparten la colección física configurada en Qdrant."
+    ),
+    responses=RESPUESTAS_RAG,
+)
+async def listar_colecciones(
+    service: RagService = Depends(get_rag_service),
+    db: AsyncSession | None = Depends(get_optional_db),
+) -> ColeccionesListResponse:
+    """Inventario de namespaces de ingesta (p. ej. COLOMBIA, COLOMBIA_CAUCA, demo_local)."""
+    await service.ensure_collection()
+    catalog_ids: set[str] = set()
+    if db is not None:
+        catalog_ids = set(await conocimiento_repo.distinct_coleccion_ids(db))
+    return await service.list_logical_collections(catalog_collection_ids=catalog_ids)
 
 
 def _upstream_http(exc: BaseException, *, code: int) -> HTTPException:

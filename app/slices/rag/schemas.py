@@ -161,3 +161,26 @@ class AskResponse(BaseModel):
     confidence: float = Field(..., description="Score medio de chunks usados")
     used_chunks: list[str] = Field(..., description="IDs de chunks citados")
     retrieval_empty: bool = Field(False, description="True si no hubo evidencia en Qdrant")
+
+
+class ColeccionLogicaItem(BaseModel):
+    """Colección lógica (namespace ``collection_id`` dentro de Qdrant)."""
+
+    collection_id: str = Field(..., description="Identificador usado en ingesta y búsqueda")
+    chunks: int = Field(0, ge=0, description="Fragmentos vectorizados en Qdrant")
+    documentos: int = Field(0, ge=0, description="document_id distintos indexados")
+    en_catalogo_mysql: bool = Field(
+        False,
+        description="True si hay registros en base_conocimiento con este coleccion_id",
+    )
+
+
+class ColeccionesListResponse(BaseModel):
+    """Listado de colecciones lógicas disponibles."""
+
+    coleccion_fisica_qdrant: str = Field(
+        ...,
+        description="Nombre de la colección física en Qdrant (VECTOR_STORE)",
+    )
+    total: int = Field(..., ge=0)
+    colecciones: list[ColeccionLogicaItem]

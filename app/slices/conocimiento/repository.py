@@ -1,10 +1,17 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import distinct, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.slices.conocimiento.models import BaseConocimiento
 from app.slices.conocimiento.schemas import ConocimientoCreate, ConocimientoUpdate
+
+
+async def distinct_coleccion_ids(db: AsyncSession) -> list[str]:
+    """IDs de colección lógica presentes en el catálogo MySQL."""
+    stmt = select(distinct(BaseConocimiento.coleccion_id))
+    result = await db.execute(stmt)
+    return sorted(r[0] for r in result.all() if r[0])
 
 
 async def list_docs(
@@ -34,7 +41,13 @@ async def get_doc(db: AsyncSession, doc_id: str) -> BaseConocimiento | None:
 
 
 async def create_doc(db: AsyncSession, data: ConocimientoCreate) -> BaseConocimiento:
-    doc = BaseConocimiento(**data.model_dump())
+    from app.slices.conocimiento.schemas import territorio_for_db
+
+    payload = data.model_dump()
+    terr = payload.pop("territorio", None)
+    if terr is not None:
+        payload["territorio"] = territorio_for_db(terr)
+    doc = BaseConocimiento(**payload)
     db.add(doc)
     await db.flush()
     await db.refresh(doc)
@@ -47,8 +60,13 @@ async def update_doc(
     doc = await db.get(BaseConocimiento, doc_id)
     if doc is None:
         return None
+    from app.slices.conocimiento.schemas import territorio_for_db
+
     for field, value in data.model_dump(exclude_none=True).items():
-        setattr(doc, field, value)
+        if field == "territorio" and value is not None:
+            setattr(doc, field, territorio_for_db(value))
+        else:
+            setattr(doc, field, value)
     await db.flush()
     await db.refresh(doc)
     return doc

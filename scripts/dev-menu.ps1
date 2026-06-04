@@ -72,17 +72,35 @@ function Wait-HealthReady {
     return $false
 }
 
+function Get-ComposeFileArgs {
+    param(
+        [switch]$Prod,
+        [switch]$Gpu
+    )
+    $files = @("-f", "docker-compose.yml")
+    if ($Prod) {
+        $files += @("-f", "docker-compose.prod.yml")
+    }
+    if ($Gpu) {
+        $files += @("-f", "docker-compose.gpu.yml")
+    }
+    return $files
+}
+
 function Start-DockerStack {
     param(
         [switch]$Prod,
+        [switch]$Gpu,
         [switch]$NoBuild,
         [string]$ChatModel = ""
     )
     Set-Location $Root
-    $composeArgs = @("compose")
+    $composeArgs = @("compose") + (Get-ComposeFileArgs -Prod:$Prod -Gpu:$Gpu)
     if ($Prod) {
-        $composeArgs += @("-f", "docker-compose.yml", "-f", "docker-compose.prod.yml")
         Write-Warn "Modo producción: solo puerto 8000 al host."
+    }
+    if ($Gpu) {
+        Write-Warn "Modo GPU: Ollama con reserva NVIDIA (requiere nvidia-smi en host/WSL)."
     }
     if ($NoBuild) { $composeArgs += @("up", "-d") }
     else { $composeArgs += @("up", "--build", "-d") }
@@ -97,8 +115,15 @@ function Start-DockerStack {
 }
 
 function Stop-DockerStack {
+    param([switch]$Gpu)
     Set-Location $Root
-    docker compose down
+    $composeArgs = @("compose") + (Get-ComposeFileArgs -Gpu:$Gpu) + @("down")
+    & docker @composeArgs
+}
+
+function Test-OllamaGpu {
+    Write-Title "Verificación GPU Ollama"
+    & (Join-Path $PSScriptRoot "verify_ollama_gpu.ps1")
 }
 
 function Show-DockerLogs {
@@ -328,7 +353,9 @@ function Show-Menu {
   API: $ApiBase
 
   [ Docker ]
-    1  Levantar stack (build + esperar healthy)
+    1  Levantar stack CPU (build + esperar healthy)
+   21  Levantar stack con GPU NVIDIA (build + healthy)
+   22  Verificar GPU en Ollama (nvidia-smi + inferencia)
     2  Levantar stack sin rebuild
     3  Levantar modo producción (solo :8000)
     4  Detener stack (compose down)
@@ -368,6 +395,8 @@ while ($true) {
     $op = Read-Host "Opción"
     switch ($op) {
         "1" { Start-DockerStack }
+        "21" { Start-DockerStack -Gpu }
+        "22" { Test-OllamaGpu }
         "2" { Start-DockerStack -NoBuild }
         "3" {
             $m = Read-LineOrDefault "Modelo chat (vacío=default)" ""
