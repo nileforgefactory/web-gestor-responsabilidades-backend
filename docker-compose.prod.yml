@@ -1,0 +1,33 @@
+# Perfil producción: solo la API expone puerto al host.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+#
+# Migraciones MySQL: NO automáticas. Aplicar manualmente en el contenedor api:
+#   docker compose exec api alembic upgrade head
+name: gestor-backend
+
+services:
+  api:
+    environment:
+      APP_ENV: prod
+      MYSQL_RUN_MIGRATIONS: "false"
+
+  mysql:
+    ports: !reset []
+    expose:
+      - "3306"
+
+  ollama:
+    ports: !reset []
+    expose:
+      - "11434"
+
+  qdrant:
+    ports: !reset []
+    expose:
+      - "6333"
+      - "6334"
+
+  redis:
+    ports: !reset []
+    expose:
+      - "6379"

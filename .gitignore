@@ -1,0 +1,63 @@
+# Entorno y secretos
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+.venv/
+venv/
+ENV/
+
+# Tests y cobertura
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# IDEs
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# SO
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs y temporales
+*.log
+logs/
+tmp/
+temp/
+uploads/
+data/uploads/
+
+# Docker (overrides locales opcionales)
+docker-compose.override.yml
+
+# Jupyter / notebooks locales
+.ipynb_checkpoints/
+
+# Documentos de prueba pesados (mantener sample_documents/ versionado ligero)
+*.pdf
+!sample_documents/**/*.pdf

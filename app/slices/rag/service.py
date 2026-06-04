@@ -10,11 +10,14 @@ from httpx import HTTPStatusError
 from qdrant_client import AsyncQdrantClient
 
 from app.core.config import Settings
+from app.slices.common.network_errors import classify_http_error, is_transient_network_error
+from app.slices.rag.chunking.strategy import chunk_document
 from app.slices.rag.ollama_client import OllamaError, ollama_chat, ollama_embed
 from app.slices.rag.repository import RagRepository
 from app.slices.rag.schemas import (
     AgentContextResponse,
     AskResponse,
+    ColeccionesListResponse,
     IngestTextResponse,
     RagChunk,
     RagCitation,
@@ -30,28 +33,8 @@ _NO_EVIDENCE_ANSWER = (
 )
 
 
-def chunk_text_by_chars(content: str, chunk_size: int, overlap: int) -> list[str]:
-    text = content.strip()
-    if not text:
-        return []
-    if overlap >= chunk_size:
-        overlap = max(0, chunk_size // 4)
-    chunks: list[str] = []
-    step = chunk_size - overlap
-    pos = 0
-    length = len(text)
-    while pos < length:
-        end = min(pos + chunk_size, length)
-        piece = text[pos:end].strip()
-        if piece:
-            chunks.append(piece)
-        if end >= length:
-            break
-        pos += step
-    return chunks
-
-
 def pseudo_embedding(text: str, vector_size: int) -> list[float]:
+    """Vector determinista desde SHA-256 cuando Ollama está deshabilitado (demo/tests)."""
     digest = hashlib.sha256(text.encode("utf-8")).digest()
     base_values = [byte / 255.0 for byte in digest]
     vector: list[float] = []
@@ -61,6 +44,7 @@ def pseudo_embedding(text: str, vector_size: int) -> list[float]:
 
 
 async def _with_retries(call: Callable[[], Awaitable[T]], *, attempts: int = 8) -> T:
+    """Reintenta llamadas a Ollama ante timeouts y errores HTTP transitorios."""
     last_exc: BaseException | None = None
     for attempt in range(attempts):
         try:
@@ -68,8 +52,30 @@ async def _with_retries(call: Callable[[], Awaitable[T]], *, attempts: int = 8) 
         except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError, OSError) as exc:
             last_exc = exc
             wait_s = min(30.0, 2.0**attempt)
-            logger.warning("Reintento %s tras error de red %s", attempt + 1, exc)
+            info = classify_http_error(exc)
+            logger.warning(
+                "Reintento %s/%s tras error de red (%s): %s",
+                attempt + 1,
+                attempts,
+                info.kind.value,
+                info.message,
+            )
             await asyncio.sleep(wait_s)
+        except Exception as exc:
+            if is_transient_network_error(exc) and attempt < attempts - 1:
+                last_exc = exc
+                info = classify_http_error(exc)
+                wait_s = min(30.0, 2.0**attempt)
+                logger.warning(
+                    "Reintento %s/%s tras error de red (%s): %s",
+                    attempt + 1,
+                    attempts,
+                    info.kind.value,
+                    info.message,
+                )
+                await asyncio.sleep(wait_s)
+                continue
+            raise
         except HTTPStatusError as exc:
             if exc.response.status_code in (408, 429, 502, 503, 504) and attempt < attempts - 1:
                 last_exc = exc
@@ -82,6 +88,15 @@ async def _with_retries(call: Callable[[], Awaitable[T]], *, attempts: int = 8) 
 
 @dataclass
 class RagService:
+    """
+    Orquesta ingesta, búsqueda vectorial y chat RAG sobre Qdrant + Ollama.
+
+    Attributes:
+        repository: Acceso a Qdrant.
+        settings: Configuración de modelos y umbrales.
+        http: Cliente HTTP compartido hacia Ollama.
+    """
+
     repository: RagRepository
     vector_size: int
     settings: Settings
@@ -90,6 +105,7 @@ class RagService:
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "RagService":
+        """Construye el servicio a partir de configuración de entorno."""
         client = AsyncQdrantClient(url=settings.qdrant_url)
         repository = RagRepository(
             client=client,
@@ -106,13 +122,16 @@ class RagService:
         )
 
     async def ensure_collection(self) -> None:
+        """Crea la colección Qdrant si no existe."""
         await self.repository.ensure_collection()
 
     async def close(self) -> None:
+        """Cierra cliente Qdrant y pool HTTP (lifespan shutdown)."""
         await self.client.close()
         await self.http.aclose()
 
     async def _embedding_for(self, text: str) -> list[float]:
+        """Vector de un fragmento vía Ollama o pseudo-embedding local."""
         if not self.settings.use_ollama:
             return pseudo_embedding(text, self.vector_size)
 
@@ -140,6 +159,7 @@ class RagService:
             raise
 
     async def _embedding_batch(self, texts: list[str]) -> list[list[float]]:
+        """Embeddings en paralelo con semáforo de concurrencia configurada."""
         semaphore = asyncio.Semaphore(max(1, self.settings.ingest_embed_concurrency))
 
         async def one(t: str) -> list[float]:
@@ -159,10 +179,24 @@ class RagService:
         title: str | None = None,
         source_filename: str | None = None,
         replace_existing: bool = True,
+        chunk_strategy: str | None = None,
+        extraction_method: str | None = None,
+        territorio: list[str | None] | None = None,
     ) -> IngestTextResponse:
-        chunks = chunk_text_by_chars(
-            content=content, chunk_size=chunk_size, overlap=chunk_overlap
+        """
+        Fragmenta contenido, genera embeddings e indexa en Qdrant.
+
+        Si ``replace_existing``, borra chunks previos del mismo document_id.
+        """
+        strat = chunk_strategy or self.settings.default_chunk_strategy
+        chunking = chunk_document(
+            content,
+            strategy=strat,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            extraction_method=extraction_method,
         )
+        chunks = chunking.chunks
         if replace_existing:
             await self.repository.delete_document_chunks(
                 collection_id=collection_id, document_id=document_id
@@ -173,21 +207,69 @@ class RagService:
                 collection_id=collection_id,
                 document_id=document_id,
                 chunks_indexed=0,
+                chunk_strategy=chunking.strategy.value,
+                chunk_profile=chunking.profile.value,
+                chunk_size_applied=chunking.chunk_size,
+                chunk_overlap_applied=chunking.chunk_overlap,
             )
 
         vectors = await self._embedding_batch(chunks)
-        inserted = await self.repository.upsert_chunks(
-            collection_id=collection_id,
-            document_id=document_id,
-            chunks=chunks,
-            vectors=vectors,
-            title=title or document_id,
-            source_filename=source_filename or "",
-        )
+
+        async def upsert() -> int:
+            return await self.repository.upsert_chunks(
+                collection_id=collection_id,
+                document_id=document_id,
+                chunks=chunks,
+                vectors=vectors,
+                title=title or document_id,
+                source_filename=source_filename or "",
+                territorio=territorio,
+            )
+
+        inserted = await _with_retries(upsert, attempts=5)
         return IngestTextResponse(
             collection_id=collection_id,
             document_id=document_id,
             chunks_indexed=inserted,
+            chunk_strategy=chunking.strategy.value,
+            chunk_profile=chunking.profile.value,
+            chunk_size_applied=chunking.chunk_size,
+            chunk_overlap_applied=chunking.chunk_overlap,
+        )
+
+    async def list_logical_collections(
+        self,
+        *,
+        catalog_collection_ids: set[str] | None = None,
+    ) -> ColeccionesListResponse:
+        """Lista colecciones lógicas indexadas en Qdrant (y marca presencia en catálogo MySQL)."""
+        from app.slices.rag.schemas import ColeccionLogicaItem
+
+        stats = await self.repository.list_logical_collections()
+        catalog = catalog_collection_ids or set()
+        items = [
+            ColeccionLogicaItem(
+                collection_id=s.collection_id,
+                chunks=s.chunks,
+                documentos=s.documentos,
+                en_catalogo_mysql=s.collection_id in catalog,
+            )
+            for s in stats
+        ]
+        for cid in sorted(catalog - {i.collection_id for i in items}):
+            items.append(
+                ColeccionLogicaItem(
+                    collection_id=cid,
+                    chunks=0,
+                    documentos=0,
+                    en_catalogo_mysql=True,
+                )
+            )
+        items.sort(key=lambda x: x.collection_id)
+        return ColeccionesListResponse(
+            coleccion_fisica_qdrant=self.settings.qdrant_collection,
+            total=len(items),
+            colecciones=items,
         )
 
     async def search(
@@ -198,6 +280,7 @@ class RagService:
         top_k: int,
         score_threshold: float,
     ) -> RagSearchResponse:
+        """Búsqueda por similitud coseno en una o más colecciones."""
         query_vector = await self._embedding_for(query)
         results = await self.repository.search_chunks(
             query_vector=query_vector,
@@ -229,6 +312,7 @@ class RagService:
     async def build_agent_context(
         self, *, user_message: str, collection_ids: list[str], top_k: int
     ) -> AgentContextResponse:
+        """Recupera chunks y arma bloque de contexto + citas para agentes externos."""
         thr = float(self.settings.rag_default_score_threshold)
         search_response = await self.search(
             query=user_message,
@@ -259,6 +343,7 @@ class RagService:
         top_k: int,
         score_threshold: float | None,
     ) -> AskResponse:
+        """RAG conversacional: recuperación + generación con Ollama restringida a evidencia."""
         thr = score_threshold if score_threshold is not None else float(
             self.settings.rag_default_score_threshold
         )
