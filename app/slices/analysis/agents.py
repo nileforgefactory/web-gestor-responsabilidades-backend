@@ -50,6 +50,7 @@ async def run_agent(
         collection_ids=collection_ids,
         agent=agent,
         extra_query=extra_query,
+        nivel=nivel,
     )
     chunk_ids = [c.chunk_id for c in chunks]
     context_blob = chunks_to_context_blob(chunks)
@@ -94,35 +95,35 @@ async def run_agent(
 
 def build_matriz(context: dict[str, Any]) -> list[dict[str, Any]]:
     """
-    Construye la matriz de competencias territoriales de forma determinista
-    cruzando responsabilidades, actores y leyes ya extraídos.
-
-    Reglas de asignación por nivel del actor:
-      municipal      → municipio = tipo_resp, resto N (salvo concurrente)
-      departamental  → departamento = tipo_resp
-      nacional       → nacion = tipo_resp
-      especializado  → especializado = tipo_resp
-    Si el tipo de responsabilidad es 'C' se marca concurrente en todos los niveles
-    donde hay actor. Brechas: si no hay actor → critica; tipo C con un solo actor → duplicidad.
+    Construye la matriz de competencias territoriales cruzando responsabilidades,
+    actores y leyes: cada fila incluye qué actores ejecutan la responsabilidad
+    y qué leyes la fundamentan.
     """
     responsabilidades: list[dict[str, Any]] = context.get("responsabilidades", [])
     actores: list[dict[str, Any]] = context.get("actores", [])
+    leyes: list[dict[str, Any]] = context.get("leyes", [])
     brechas_ctx: list[dict[str, Any]] = context.get("brechas", [])
 
-    # Índice de brechas por título (normalizado) para cruzar
+    # Índice de brechas por título normalizado
     brechas_index: dict[str, str] = {
         str(b.get("titulo", "")).lower()[:40]: str(b.get("tipo", "ok"))
         for b in brechas_ctx
     }
 
-    # Índice de niveles de actores: nombre_lower → nivel
-    actor_niveles: dict[str, str] = {
-        str(a.get("nombre", "")).lower(): str(a.get("nivel", "municipal"))
-        for a in actores
+    # Índice de actores: nombre_lower → actor dict
+    actor_by_name: dict[str, dict[str, Any]] = {
+        str(a.get("nombre", "")).lower(): a for a in actores
     }
 
-    # Niveles presentes en los actores extraídos
-    niveles_presentes: set[str] = {v for v in actor_niveles.values()}
+    # Índice de niveles presentes
+    niveles_presentes: set[str] = {
+        str(a.get("nivel", "municipal")) for a in actores
+    }
+
+    # Índice de leyes por código normalizado para cruce rápido
+    ley_by_codigo: dict[str, dict[str, Any]] = {
+        str(l.get("codigo", "")).lower()[:40]: l for l in leyes
+    }
 
     def _tipo(resp_tipo: str, nivel_actor: str, niveles: set[str]) -> str:
         t = str(resp_tipo).upper()[:1] or "P"
@@ -130,10 +131,8 @@ def build_matriz(context: dict[str, Any]) -> list[dict[str, Any]]:
             t = "P"
         if t == "C":
             return "C"
-        # Si hay actor de otro nivel también → concurrente
-        otros = niveles - {nivel_actor}
-        if otros and t == "P":
-            return "C" if len(niveles) > 1 else "P"
+        if len(niveles) > 1 and t == "P":
+            return "C"
         return t
 
     def _brecha(resp: dict[str, Any], nivel_count: int) -> str:
@@ -146,8 +145,44 @@ def build_matriz(context: dict[str, Any]) -> list[dict[str, Any]]:
             return "duplicidad"
         return "ok"
 
+    def _actores_para_resp(resp: dict[str, Any]) -> list[dict[str, Any]]:
+        """Actores que tienen competencias relacionadas con esta responsabilidad."""
+        sector_resp = str(resp.get("sector", "")).lower()
+        ref_legal = str(resp.get("referencia_legal", "")).lower()
+        matched: list[dict[str, Any]] = []
+        for actor in actores:
+            competencias = str(actor.get("competencias", "")).lower()
+            sector_actor = str(actor.get("sector", "")).lower()
+            if sector_resp and sector_resp in competencias:
+                matched.append(actor)
+            elif ref_legal and ref_legal[:20] in competencias:
+                matched.append(actor)
+            elif sector_resp and sector_resp == sector_actor:
+                matched.append(actor)
+        return matched
+
+    def _leyes_para_resp(resp: dict[str, Any]) -> list[dict[str, Any]]:
+        """Leyes relacionadas con esta responsabilidad."""
+        ref_legal = str(resp.get("referencia_legal", "")).lower()[:40]
+        sector_resp = str(resp.get("sector", "")).lower()
+        matched: list[dict[str, Any]] = []
+        for ley in leyes:
+            codigo_key = str(ley.get("codigo", "")).lower()[:40]
+            relevancia = str(ley.get("relevancia", "")).lower()
+            if ref_legal and ref_legal in codigo_key:
+                matched.append(ley)
+            elif sector_resp and sector_resp in relevancia:
+                matched.append(ley)
+        return matched[:5]
+
     matriz: list[dict[str, Any]] = []
     seen: set[str] = set()
+    nivel_mapa = {
+        "nacional": "nacion",
+        "departamental": "departamento",
+        "municipal": "municipio",
+        "especializado": "especializado",
+    }
 
     for resp in responsabilidades:
         titulo = str(resp.get("titulo", "")).strip()
@@ -162,35 +197,71 @@ def build_matriz(context: dict[str, Any]) -> list[dict[str, Any]]:
         ley_base = str(resp.get("referencia_legal") or "").strip()
         resp_tipo = str(resp.get("tipo", "P")).upper()[:1]
 
-        # Determinar valores por columna basándose en actores presentes
         col: dict[str, str] = {"nacion": "N", "departamento": "N", "municipio": "N", "especializado": "N"}
-        nivel_mapa = {
-            "nacional": "nacion",
-            "departamental": "departamento",
-            "municipal": "municipio",
-            "especializado": "especializado",
-        }
-
         for nivel_actor, col_key in nivel_mapa.items():
             if nivel_actor in niveles_presentes:
                 col[col_key] = _tipo(resp_tipo, nivel_actor, niveles_presentes)
 
-        # Si no hay ningún nivel detectado, usar nivel del plan como municipio=P
         if all(v == "N" for v in col.values()):
             col["municipio"] = "P"
 
         nivel_count = sum(1 for v in col.values() if v != "N")
 
+        # Cruce: actores que ejecutan esta responsabilidad
+        actores_vinculados = _actores_para_resp(resp)
+        # Cruce: leyes que fundamentan esta responsabilidad
+        leyes_vinculadas = _leyes_para_resp(resp)
+
         matriz.append({
-            "competencia":  titulo,
-            "ley_base":     ley_base,
-            "nacion":       col["nacion"],
-            "departamento": col["departamento"],
-            "municipio":    col["municipio"],
-            "especializado": col["especializado"],
-            "sector":       sector,
-            "brecha":       _brecha(resp, nivel_count),
+            "competencia":      titulo,
+            "ley_base":         ley_base,
+            "nacion":           col["nacion"],
+            "departamento":     col["departamento"],
+            "municipio":        col["municipio"],
+            "especializado":    col["especializado"],
+            "sector":           sector,
+            "brecha":           _brecha(resp, nivel_count),
+            "actores_vinculados": [
+                {"nombre": a.get("nombre", ""), "nivel": a.get("nivel", ""), "tipo": a.get("tipo", "")}
+                for a in actores_vinculados
+            ],
+            "leyes_vinculadas": [
+                {"codigo": l.get("codigo", ""), "titulo": l.get("titulo", "")}
+                for l in leyes_vinculadas
+            ],
         })
+
+    # Actores sin responsabilidades asignadas: añadir filas de brecha critica
+    actores_en_matriz: set[str] = set()
+    for row in matriz:
+        for av in row.get("actores_vinculados", []):
+            actores_en_matriz.add(av.get("nombre", "").lower())
+
+    for actor in actores:
+        nombre = str(actor.get("nombre", "")).strip()
+        if nombre.lower() not in actores_en_matriz:
+            nivel_actor = str(actor.get("nivel", "municipal"))
+            col_key = nivel_mapa.get(nivel_actor, "municipio")
+            col = {"nacion": "N", "departamento": "N", "municipio": "N", "especializado": "N"}
+            col[col_key] = "P"
+            # Leyes que mencionan a este actor
+            leyes_actor = [
+                {"codigo": l.get("codigo", ""), "titulo": l.get("titulo", "")}
+                for l in leyes
+                if nombre.lower()[:15] in str(l.get("relevancia", "")).lower()
+            ][:3]
+            matriz.append({
+                "competencia":      f"Competencias: {nombre}",
+                "ley_base":         "",
+                "nacion":           col["nacion"],
+                "departamento":     col["departamento"],
+                "municipio":        col["municipio"],
+                "especializado":    col["especializado"],
+                "sector":           str(actor.get("sector", "")),
+                "brecha":           "indefinido",
+                "actores_vinculados": [{"nombre": nombre, "nivel": nivel_actor, "tipo": actor.get("tipo", "")}],
+                "leyes_vinculadas": leyes_actor,
+            })
 
     return matriz
 

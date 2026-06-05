@@ -78,8 +78,12 @@ def _parse_pipe_responsabilidades(text: str) -> list[dict[str, Any]]:
         parts = _split_pipe_line(line)
         if len(parts) < 2:
             continue
+        titulo = parts[0].strip()
+        # Descartar líneas que sean nombres de actores o leyes, no acciones
+        if _TITULO_ES_ACTOR_O_LEY_RE.match(titulo):
+            continue
         out.append({
-            "titulo": parts[0],
+            "titulo": titulo,
             "descripcion": parts[1] if len(parts) > 1 else "",
             "tipo": parts[2] if len(parts) > 2 else "P",
             "sector": parts[3] if len(parts) > 3 else "",
@@ -110,6 +114,13 @@ def _parse_pipe_leyes(text: str) -> list[dict[str, Any]]:
     return out
 
 
+_NOMBRE_LARGO_RE = re.compile(r"^.{81,}")  # nombres > 80 chars → descripción, no actor
+_NOMBRE_ORACION_RE = re.compile(
+    r"^(competencias?:|el\s|la\s|los\s|las\s|se\s|que\s|para\s)",
+    re.IGNORECASE,
+)
+
+
 def _parse_pipe_actores(text: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for raw in text.splitlines():
@@ -119,11 +130,20 @@ def _parse_pipe_actores(text: str) -> list[dict[str, Any]]:
         parts = _split_pipe_line(line)
         if len(parts) < 2:
             continue
+        nombre = parts[0].strip()
+        # Descartar si es una norma, una oración larga, o empieza como frase
+        if _NOMBRE_ES_NORMA_RE.match(nombre):
+            continue
+        if _NOMBRE_LARGO_RE.match(nombre):
+            continue
+        if _NOMBRE_ORACION_RE.match(nombre):
+            continue
+        nivel_raw = (parts[3] if len(parts) > 3 else "").strip().lower()
         out.append({
-            "nombre": parts[0],
+            "nombre": nombre,
             "sigla": parts[1] if len(parts) > 1 else "",
-            "tipo": parts[2] if len(parts) > 2 else "principal",
-            "nivel": parts[3] if len(parts) > 3 else "municipal",
+            "tipo": parts[2] if len(parts) > 2 else "ejecutor",
+            "nivel": nivel_raw if nivel_raw in ("nacional", "departamental", "municipal", "especializado") else "municipal",
             "competencias": parts[4] if len(parts) > 4 else "",
         })
     return out
@@ -161,6 +181,27 @@ _LEY_RE = re.compile(
 )
 
 _SIGLA_RE = re.compile(r"\(([A-Z]{2,8})\)")
+
+# Patrones que indican que el nombre de un "actor" es en realidad una ley/norma
+_NOMBRE_ES_NORMA_RE = re.compile(
+    r"^(?:"
+    r"ley\s+\d|decreto\s+\d|resoluci[oó]n\s+\d|constituci[oó]n"
+    r"|art[íi]culo\s+\d|cap[íi]tulo\s+\d|ordenanza|acuerdo\s+\d|conpes\s+\d"
+    r"|circular\s+\d|directiva\s+\d|decreto\s+ley|decreto\s+legislativo"
+    r"|pol[íi]tica\s+p[úu]blica|plan\s+nacional|plan\s+de\s+desarrollo"
+    r")",
+    re.IGNORECASE,
+)
+
+# Patrones que indican que una línea es un actor o ley, NO una responsabilidad
+_TITULO_ES_ACTOR_O_LEY_RE = re.compile(
+    r"^(?:"
+    r"ley\s+\d|decreto\s+\d|resoluci[oó]n\s+\d|constituci[oó]n|ordenanza|acuerdo\s+\d|conpes\s+\d"  # leyes
+    r"|alcald[íi]|concejo|gobernaci[oó]n|ministerio|secretar[íi]a|contralor[íi]a|procuradur[íi]a"    # actores comunes
+    r"|corporaci[oó]n\s+aut[oó]noma|icbf|sena|dane|dnp|invias|ins\b|supersalud"                      # entidades
+    r")",
+    re.IGNORECASE,
+)
 
 _NIVEL_KEYWORDS = {
     "nacional": ["ministerio", "dane", "dnp", "icbf", "sena", "invias", "ins", "supersalud"],
@@ -256,10 +297,12 @@ def _fallback_actores(text: str) -> list[dict[str, Any]]:
         if key in seen:
             continue
         seen.add(key)
+        if _NOMBRE_ES_NORMA_RE.match(nombre):
+            continue
         out.append({
             "nombre": nombre,
             "sigla": sigla,
-            "tipo": "principal",
+            "tipo": "ejecutor",
             "nivel": _guess_nivel(nombre),
             "competencias": "",
         })
@@ -286,6 +329,8 @@ def _fallback_responsabilidades(text: str) -> list[dict[str, Any]]:
                     candidates.append(cleaned)
 
     for item in candidates:
+        if _TITULO_ES_ACTOR_O_LEY_RE.match(item.strip()):
+            continue
         key = item.lower()[:40]
         if key in seen:
             continue
