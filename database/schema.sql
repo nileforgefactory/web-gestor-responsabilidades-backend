@@ -51,7 +51,7 @@ CREATE TABLE plan_actores (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     plan_id        VARCHAR(36)   NOT NULL,
     nombre         VARCHAR(300)  NOT NULL,
-    tipo           ENUM('principal','concurrente','subsidiario','otro') DEFAULT 'otro',
+    tipo           ENUM('ejecutor','beneficiario','financiador','coordinador','regulador','aliado','operador','supervisor','tomador_decision','participante','apoyo_tecnico','control','otro') DEFAULT 'otro',
     icono          VARCHAR(10),
     resp_count     INT           DEFAULT 0,
     badge_label    VARCHAR(100),
@@ -102,7 +102,8 @@ CREATE TABLE matriz_competencias (
     departamento   ENUM('P','C','S','N') DEFAULT 'N',
     municipio      ENUM('P','C','S','N') DEFAULT 'N',
     especializado  ENUM('P','C','S','N') DEFAULT 'N',
-    brecha         ENUM('ok','critica','duplicidad','indefinido') DEFAULT 'ok',
+    brecha              ENUM('ok','critica','duplicidad','indefinido') DEFAULT 'ok',
+    actores_vinculados  TEXT NULL,
     FOREIGN KEY (plan_id) REFERENCES planes(id) ON DELETE CASCADE,
     INDEX idx_plan (plan_id)
 ) ENGINE=InnoDB;

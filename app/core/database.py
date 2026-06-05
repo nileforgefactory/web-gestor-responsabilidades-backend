@@ -41,8 +41,8 @@ def init_db(db_url: str) -> None:
     _engine = create_async_engine(
         db_url,
         echo=False,
-        pool_pre_ping=True,
-        pool_recycle=3600,
+        pool_pre_ping=False,
+        pool_recycle=1800,
         pool_size=5,
         max_overflow=10,
     )

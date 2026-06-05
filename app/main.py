@@ -202,6 +202,7 @@ openapi_tags_docs = [
 app = FastAPI(
     title=settings.app_name,
     lifespan=lifespan,
+    redirect_slashes=False,
     summary="API-RAG demo",
     description=_DOCS_SUMMARY_ES,
     docs_url="/docs",
