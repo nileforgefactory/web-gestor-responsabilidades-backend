@@ -13,6 +13,8 @@ from starlette.responses import Response
 from app.core.config import get_settings
 from app.core.database import get_optional_db
 from app.core.openapi import RESPUESTAS_ANALISIS
+from app.slices.auth.dependencies import CurrentUser, get_current_user, require_write
+from app.slices.auth.permissions import ensure_collection_access, ensure_collections_access
 from app.dependencies import get_rag_service
 from app.slices.analysis.schemas import AnalisisDocumentoResponse, ProfundidadAnalisis
 from app.slices.analysis.service import cancel_analysis, run_document_analysis, stream_document_analysis
@@ -23,6 +25,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/analysis",
     tags=["analisis"],
+    dependencies=[Depends(get_current_user), Depends(require_write)],
 )
 
 
@@ -63,6 +66,7 @@ def _parse_normativa_ids(raw: str | None) -> list[str]:
     },
 )
 async def analyze_document(
+    current_user: CurrentUser,
     file: UploadFile = File(..., description="Plan en PDF, imagen, TXT o MD"),
     collection_id: str = Form(
         ...,
@@ -107,6 +111,7 @@ async def analyze_document(
 
     Requiere Ollama y Qdrant operativos (`GET /health/ready`).
     """
+    ensure_collection_access(current_user, collection_id)
     settings = get_settings()
     raw = await file.read()
     if not raw:
@@ -114,6 +119,8 @@ async def analyze_document(
 
     filename = file.filename or "documento.pdf"
     normativa_ids = _parse_normativa_ids(normativa_collection_ids)
+    if normativa_ids:
+        ensure_collections_access(current_user, normativa_ids)
 
     kwargs = dict(
         rag=rag,

@@ -61,7 +61,7 @@ docker compose up --build -d
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
 ```
 
-**Producción** (solo `:8000` al host; migraciones MySQL **manuales**):
+**Producción** (solo `:8000` al host):
 
 ```powershell
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
@@ -70,7 +70,7 @@ docker compose exec api alembic upgrade head
 
 Detalle GPU: [docs/OLLAMA_GPU.md](docs/OLLAMA_GPU.md). Migraciones: [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
 
-**Primera vez:** el servicio `ollama-pull` descarga modelos antes de arrancar la API (puede tardar varios minutos). En dev/docker, Alembic crea las tablas MySQL al iniciar la API.
+**Primera vez:** arranque limpio con migraciones manuales: `.\scripts\db-fresh-start.ps1` (ver [docs/MIGRATIONS.md](docs/MIGRATIONS.md)). El servicio `ollama-pull` descarga modelos (puede tardar varios minutos).
 
 | Recurso | URL |
 |---------|-----|
@@ -206,8 +206,7 @@ Copia `.env.example` a `.env` para desarrollo fuera de Docker. En Compose, la ma
 | `USE_OLLAMA` | `false` + `VECTOR_SIZE=128` → embeddings sintéticos (solo pruebas, no semántica real) |
 | `OLLAMA_*_MODEL` | Embeddings y chat |
 | `MYSQL_URL` | Habilita planes, conocimiento y persistencia de análisis |
-| `MYSQL_RUN_MIGRATIONS` | `true` en dev/docker (auto). Ignorado en `APP_ENV=prod` — migrar a mano |
-| `APP_ENV` | `docker` / `dev` / `prod` — controla migraciones automáticas |
+| `APP_ENV` | `docker` / `dev` / `prod` |
 | `OCR_*` | Idioma, DPI, umbral de caracteres por página |
 | `BULK_*` | Límites de ingesta/extracción masiva |
 | `DEFAULT_CHUNK_STRATEGY` | `adaptive` (por defecto) o `fixed` |
@@ -253,7 +252,7 @@ Nombre del proyecto: **`gestor-backend`** (`docker-compose.yml`). Contenedores t
 - `gestor-backend-mysql` — datos relacionales (**3307** en host)
 - `gestor-backend-ollama-pull` — job único de descarga de modelos
 
-La API espera Qdrant, Ollama, `ollama-pull` y MySQL antes de uvicorn. En entornos no productivos aplica Alembic al iniciar; en **prod** las migraciones son manuales (`docker compose exec api alembic upgrade head`).
+La API espera Qdrant, Ollama, `ollama-pull` y MySQL antes de uvicorn. Las migraciones Alembic son siempre manuales (`alembic upgrade head` o `docker compose exec api alembic upgrade head`).
 
 ---
 
