@@ -22,6 +22,7 @@ services:
       retries: 10
 
   # ── Base de datos relacional ──────────────────────────────────────────
+  # BD vacía al primer arranque; Alembic aplica el esquema desde la API (no prod).
   mysql:
     image: mysql:8.0
     container_name: gestor-backend-mysql
@@ -34,7 +35,6 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: unless-stopped
     healthcheck:
@@ -116,6 +116,12 @@ services:
       INGEST_EMBED_CONCURRENCY: "4"
       RAG_DEFAULT_SCORE_THRESHOLD: "0.25"
       MYSQL_URL: mysql+aiomysql://gestor:gestor_pass@mysql:3306/gestor_responsabilidades?charset=utf8mb4
+      MYSQL_RUN_MIGRATIONS: ${MYSQL_RUN_MIGRATIONS:-true}
+      MYSQL_POOL_PRE_PING: "false"
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      OLLAMA_LOG_LLM_BODIES: ${OLLAMA_LOG_LLM_BODIES:-false}
+      SCRAPER_MAX_CONCURRENCY: ${SCRAPER_MAX_CONCURRENCY:-3}
+      SCRAPER_DEFAULT_PAIS: ${SCRAPER_DEFAULT_PAIS:-COLOMBIA}
       REDIS_URL: redis://redis:6379/0
       OCR_ENABLED: "true"
       OCR_LANG: spa

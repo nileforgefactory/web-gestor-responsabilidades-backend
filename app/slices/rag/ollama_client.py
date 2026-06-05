@@ -60,13 +60,25 @@ async def ollama_chat(
     """
     url = base_url.rstrip("/") + "/api/chat"
 
-    # Log del prompt enviado al LLM
-    for i, m in enumerate(messages):
-        role = m.get("role", "?")
-        body = m.get("content", "")
-        logger.debug(
-            "[OLLAMA][%s] mensaje[%d] rol=%s (%d chars):\n%s",
-            model, i, role, len(body), body[:3000]
+    if logger.isEnabledFor(logging.DEBUG):
+        for i, m in enumerate(messages):
+            role = m.get("role", "?")
+            body = m.get("content", "")
+            logger.debug(
+                "[OLLAMA][%s] mensaje[%d] rol=%s (%d chars):\n%s",
+                model,
+                i,
+                role,
+                len(body),
+                body[:3000],
+            )
+    else:
+        total_chars = sum(len(m.get("content", "")) for m in messages)
+        logger.info(
+            "[OLLAMA][%s] chat in (%d mensajes, %d chars)",
+            model,
+            len(messages),
+            total_chars,
         )
 
     t0 = time.monotonic()
@@ -84,10 +96,21 @@ async def ollama_chat(
         raise OllamaError(f"Respuesta chat inválida: {payload!r}")
 
     result = content.strip()
-    logger.debug(
-        "[OLLAMA][%s] respuesta (%.1fs, %d chars):\n%s",
-        model, elapsed, len(result), result[:3000]
-    )
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(
+            "[OLLAMA][%s] respuesta (%.1fs, %d chars):\n%s",
+            model,
+            elapsed,
+            len(result),
+            result[:3000],
+        )
+    else:
+        logger.info(
+            "[OLLAMA][%s] chat out (%.1fs, %d chars)",
+            model,
+            elapsed,
+            len(result),
+        )
     return result
 
 

@@ -10,12 +10,14 @@ from httpx import HTTPStatusError
 from qdrant_client import AsyncQdrantClient
 
 from app.core.config import Settings
+from app.slices.common.network_errors import classify_http_error, is_transient_network_error
 from app.slices.rag.chunking.strategy import chunk_document
 from app.slices.rag.ollama_client import OllamaError, ollama_chat, ollama_embed
 from app.slices.rag.repository import RagRepository
 from app.slices.rag.schemas import (
     AgentContextResponse,
     AskResponse,
+    ColeccionesListResponse,
     IngestTextResponse,
     RagChunk,
     RagCitation,
@@ -50,8 +52,30 @@ async def _with_retries(call: Callable[[], Awaitable[T]], *, attempts: int = 8) 
         except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError, OSError) as exc:
             last_exc = exc
             wait_s = min(30.0, 2.0**attempt)
-            logger.warning("Reintento %s tras error de red %s", attempt + 1, exc)
+            info = classify_http_error(exc)
+            logger.warning(
+                "Reintento %s/%s tras error de red (%s): %s",
+                attempt + 1,
+                attempts,
+                info.kind.value,
+                info.message,
+            )
             await asyncio.sleep(wait_s)
+        except Exception as exc:
+            if is_transient_network_error(exc) and attempt < attempts - 1:
+                last_exc = exc
+                info = classify_http_error(exc)
+                wait_s = min(30.0, 2.0**attempt)
+                logger.warning(
+                    "Reintento %s/%s tras error de red (%s): %s",
+                    attempt + 1,
+                    attempts,
+                    info.kind.value,
+                    info.message,
+                )
+                await asyncio.sleep(wait_s)
+                continue
+            raise
         except HTTPStatusError as exc:
             if exc.response.status_code in (408, 429, 502, 503, 504) and attempt < attempts - 1:
                 last_exc = exc
@@ -157,6 +181,7 @@ class RagService:
         replace_existing: bool = True,
         chunk_strategy: str | None = None,
         extraction_method: str | None = None,
+        territorio: list[str | None] | None = None,
     ) -> IngestTextResponse:
         """
         Fragmenta contenido, genera embeddings e indexa en Qdrant.
@@ -189,14 +214,19 @@ class RagService:
             )
 
         vectors = await self._embedding_batch(chunks)
-        inserted = await self.repository.upsert_chunks(
-            collection_id=collection_id,
-            document_id=document_id,
-            chunks=chunks,
-            vectors=vectors,
-            title=title or document_id,
-            source_filename=source_filename or "",
-        )
+
+        async def upsert() -> int:
+            return await self.repository.upsert_chunks(
+                collection_id=collection_id,
+                document_id=document_id,
+                chunks=chunks,
+                vectors=vectors,
+                title=title or document_id,
+                source_filename=source_filename or "",
+                territorio=territorio,
+            )
+
+        inserted = await _with_retries(upsert, attempts=5)
         return IngestTextResponse(
             collection_id=collection_id,
             document_id=document_id,
@@ -205,6 +235,41 @@ class RagService:
             chunk_profile=chunking.profile.value,
             chunk_size_applied=chunking.chunk_size,
             chunk_overlap_applied=chunking.chunk_overlap,
+        )
+
+    async def list_logical_collections(
+        self,
+        *,
+        catalog_collection_ids: set[str] | None = None,
+    ) -> ColeccionesListResponse:
+        """Lista colecciones lógicas indexadas en Qdrant (y marca presencia en catálogo MySQL)."""
+        from app.slices.rag.schemas import ColeccionLogicaItem
+
+        stats = await self.repository.list_logical_collections()
+        catalog = catalog_collection_ids or set()
+        items = [
+            ColeccionLogicaItem(
+                collection_id=s.collection_id,
+                chunks=s.chunks,
+                documentos=s.documentos,
+                en_catalogo_mysql=s.collection_id in catalog,
+            )
+            for s in stats
+        ]
+        for cid in sorted(catalog - {i.collection_id for i in items}):
+            items.append(
+                ColeccionLogicaItem(
+                    collection_id=cid,
+                    chunks=0,
+                    documentos=0,
+                    en_catalogo_mysql=True,
+                )
+            )
+        items.sort(key=lambda x: x.collection_id)
+        return ColeccionesListResponse(
+            coleccion_fisica_qdrant=self.settings.qdrant_collection,
+            total=len(items),
+            colecciones=items,
         )
 
     async def search(

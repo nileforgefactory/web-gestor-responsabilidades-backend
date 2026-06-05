@@ -29,6 +29,18 @@
 
 ## Arranque en desarrollo
 
+### Compose CPU o GPU
+
+```powershell
+# CPU
+docker compose up --build -d
+
+# GPU NVIDIA
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+```
+
+MySQL vacío + Alembic automático al iniciar la API. Ver [MIGRATIONS.md](MIGRATIONS.md).
+
 ### Opción recomendada (PowerShell)
 
 ```powershell
@@ -51,6 +63,15 @@ $env:OLLAMA_CHAT_MODEL = "llama3.2:3b"
 ```powershell
 docker compose up --build -d
 ```
+
+### Compose con GPU NVIDIA (opcional)
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
+.\scripts\verify_ollama_gpu.ps1
+```
+
+Ver [OLLAMA_GPU.md](OLLAMA_GPU.md).
 
 Comprobar:
 

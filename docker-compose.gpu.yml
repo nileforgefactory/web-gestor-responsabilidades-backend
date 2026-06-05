@@ -1,0 +1,24 @@
+# Perfil opcional: GPU NVIDIA para Ollama.
+#
+# Uso (desarrollo):
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+#
+# Requisitos:
+#   - GPU NVIDIA con driver instalado (nvidia-smi en el host)
+#   - Docker Desktop (WSL2) o Linux con NVIDIA Container Toolkit
+#
+# Sin este archivo el stack sigue en CPU (comportamiento por defecto).
+
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      # Ajusta según VRAM; con 8 GB suele ir bien 1–2 en paralelo
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-2}
+      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}

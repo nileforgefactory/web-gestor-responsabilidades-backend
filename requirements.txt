@@ -3,15 +3,18 @@ uvicorn[standard]
 pydantic-settings
 qdrant-client>=1.16,<2
 httpx
+ddgs>=9.0
 pypdf
 python-multipart
 pytesseract
 pdf2image
 Pillow
 # ── MySQL / SQLAlchemy ────────────────────────────────────────────────────
-sqlalchemy[asyncio]>=2.0
-aiomysql
+sqlalchemy[asyncio]>=2.0.43,<2.1
+aiomysql>=0.2.0
+pymysql>=1.1.0
 cryptography
+alembic>=1.14.0,<2
 # ── Redis (sesiones SSE + pub/sub) ────────────────────────────────────────
 redis[asyncio]>=5.0
 # ── Exportación PDF ───────────────────────────────────────────────────────
