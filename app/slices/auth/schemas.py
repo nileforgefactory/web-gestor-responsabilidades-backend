@@ -5,15 +5,24 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from email_validator import EmailNotValidError, validate_email as _validate_email
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 RolCodigo = Literal["usuario", "administrador", "superadmin"]
 RolAsignable = Literal["usuario", "administrador"]
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr = Field(..., examples=["superadmin@gestor.local"])
+    email: str = Field(..., examples=["superadmin@gestor.local"])
     password: str = Field(..., min_length=6, examples=["SuperAdmin123!"])
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, v: str) -> str:
+        try:
+            return _validate_email(v, check_deliverability=False).normalized
+        except EmailNotValidError as exc:
+            raise ValueError(str(exc)) from exc
 
 
 class TokenResponse(BaseModel):
