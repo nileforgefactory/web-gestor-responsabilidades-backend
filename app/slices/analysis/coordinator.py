@@ -7,7 +7,7 @@ import httpx
 
 from app.core.config import Settings
 from app.slices.analysis.parsers import parse_coordinator_json
-from app.slices.rag.ollama_client import ollama_chat
+from app.slices.rag.chat_provider import chat_llm
 from app.slices.rag.service import _with_retries
 
 
@@ -47,10 +47,9 @@ Responde SOLO JSON:
 """.strip()
 
     async def call() -> str:
-        return await ollama_chat(
+        return await chat_llm(
             http=http,
-            base_url=settings.ollama_base_url,
-            model=settings.ollama_chat_model,
+            settings=settings,
             messages=[
                 {"role": "system", "content": "Respondes únicamente con JSON válido."},
                 {"role": "user", "content": prompt},

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import urllib.error
 import urllib.request
 from contextlib import asynccontextmanager
@@ -11,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import Settings, get_settings
 from app.core.logging_config import configure_logging
@@ -227,12 +230,22 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
 )
 app.add_middleware(StripUtf8JsonBOMMiddleware)
 
 configure_openapi_jwt(app)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Captura cualquier excepción no manejada y garantiza cabeceras CORS en la respuesta."""
+    logger.exception("Error interno en %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Error interno del servidor: {type(exc).__name__}: {exc}"},
+    )
 
 
 @app.exception_handler(RequestValidationError)

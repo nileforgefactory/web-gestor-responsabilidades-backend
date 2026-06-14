@@ -11,7 +11,7 @@ from app.core.config import Settings
 from app.slices.analysis import parsers
 from app.slices.analysis.prompt_builder import build_agent_prompt
 from app.slices.analysis.rag_context import chunks_to_context_blob, fetch_agent_chunks
-from app.slices.rag.ollama_client import ollama_chat
+from app.slices.rag.chat_provider import chat_llm
 from app.slices.rag.service import RagService, _with_retries
 
 # http y settings se mantienen en la firma de run_matriz_agent por compatibilidad con el caller
@@ -67,10 +67,9 @@ async def run_agent(
     user_parts.append("Extrae según el formato indicado en el system prompt.")
 
     async def call() -> str:
-        return await ollama_chat(
+        return await chat_llm(
             http=http,
-            base_url=settings.ollama_base_url,
-            model=settings.ollama_chat_model,
+            settings=settings,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": "\n".join(user_parts)},
