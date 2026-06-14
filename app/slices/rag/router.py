@@ -11,6 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import get_optional_db
 from app.core.openapi import RESPUESTAS_RAG
+from app.slices.auth.dependencies import CurrentUser, WriteUser, get_current_user
+from app.slices.auth.permissions import (
+    ensure_collection_access,
+    ensure_collections_access,
+    allowed_collections_for_user,
+    is_superadmin,
+)
 from app.dependencies import get_rag_service
 from app.slices.conocimiento import repository as conocimiento_repo
 from app.slices.rag.bulk import ingestir_archivos_masivo
@@ -54,6 +61,7 @@ _ASK_BODY_EXAMPLES: dict[str, dict] = {
 router = APIRouter(
     prefix="/rag",
     tags=["rag"],
+    dependencies=[Depends(get_current_user)],
 )
 
 
@@ -69,6 +77,7 @@ router = APIRouter(
     responses=RESPUESTAS_RAG,
 )
 async def listar_colecciones(
+    current_user: CurrentUser,
     service: RagService = Depends(get_rag_service),
     db: AsyncSession | None = Depends(get_optional_db),
 ) -> ColeccionesListResponse:
@@ -77,7 +86,13 @@ async def listar_colecciones(
     catalog_ids: set[str] = set()
     if db is not None:
         catalog_ids = set(await conocimiento_repo.distinct_coleccion_ids(db))
-    return await service.list_logical_collections(catalog_collection_ids=catalog_ids)
+    response = await service.list_logical_collections(catalog_collection_ids=catalog_ids)
+    if not is_superadmin(current_user):
+        allowed = allowed_collections_for_user(current_user)
+        filtered = [c for c in response.colecciones if c.collection_id.upper() in allowed]
+        response.colecciones = filtered
+        response.total = len(filtered)
+    return response
 
 
 def _upstream_http(exc: BaseException, *, code: int) -> HTTPException:
@@ -104,9 +119,11 @@ def _upstream_http(exc: BaseException, *, code: int) -> HTTPException:
 )
 async def ingest_text(
     payload: IngestTextRequest,
+    admin: WriteUser,
     service: RagService = Depends(get_rag_service),
 ) -> IngestTextResponse:
     """Indexa texto JSON en la colección indicada."""
+    ensure_collection_access(admin, payload.collection_id)
     await service.ensure_collection()
     try:
         return await service.ingest_text(
@@ -141,6 +158,7 @@ async def ingest_text(
     responses=RESPUESTAS_RAG,
 )
 async def ingest_file(
+    admin: WriteUser,
     collection_id: str = Form(..., min_length=1, description="ID lógico de la colección Qdrant"),
     document_id: str | None = Form(
         None,
@@ -156,6 +174,7 @@ async def ingest_file(
     service: RagService = Depends(get_rag_service),
 ) -> IngestTextResponse:
     """Extrae texto del archivo, fragmenta e indexa en Qdrant."""
+    ensure_collection_access(admin, collection_id)
     await service.ensure_collection()
     try:
         extraccion = await extract_document_from_upload(file)
@@ -199,6 +218,7 @@ async def ingest_file(
     responses=RESPUESTAS_RAG,
 )
 async def ingest_files_bulk(
+    admin: WriteUser,
     collection_id: str = Form(..., min_length=1, description="Colección destino"),
     files: list[UploadFile] = File(
         ...,
@@ -221,6 +241,7 @@ async def ingest_files_bulk(
     service: RagService = Depends(get_rag_service),
 ) -> IngestMasivaResponse:
     """Procesa múltiples archivos en paralelo limitado e indexa cada uno."""
+    ensure_collection_access(admin, collection_id)
     await service.ensure_collection()
     settings = get_settings()
     try:
@@ -259,9 +280,11 @@ async def ingest_files_bulk(
 )
 async def search(
     payload: RagSearchRequest,
+    current_user: CurrentUser,
     service: RagService = Depends(get_rag_service),
 ) -> RagSearchResponse:
     """Búsqueda vectorial sin invocar el modelo de chat."""
+    ensure_collections_access(current_user, payload.collection_ids)
     await service.ensure_collection()
     try:
         return await service.search(
@@ -292,9 +315,11 @@ async def search(
 )
 async def agent_context(
     payload: AgentContextRequest,
+    current_user: CurrentUser,
     service: RagService = Depends(get_rag_service),
 ) -> AgentContextResponse:
     """Ensambla contexto + metadatos de citas sin generar respuesta final."""
+    ensure_collections_access(current_user, payload.collection_ids)
     await service.ensure_collection()
     try:
         return await service.build_agent_context(
@@ -324,6 +349,7 @@ async def agent_context(
     responses=RESPUESTAS_RAG,
 )
 async def rag_ask(
+    current_user: CurrentUser,
     payload: AskRequest = Body(
         openapi_examples=_ASK_BODY_EXAMPLES,
         description="Consulta conversacional con evidencia recuperada + Ollama.",
@@ -331,6 +357,7 @@ async def rag_ask(
     service: RagService = Depends(get_rag_service),
 ) -> AskResponse:
     """Pipeline RAG completo: búsqueda + chat con restricción a evidencia."""
+    ensure_collections_access(current_user, payload.collection_ids)
     await service.ensure_collection()
     try:
         return await service.ask(

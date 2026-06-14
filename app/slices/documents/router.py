@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.core.config import get_settings
 from app.core.openapi import RESPUESTAS_ESTANDAR
+from app.slices.auth.dependencies import WriteUser, get_current_user, require_write
 from app.slices.documents.bulk import extraer_archivos_masivo
 from app.slices.ocr.schemas import (
     ExtraccionDocumentoResponse,
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/documents",
     tags=["documentos"],
+    dependencies=[Depends(get_current_user), Depends(require_write)],
 )
 
 _FORMATOS = (

@@ -244,6 +244,30 @@ def pais_label_for_search(pais: str) -> str:
     return " ".join(part.capitalize() for part in pais.split())
 
 
+def allowed_collection_ids(territorio: list[str | None] | Any) -> frozenset[str]:
+    """
+    Colecciones visibles para un usuario según su territorio.
+
+    Incluye la colección propia y las ancestros (nivel departamental con municipio
+    ``None``, y nacional). No incluye municipios hermanos (ej. Neiva vs Palermo).
+
+    Ej. ``[COLOMBIA, HUILA, PALERMO]`` →
+    ``{COLOMBIA, COLOMBIA_HUILA, COLOMBIA_HUILA_PALERMO}``.
+    """
+    pais, departamento, municipio = normalize_territorio(territorio)
+    ids: set[str] = {collection_id_from_territorio([pais, None, None])}
+    if departamento:
+        ids.add(collection_id_from_territorio([pais, departamento, None]))
+    if municipio and departamento:
+        ids.add(collection_id_from_territorio([pais, departamento, municipio]))
+    return frozenset(ids)
+
+
+def is_collection_allowed(territorio: list[str | None] | Any, collection_id: str) -> bool:
+    """True si ``collection_id`` está dentro del ámbito territorial del usuario."""
+    return collection_id.strip().upper() in allowed_collection_ids(territorio)
+
+
 def apply_pais_scope(
     territorio: list[str | None],
     pais: str,

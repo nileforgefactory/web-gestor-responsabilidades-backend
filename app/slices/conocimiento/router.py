@@ -7,6 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.openapi import RESPUESTAS_MYSQL
+from app.slices.auth.dependencies import CurrentUser, WriteUser, get_current_user
+from app.slices.auth.permissions import (
+    allowed_collections_for_user,
+    ensure_collection_access,
+    is_superadmin,
+)
 from app.slices.conocimiento import repository as repo
 from app.slices.conocimiento.schemas import (
     ConocimientoCreate,
@@ -14,7 +20,11 @@ from app.slices.conocimiento.schemas import (
     ConocimientoUpdate,
 )
 
-router = APIRouter(prefix="/conocimiento", tags=["conocimiento"])
+router = APIRouter(
+    prefix="/conocimiento",
+    tags=["conocimiento"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.get(
@@ -26,6 +36,7 @@ router = APIRouter(prefix="/conocimiento", tags=["conocimiento"])
     responses=RESPUESTAS_MYSQL,
 )
 async def list_docs(
+    current_user: CurrentUser,
     coleccion_id: str | None = Query(None, description="Filtrar por colección Qdrant"),
     estado: str | None = Query(None, description="Estado del documento en catálogo"),
     skip: int = Query(0, ge=0),
@@ -33,8 +44,18 @@ async def list_docs(
     db: AsyncSession = Depends(get_db),
 ) -> list[ConocimientoOut]:
     """Lista documentos registrados en la base de conocimiento."""
+    if coleccion_id:
+        ensure_collection_access(current_user, coleccion_id)
+    territorio_filter = (
+        None if is_superadmin(current_user) else allowed_collections_for_user(current_user)
+    )
     return await repo.list_docs(
-        db, coleccion_id=coleccion_id, estado=estado, skip=skip, limit=limit
+        db,
+        coleccion_id=coleccion_id,
+        estado=estado,
+        skip=skip,
+        limit=limit,
+        coleccion_ids=territorio_filter,
     )  # type: ignore[return-value]
 
 
@@ -46,12 +67,14 @@ async def list_docs(
 )
 async def get_doc(
     doc_id: str,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ConocimientoOut:
     """Devuelve un registro de documento indexado."""
     doc = await repo.get_doc(db, doc_id)
     if doc is None:
         raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
+    ensure_collection_access(current_user, doc.coleccion_id)
     return doc  # type: ignore[return-value]
 
 
@@ -65,9 +88,11 @@ async def get_doc(
 )
 async def create_doc(
     payload: ConocimientoCreate,
+    admin: WriteUser,
     db: AsyncSession = Depends(get_db),
 ) -> ConocimientoOut:
     """Crea metadatos de un documento ya indexado en Qdrant."""
+    ensure_collection_access(admin, payload.coleccion_id)
     return await repo.create_doc(db, payload)  # type: ignore[return-value]
 
 
@@ -80,9 +105,14 @@ async def create_doc(
 async def update_doc(
     doc_id: str,
     payload: ConocimientoUpdate,
+    admin: WriteUser,
     db: AsyncSession = Depends(get_db),
 ) -> ConocimientoOut:
     """Actualiza estado o metadatos del documento en catálogo."""
+    existing = await repo.get_doc(db, doc_id)
+    if existing is None:
+        raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
+    ensure_collection_access(admin, existing.coleccion_id)
     doc = await repo.update_doc(db, doc_id, payload)
     if doc is None:
         raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
@@ -97,9 +127,14 @@ async def update_doc(
 )
 async def delete_doc(
     doc_id: str,
+    admin: WriteUser,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Elimina el registro del catálogo (no borra vectores en Qdrant)."""
+    existing = await repo.get_doc(db, doc_id)
+    if existing is None:
+        raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
+    ensure_collection_access(admin, existing.coleccion_id)
     deleted = await repo.delete_doc(db, doc_id)
     if not deleted:
         raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
