@@ -27,5 +27,7 @@ RESPUESTAS_ANALISIS: dict[int | str, dict[str, Any]] = {
 
 RESPUESTAS_MYSQL: dict[int | str, dict[str, Any]] = {
     **RESPUESTAS_ESTANDAR,
+    401: {"description": "Token JWT ausente, inválido o expirado."},
+    403: {"description": "Permiso denegado (rol o territorio)."},
     404: {"description": "Recurso no encontrado en base de datos."},
 }

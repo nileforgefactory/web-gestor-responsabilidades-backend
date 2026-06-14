@@ -23,10 +23,19 @@ Sprints: [SPRINT_2.md](../docs/SPRINT_2.md) (chunking), [SPRINT_3.md](../docs/SP
 .\scripts\dev-menu.ps1 -ApiBase http://localhost:8000
 ```
 
+## Base de datos (migraciones manuales)
+
+```powershell
+.\scripts\db-fresh-start.ps1
+```
+
+Borra volúmenes Docker, levanta MySQL, ejecuta `alembic upgrade head` y arranca el stack. Detalle: [docs/MIGRATIONS.md](../docs/MIGRATIONS.md).
+
 ## Scripts de runtime (no eliminar)
 
 | Archivo | Uso |
 |---------|-----|
+| `db-fresh-start.ps1` | Arranque limpio + migraciones Alembic manuales |
 | `wait_services.py` | Entrypoint del contenedor API: espera Qdrant y Ollama |
 | `ollama_pull.sh` | Job Docker `ollama-pull`: descarga modelos al arrancar |
 | `smoke_test.py` | Prueba de humo no interactiva (CI o menú opción 8) |

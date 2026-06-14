@@ -15,7 +15,13 @@ from app.slices.planes.schemas import (
     PlanUpdate,
 )
 
-router = APIRouter(prefix="/planes", tags=["planes"])
+from app.slices.auth.dependencies import WriteUser, get_current_user
+
+router = APIRouter(
+    prefix="/planes",
+    tags=["planes"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
 @router.get(
@@ -71,6 +77,7 @@ async def get_plan(
 )
 async def create_plan(
     payload: PlanCreate,
+    _: WriteUser,
     db: AsyncSession = Depends(get_db),
 ) -> PlanDetail:
     """Registra un nuevo plan de desarrollo en MySQL."""
@@ -88,6 +95,7 @@ async def create_plan(
 async def update_plan(
     plan_id: str,
     payload: PlanUpdate,
+    _: WriteUser,
     db: AsyncSession = Depends(get_db),
 ) -> PlanSummary:
     """Actualización parcial de metadatos del plan."""
@@ -106,6 +114,7 @@ async def update_plan(
 )
 async def delete_plan(
     plan_id: str,
+    _: WriteUser,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Elimina un plan por ID."""

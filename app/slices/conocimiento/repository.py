@@ -21,6 +21,7 @@ async def list_docs(
     estado: str | None = None,
     skip: int = 0,
     limit: int = 100,
+    coleccion_ids: frozenset[str] | None = None,
 ) -> list[BaseConocimiento]:
     stmt = (
         select(BaseConocimiento)
@@ -30,6 +31,8 @@ async def list_docs(
     )
     if coleccion_id:
         stmt = stmt.where(BaseConocimiento.coleccion_id == coleccion_id)
+    elif coleccion_ids is not None:
+        stmt = stmt.where(BaseConocimiento.coleccion_id.in_(coleccion_ids))
     if estado:
         stmt = stmt.where(BaseConocimiento.estado == estado)
     result = await db.execute(stmt)
