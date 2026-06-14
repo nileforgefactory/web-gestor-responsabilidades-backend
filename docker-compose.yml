@@ -131,6 +131,9 @@ services:
       BULK_INGEST_CONCURRENCY: "2"
       DEFAULT_CHUNK_STRATEGY: "adaptive"
       ANALYSIS_MAX_ITERATIONS: "3"
+      USE_GEMINI_CHAT: "true"
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-2.0-flash}
     ports:
       - "8000:8000"
     volumes:

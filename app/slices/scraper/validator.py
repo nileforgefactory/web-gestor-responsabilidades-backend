@@ -12,7 +12,7 @@ from typing import Any
 import httpx
 
 from app.core.config import Settings
-from app.slices.rag.ollama_client import ollama_chat
+from app.slices.rag.chat_provider import chat_llm
 from app.slices.rag.service import _with_retries
 from app.slices.common.territorio import (
     normalize_territorio,
@@ -137,17 +137,17 @@ Texto extraído del PDF (extracto):
 {muestra}
 """.strip()
 
+    chat_model = settings.gemini_chat_model if settings.use_gemini_chat else settings.ollama_chat_model
     logger.info(
         "[SCRAPER] norma=%r fase=validacion_ia modelo=%s",
         norma_solicitada,
-        settings.ollama_chat_model,
+        chat_model,
     )
 
     async def call() -> str:
-        return await ollama_chat(
+        return await chat_llm(
             http=http,
-            base_url=settings.ollama_base_url,
-            model=settings.ollama_chat_model,
+            settings=settings,
             messages=[
                 {"role": "system", "content": _load_system_prompt()},
                 {"role": "user", "content": user},

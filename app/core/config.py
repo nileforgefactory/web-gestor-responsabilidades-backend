@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     ollama_embedding_model: str = "nomic-embed-text"
     ollama_chat_model: str = "llama3.2:3b"
 
+    # Gemini (solo chat; los embeddings siguen en Ollama)
+    use_gemini_chat: bool = False
+    gemini_api_key: str | None = None
+    gemini_chat_model: str = "gemini-2.0-flash"
+
     ingest_embed_concurrency: int = 4
     rag_default_score_threshold: float = 0.25
 

@@ -12,7 +12,8 @@ from qdrant_client import AsyncQdrantClient
 from app.core.config import Settings
 from app.slices.common.network_errors import classify_http_error, is_transient_network_error
 from app.slices.rag.chunking.strategy import chunk_document
-from app.slices.rag.ollama_client import OllamaError, ollama_chat, ollama_embed
+from app.slices.rag.chat_provider import chat_llm
+from app.slices.rag.ollama_client import OllamaError, ollama_embed
 from app.slices.rag.repository import RagRepository
 from app.slices.rag.schemas import (
     AgentContextResponse,
@@ -414,10 +415,9 @@ class RagService:
         )
 
         async def chat_call() -> str:
-            return await ollama_chat(
+            return await chat_llm(
                 http=self.http,
-                base_url=self.settings.ollama_base_url,
-                model=self.settings.ollama_chat_model,
+                settings=self.settings,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
