@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.slices.planes.models import (
+    ActorCompetencia,
     Brecha,
     MatrizCompetencia,
     Plane,
@@ -31,7 +32,7 @@ _SUMMARY_LOAD = [selectinload(Plane.sectores)]
 
 _DETAIL_LOAD = [
     selectinload(Plane.sectores),
-    selectinload(Plane.actores),
+    selectinload(Plane.actores).selectinload(PlanActor.competencias),
     selectinload(Plane.responsabilidades),
     selectinload(Plane.brechas),
     selectinload(Plane.matriz),

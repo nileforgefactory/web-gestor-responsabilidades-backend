@@ -17,8 +17,9 @@ from app.core.logging_config import configure_logging
 from app.core.database import dispose_engine, init_db
 from app.core.session_store import get_session_store, init_session_store
 from app.db import models_registry  # noqa: F401
-from app.db.migrate import run_migrations
 from app.dependencies import get_rag_service
+from app.core.openapi_security import configure_openapi_jwt
+from app.slices.auth.router import router as auth_router
 from app.slices.rag.router import router as rag_router
 from app.slices.planes.router import router as planes_router
 from app.slices.conocimiento.router import router as conocimiento_router
@@ -43,9 +44,6 @@ async def lifespan(_: FastAPI):
             pool_size=settings.scraper_max_concurrency + 4,
             max_overflow=settings.scraper_max_concurrency + 6,
         )
-        if settings.effective_mysql_run_migrations:
-            await asyncio.to_thread(run_migrations)
-
     # ── Redis (opcional — sesiones SSE) ──
     if settings.redis_url:
         init_session_store(settings.redis_url)
@@ -174,6 +172,7 @@ settings = get_settings()
 _DOCS_SUMMARY_ES = """\
 **RAG 100% local** (Docker): ingesta PDF/TXT/MD, embeddings y chat con Ollama, vectores en Qdrant.
 
+- **Autenticación JWT**: `POST /api/v1/auth/login` → botón **Authorize** en Swagger (BearerAuth).
 - **JSON valido obligatorio**: comillas **`"`** ASCII (no tipograficas `'...'`). En Swagger usa el ejemplo y **solo comillas rectas**.
 - **Swagger**: grupo RAG, ejemplos prellenados; `/rag/ingest-file` es multipart.
 - **Estado**: `GET /health/ready`.
@@ -185,6 +184,10 @@ openapi_tags_docs = [
     {
         "name": "salud",
         "description": "Comprobaciones ligeras para depuracion (Swagger, Compose, soporte local).",
+    },
+    {
+        "name": "auth",
+        "description": "Autenticación JWT, perfil (`/me`) y gestión de usuarios por territorio.",
     },
     {"name": "rag",          "description": "Ingesta, busqueda, contexto para agentes y preguntas con modelo local."},
     {"name": "planes",       "description": "CRUD de planes de desarrollo (requiere MySQL)."},
@@ -206,6 +209,7 @@ openapi_tags_docs = [
 app = FastAPI(
     title=settings.app_name,
     lifespan=lifespan,
+    redirect_slashes=False,
     summary="API-RAG demo",
     description=_DOCS_SUMMARY_ES,
     docs_url="/docs",
@@ -228,6 +232,8 @@ app.add_middleware(
 )
 app.add_middleware(StripUtf8JsonBOMMiddleware)
 
+configure_openapi_jwt(app)
+
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_hints(_request: Request, exc: RequestValidationError):
@@ -246,6 +252,7 @@ async def request_validation_hints(_request: Request, exc: RequestValidationErro
     return JSONResponse(status_code=422, content=payload)
 
 
+app.include_router(auth_router,         prefix="/api/v1")
 app.include_router(rag_router,          prefix="/api/v1")
 app.include_router(planes_router,       prefix="/api/v1")
 app.include_router(conocimiento_router, prefix="/api/v1")

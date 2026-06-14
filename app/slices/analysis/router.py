@@ -5,15 +5,17 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
-from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import Response
 
 from app.core.config import get_settings
-from app.core.database import get_optional_db
+from app.core.database import get_db, get_optional_db
 from app.core.openapi import RESPUESTAS_ANALISIS
+from app.slices.auth.dependencies import CurrentUser, get_current_user, require_write
+from app.slices.auth.permissions import ensure_collection_access, ensure_collections_access
 from app.dependencies import get_rag_service
+from app.slices.analysis.pdf_export import generar_pdf_analisis
 from app.slices.analysis.schemas import AnalisisDocumentoResponse, ProfundidadAnalisis
 from app.slices.analysis.service import cancel_analysis, run_document_analysis, stream_document_analysis
 from app.slices.rag.service import RagService
@@ -23,6 +25,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/analysis",
     tags=["analisis"],
+    dependencies=[Depends(get_current_user), Depends(require_write)],
 )
 
 
@@ -63,6 +66,7 @@ def _parse_normativa_ids(raw: str | None) -> list[str]:
     },
 )
 async def analyze_document(
+    current_user: CurrentUser,
     file: UploadFile = File(..., description="Plan en PDF, imagen, TXT o MD"),
     collection_id: str = Form(
         ...,
@@ -107,6 +111,7 @@ async def analyze_document(
 
     Requiere Ollama y Qdrant operativos (`GET /health/ready`).
     """
+    ensure_collection_access(current_user, collection_id)
     settings = get_settings()
     raw = await file.read()
     if not raw:
@@ -114,6 +119,8 @@ async def analyze_document(
 
     filename = file.filename or "documento.pdf"
     normativa_ids = _parse_normativa_ids(normativa_collection_ids)
+    if normativa_ids:
+        ensure_collections_access(current_user, normativa_ids)
 
     kwargs = dict(
         rag=rag,
@@ -204,3 +211,56 @@ async def cancel_session(session_id: str) -> dict[str, str]:
     if cancelled:
         return {"status": "cancelled", "session_id": session_id}
     return {"status": "not_found", "session_id": session_id}
+
+
+@router.get(
+    "/export-pdf/{plan_id}",
+    summary="Exportar análisis completo de un plan a PDF",
+    description=(
+        "Genera un informe PDF detallado con responsabilidades, marco legal, actores, "
+        "brechas (críticas, duplicidades, sin responsable), matriz de competencias y "
+        "recomendaciones para decisiones administrativas."
+    ),
+    responses={
+        200: {
+            "description": "PDF del informe de análisis",
+            "content": {"application/pdf": {}},
+        },
+        404: {"description": "Plan no encontrado"},
+        503: {"description": "MySQL no configurado"},
+    },
+)
+async def export_pdf(
+    plan_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """
+    Genera y devuelve el PDF de análisis completo del plan indicado.
+
+    Requiere MySQL configurado (el plan debe estar guardado).
+    """
+    from app.slices.planes import repository as repo
+
+    plane = await repo.get_plane(db, plan_id)
+    if plane is None:
+        raise HTTPException(404, f"Plan '{plan_id}' no encontrado")
+
+    # Serializar el ORM a dict compatible con pdf_export
+    from app.slices.planes.schemas import PlanDetail
+    detail = PlanDetail.model_validate(plane)
+    plan_dict = detail.model_dump()
+
+    try:
+        pdf_bytes = generar_pdf_analisis(plan_dict)
+    except Exception as exc:
+        logger.exception("Error generando PDF para plan %s", plan_id)
+        raise HTTPException(500, f"Error al generar PDF: {exc}") from exc
+
+    titulo_safe = (detail.titulo or "plan")[:50].replace(" ", "_").replace("/", "-")
+    filename = f"analisis_{titulo_safe}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
