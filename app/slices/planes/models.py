@@ -92,15 +92,38 @@ class PlanActor(Base):
     plan_id:       Mapped[str]        = mapped_column(String(36), ForeignKey("planes.id", ondelete="CASCADE"), nullable=False, index=True)
     nombre:        Mapped[str]        = mapped_column(String(300), nullable=False)
     tipo:          Mapped[str]        = mapped_column(
-        Enum("principal", "concurrente", "subsidiario", "otro"), default="otro"
+        Enum(
+            "ejecutor", "beneficiario", "financiador", "coordinador",
+            "regulador", "aliado", "operador", "supervisor",
+            "tomador_decision", "participante", "apoyo_tecnico", "control",
+            "otro",
+        ),
+        default="otro",
     )
     icono:         Mapped[str | None] = mapped_column(String(10))
     resp_count:    Mapped[int]        = mapped_column(Integer, default=0)
+    nivel:         Mapped[str | None] = mapped_column(String(50))
+    sector:        Mapped[str | None] = mapped_column(String(200))
     badge_label:   Mapped[str | None] = mapped_column(String(100))
     badge_variant: Mapped[str]        = mapped_column(String(20), default="blue")
     destacado:     Mapped[bool]       = mapped_column(Boolean, default=False)
 
-    plan: Mapped[Plane] = relationship(back_populates="actores")
+    plan:          Mapped[Plane]                  = relationship(back_populates="actores")
+    competencias:  Mapped[list[ActorCompetencia]] = relationship(back_populates="actor", cascade="all, delete-orphan")
+
+
+# ── Competencias de un Actor ──────────────────────────────────────────────
+
+class ActorCompetencia(Base):
+    __tablename__ = "actor_competencias"
+
+    id:       Mapped[int]        = mapped_column(Integer, primary_key=True, autoincrement=True)
+    plan_id:  Mapped[str]        = mapped_column(String(36), ForeignKey("planes.id",       ondelete="CASCADE"), nullable=False, index=True)
+    actor_id: Mapped[int]        = mapped_column(Integer,   ForeignKey("plan_actores.id",  ondelete="CASCADE"), nullable=False, index=True)
+    titulo:   Mapped[str]        = mapped_column(String(500), nullable=False)
+    sector:   Mapped[str | None] = mapped_column(String(200))
+
+    actor: Mapped[PlanActor] = relationship(back_populates="competencias")
 
 
 # ── Responsabilidades ─────────────────────────────────────────────────────
@@ -148,17 +171,18 @@ class Brecha(Base):
 class MatrizCompetencia(Base):
     __tablename__ = "matriz_competencias"
 
-    id:            Mapped[int]        = mapped_column(Integer, primary_key=True, autoincrement=True)
-    plan_id:       Mapped[str]        = mapped_column(String(36), ForeignKey("planes.id", ondelete="CASCADE"), nullable=False, index=True)
-    competencia:   Mapped[str]        = mapped_column(String(300), nullable=False)
-    ley_base:      Mapped[str | None] = mapped_column(String(200))
-    nacion:        Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
-    departamento:  Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
-    municipio:     Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
-    especializado: Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
-    brecha:        Mapped[str]        = mapped_column(
+    id:                   Mapped[int]        = mapped_column(Integer, primary_key=True, autoincrement=True)
+    plan_id:              Mapped[str]        = mapped_column(String(36), ForeignKey("planes.id", ondelete="CASCADE"), nullable=False, index=True)
+    competencia:          Mapped[str]        = mapped_column(String(300), nullable=False)
+    ley_base:             Mapped[str | None] = mapped_column(String(200))
+    nacion:               Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
+    departamento:         Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
+    municipio:            Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
+    especializado:        Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
+    brecha:               Mapped[str]        = mapped_column(
         Enum("ok", "critica", "duplicidad", "indefinido"), default="ok"
     )
+    actores_vinculados:   Mapped[str | None] = mapped_column(Text)  # JSON: [{nombre, nivel, tipo}]
 
     plan: Mapped[Plane] = relationship(back_populates="matriz")
 
@@ -179,7 +203,7 @@ class PlanNorma(Base):
     articulos:     Mapped[str | None] = mapped_column(String(200))
     extracto:      Mapped[str | None] = mapped_column(Text)
     tipo:          Mapped[str]        = mapped_column(
-        Enum("ley", "decreto", "resolucion", "circular", "otro"), default="ley"
+        Enum("ley", "decreto", "resolucion", "circular", "politica", "conpes", "ordenanza", "acuerdo", "otro"), default="ley"
     )
     vigente:       Mapped[bool]       = mapped_column(Boolean, default=True)
     advertencia:   Mapped[str | None] = mapped_column(String(300))

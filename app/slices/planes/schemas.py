@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # ─── Sub-entidades ────────────────────────────────────────────────────────
@@ -21,18 +22,33 @@ class SectorOut(SectorIn):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ActorCompetenciaOut(BaseModel):
+    id:     int
+    titulo: str
+    sector: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ActorIn(BaseModel):
     nombre:        str
-    tipo:          Literal["principal", "concurrente", "subsidiario", "otro"] = "otro"
+    tipo:          Literal[
+        "ejecutor", "beneficiario", "financiador", "coordinador",
+        "regulador", "aliado", "operador", "supervisor",
+        "tomador_decision", "participante", "apoyo_tecnico", "control",
+        "otro",
+    ] = "otro"
     icono:         str | None = None
     resp_count:    int        = 0
+    nivel:         str | None = None
+    sector:        str | None = None
     badge_label:   str | None = None
     badge_variant: str        = "blue"
     destacado:     bool       = False
 
 
 class ActorOut(ActorIn):
-    id: int
+    id:           int
+    competencias: list[ActorCompetenciaOut] = []
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -64,19 +80,38 @@ class BrechaOut(BrechaIn):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ActorVinculado(BaseModel):
+    nombre: str
+    nivel:  str = ""
+    tipo:   str = ""
+
+
 class MatrizIn(BaseModel):
-    competencia:   str
-    ley_base:      str | None                        = None
-    nacion:        Literal["P", "C", "S", "N"]      = "N"
-    departamento:  Literal["P", "C", "S", "N"]      = "N"
-    municipio:     Literal["P", "C", "S", "N"]      = "N"
-    especializado: Literal["P", "C", "S", "N"]      = "N"
-    brecha:        Literal["ok", "critica", "duplicidad", "indefinido"] = "ok"
+    competencia:        str
+    ley_base:           str | None                        = None
+    nacion:             Literal["P", "C", "S", "N"]      = "N"
+    departamento:       Literal["P", "C", "S", "N"]      = "N"
+    municipio:          Literal["P", "C", "S", "N"]      = "N"
+    especializado:      Literal["P", "C", "S", "N"]      = "N"
+    brecha:             Literal["ok", "critica", "duplicidad", "indefinido"] = "ok"
+    actores_vinculados: list[ActorVinculado]              = []
 
 
 class MatrizOut(MatrizIn):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("actores_vinculados", mode="before")
+    @classmethod
+    def _parse_actores_json(cls, v: Any) -> list[dict]:
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, ValueError):
+                return []
+        if v is None:
+            return []
+        return v
 
 
 class NormaIn(BaseModel):

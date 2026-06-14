@@ -8,7 +8,7 @@ mencionados o que aplican al plan de desarrollo analizado.
 Para cada norma:
 - **código**: identificador exacto (ej: "Ley 715 de 2001", "Decreto 1075 de 2015")
 - **título**: nombre oficial
-- **tipo**: ley | decreto | resolucion | circular | otro
+- **tipo**: ley | decreto | resolucion | circular | politica | conpes | ordenanza | acuerdo | otro
 - **artículos**: artículos relevantes (ej: "arts. 43, 44, 76")
 - **relevancia**: por qué aplica al plan
 - **vigente**: si | no
@@ -21,7 +21,9 @@ Formato (una norma por línea):
 
 Ejemplos correctos:
 Ley 136 de 1994 | Régimen Municipal | ley | arts. 3, 91 | Regula organización y competencias municipales | si | 2
-Constitución Política 1991 | Constitución Nacional | constitucion | art. 313 | Asigna atribuciones al concejo municipal | si | 1
+Constitución Política 1991 | Constitución Nacional | otro | art. 313 | Asigna atribuciones al concejo municipal | si | 1
 Decreto 111 de 1996 | Estatuto Orgánico del Presupuesto | decreto | art. 38 | Regula ejecución presupuestal | si | 3
+CONPES 3918 de 2018 | Estrategia para implementación ODS | conpes | — | Lineamientos de política pública sectorial | si | 4
+Política Nacional de Gobierno Digital | Política TIC | politica | — | Marco de transformación digital del Estado | si | 5
 
 Responde SOLO en español. No incluyas NINGÚN texto fuera de las líneas con formato de pipe.

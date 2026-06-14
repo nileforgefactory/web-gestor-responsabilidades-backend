@@ -9,13 +9,18 @@ from fastapi import APIRouter, Depends
 from app.core.config import Settings, get_settings
 from app.core.openapi import RESPUESTAS_RAG
 from app.dependencies import get_rag_service
+from app.slices.auth.dependencies import get_current_user, require_write
 from app.slices.rag.service import RagService
 from app.slices.scraper.schemas import ScraperBuscarRequest, ScraperBuscarResponse
 from app.slices.scraper.service import ScraperService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/scraper", tags=["scraper"])
+router = APIRouter(
+    prefix="/scraper",
+    tags=["scraper"],
+    dependencies=[Depends(get_current_user), Depends(require_write)],
+)
 
 
 def _scraper_service(
@@ -31,8 +36,9 @@ def _scraper_service(
     summary="Buscar normas en red e indexar",
     description=(
         "Por cada referencia normativa (en **paralelo**, límite `SCRAPER_MAX_CONCURRENCY`): "
-        "búsqueda en internet acotada por **país** (cuerpo o `SCRAPER_DEFAULT_PAIS`), "
-        "descarga, validación con Ollama e indexación en Qdrant si coincide. "
+        "búsqueda en internet (solo **PDF** oficiales) acotada por **país**, "
+        "descarga del PDF, validación IA (debe ser el **texto de la norma**, no un documento sobre ella) "
+        "e indexación en Qdrant si coincide. "
         "Requiere Ollama y Qdrant listos (`GET /health/ready`). "
         "Catálogo MySQL opcional (`MYSQL_URL`); cada norma usa sesión DB propia."
     ),

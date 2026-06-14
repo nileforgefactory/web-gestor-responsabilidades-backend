@@ -40,9 +40,6 @@ class Settings(BaseSettings):
     mysql_url: str | None = None
     # pool_pre_ping con aiomysql async falla en algunas versiones (ping/reconnect)
     mysql_pool_pre_ping: bool = False
-    # En prod (APP_ENV=prod) nunca se auto-aplican; en dev/docker sí (ver effective_mysql_run_migrations)
-    mysql_run_migrations: bool = True
-
     # Redis — opcional; si está vacío las sesiones SSE no se persisten
     # Formato: redis://host:puerto/db
     redis_url: str | None = None
@@ -66,7 +63,7 @@ class Settings(BaseSettings):
     # Obsoleto para el scraper: la colección se deriva del territorio (ej. COLOMBIA_CAUCA).
     scraper_collection_id: str = "normas_legales"
     scraper_search_max_results: int = 8
-    scraper_search_query_suffix: str = "normativa PDF"
+    scraper_search_query_suffix: str = "filetype:pdf"
     scraper_default_pais: str = "COLOMBIA"
     scraper_validation_min_confidence: float = 0.72
     scraper_validation_text_max_chars: int = 12_000
@@ -90,18 +87,23 @@ class Settings(BaseSettings):
     # Normas procesadas en paralelo (asyncio; no saturar Ollama ni búsqueda)
     scraper_max_concurrency: int = 3
 
+    # JWT — autenticación y autorización
+    jwt_secret_key: str = "cambiar-en-produccion-usar-secreto-largo-y-aleatorio"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 1440  # 24 h
+
+    # Usuario administrador inicial (solo si no hay usuarios en BD)
+    auth_bootstrap_admin_email: str | None = None
+    auth_bootstrap_admin_password: str | None = None
+    auth_bootstrap_admin_nombre: str = "Administrador"
+    # JSON o lista: [COLOMBIA, HUILA, PALERMO]
+    auth_bootstrap_admin_territorio: str = '["COLOMBIA", "HUILA", "PALERMO"]'
+
     @property
     def mysql_url_for_migrations(self) -> str:
         """URL MySQL para Alembic; usa DEFAULT_MYSQL_URL si no hay .env."""
         explicit = (self.mysql_url or "").strip()
         return explicit or DEFAULT_MYSQL_URL
-
-    @property
-    def effective_mysql_run_migrations(self) -> bool:
-        """Migraciones automáticas al arrancar: desactivadas en producción."""
-        if self.app_env.lower() in ("prod", "production"):
-            return False
-        return self.mysql_run_migrations
 
     model_config = SettingsConfigDict(
         env_file=".env",

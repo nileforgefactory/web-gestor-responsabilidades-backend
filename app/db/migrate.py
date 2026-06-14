@@ -1,4 +1,4 @@
-"""Ejecución de migraciones Alembic al arrancar (solo entornos no productivos)."""
+"""Utilidades Alembic. Las migraciones se aplican manualmente (CLI), no al arrancar la API."""
 
 from __future__ import annotations
 

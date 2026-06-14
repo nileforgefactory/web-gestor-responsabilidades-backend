@@ -12,7 +12,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 import httpx
 
 from app.core.config import Settings
-from app.slices.scraper.utils import allowed_domains_list, url_domain_allowed
+from app.slices.scraper.utils import allowed_domains_list, url_domain_allowed, url_looks_like_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,9 @@ def _filter_hits(hits: list[SearchHit], allowed_domains: list[str]) -> list[Sear
         if not url or url in seen:
             continue
         if not url_domain_allowed(url, allowed_domains):
+            continue
+        if not url_looks_like_pdf(url):
+            logger.debug("[SCRAPER] busqueda_omitida_no_pdf url=%s", url)
             continue
         seen.add(url)
         out.append(hit)

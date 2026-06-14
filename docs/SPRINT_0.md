@@ -39,7 +39,7 @@ docker compose up --build -d
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build -d
 ```
 
-MySQL vacío + Alembic automático al iniciar la API. Ver [MIGRATIONS.md](MIGRATIONS.md).
+MySQL vacío; aplicar esquema manualmente con `alembic upgrade head`. Ver [MIGRATIONS.md](MIGRATIONS.md).
 
 ### Opción recomendada (PowerShell)
 
