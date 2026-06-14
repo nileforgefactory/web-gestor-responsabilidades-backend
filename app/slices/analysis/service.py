@@ -119,11 +119,9 @@ async def run_document_analysis(
     http = rag.http
 
     async def run_agents_batch(extra_query: str | None = None) -> None:
-        agents = ["responsabilidades", "leyes", "actores"]
-        if profundidad == "profundo":
-            agents.append("brechas")
+        base_agents = ["responsabilidades", "leyes", "actores"]
 
-        async def one(name: str) -> None:
+        async def one(name: str, extra: str | None = extra_query) -> None:
             await emit({"type": "agent_start", "agent": name})
             try:
                 rows = await run_agent(
@@ -135,7 +133,7 @@ async def run_document_analysis(
                     nivel=nivel,
                     profundidad=profundidad,
                     entidad=entidad,
-                    extra_query=extra_query,
+                    extra_query=extra,
                     plan_excerpt=plan_excerpt,
                 )
                 merge_key = {"leyes": "codigo", "actores": "nombre"}.get(name, "titulo")
@@ -145,7 +143,30 @@ async def run_document_analysis(
                 logger.exception("Agente %s falló", name)
                 await emit({"type": "agent_error", "agent": name, "error": str(exc)})
 
-        await asyncio.gather(*(one(a) for a in agents))
+        await asyncio.gather(*(one(a) for a in base_agents))
+
+        # Brechas: se ejecuta DESPUÉS de los demás para poder cruzar información
+        if profundidad == "profundo":
+            # Construye un resumen del contexto extraído para inyectar al agente de brechas
+            resp_lines = "\n".join(
+                f"- {r.get('titulo','')} [{r.get('tipo','P')}] sector={r.get('sector','')} ley={r.get('referencia_legal','')}"
+                for r in context["responsabilidades"][:30]
+            )
+            actor_lines = "\n".join(
+                f"- {a.get('nombre','')} nivel={a.get('nivel','')} tipo={a.get('tipo','')}"
+                for a in context["actores"][:20]
+            )
+            ley_lines = "\n".join(
+                f"- {l.get('codigo','')} | {l.get('titulo','')}"
+                for l in context["leyes"][:20]
+            )
+            cross_query = (
+                f"Responsabilidades identificadas en el plan:\n{resp_lines or 'Ninguna'}\n\n"
+                f"Actores identificados:\n{actor_lines or 'Ninguno'}\n\n"
+                f"Normas identificadas:\n{ley_lines or 'Ninguna'}\n\n"
+                f"Identifica qué obligaciones legales NO están cubiertas por los actores listados."
+            )
+            await one("brechas", extra=cross_query)
 
     await emit({"type": "log", "msg": "Ejecutando agentes iniciales..."})
     await run_agents_batch()
@@ -200,6 +221,43 @@ async def run_document_analysis(
             await emit({"type": "agent_error", "agent": "matriz", "error": str(exc)})
 
     context["matriz"] = matriz
+
+    # ── Síntesis ejecutiva del análisis ──────────────────────────────────────
+    def _build_sintesis(ctx: dict[str, Any], nivel_plan: str) -> str:
+        resp_n  = len(ctx.get("responsabilidades", []))
+        leyes_n = len(ctx.get("leyes", []))
+        act_n   = len(ctx.get("actores", []))
+        bre_n   = len(ctx.get("brechas", []))
+        mat_n   = len(ctx.get("matriz", []))
+
+        criticas = [b for b in ctx.get("brechas", []) if b.get("tipo") in ("critica", "sin_responsable")]
+        dups     = [b for b in ctx.get("brechas", []) if b.get("tipo") == "duplicidad"]
+
+        sectores = list({r.get("sector", "") for r in ctx.get("responsabilidades", []) if r.get("sector")})
+
+        partes = [
+            f"Plan de nivel {nivel_plan} analizado con {resp_n} responsabilidades identificadas, "
+            f"{leyes_n} normas aplicables y {act_n} actores institucionales.",
+        ]
+        if mat_n:
+            partes.append(f"La matriz de competencias contiene {mat_n} entradas.")
+        if criticas:
+            partes.append(
+                f"Se detectaron {len(criticas)} brecha(s) crítica(s): "
+                + "; ".join(b.get("titulo", "sin título") for b in criticas[:3])
+                + ("..." if len(criticas) > 3 else ".")
+            )
+        if dups:
+            partes.append(f"Se identificaron {len(dups)} duplicidad(es) de competencias entre niveles territoriales.")
+        if sectores:
+            partes.append(f"Sectores cubiertos: {', '.join(sectores[:6])}{'...' if len(sectores) > 6 else ''}.")
+        if bre_n == 0:
+            partes.append("No se registraron brechas relevantes en el análisis.")
+
+        return " ".join(partes)
+
+    sintesis = _build_sintesis(context, nivel)
+
     guardado = False
     final_plan_id = plan_id
 
@@ -213,6 +271,7 @@ async def run_document_analysis(
             archivo_nombre=filename,
             qdrant_doc_id=doc_id,
             result=context,
+            descripcion=sintesis,
         )
         guardado = True
 
@@ -282,6 +341,8 @@ async def stream_document_analysis(
             if event is None:
                 break
             yield f"data: {json.dumps(event, ensure_ascii=False, default=str)}\n\n"
+        # Chunk final explícito: garantiza que el cliente reciba el cierre correcto
+        yield "data: \n\n"
     finally:
         if not task.done():
             task.cancel()

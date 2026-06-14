@@ -128,10 +128,12 @@ async def validate_norm_document(
     muestra = texto[:max_chars]
     user = f"""País objetivo de búsqueda: {pais_objetivo}
 Norma solicitada: {norma_solicitada}
-URL origen: {url}
+URL del PDF: {url}
 Título en resultados de búsqueda: {titulo_resultado or "(sin título)"}
 
-Texto del documento (extracto):
+El archivo es un PDF. Debe ser el texto oficial de la norma solicitada, NO un documento que solo la mencione o analice.
+
+Texto extraído del PDF (extracto):
 {muestra}
 """.strip()
 

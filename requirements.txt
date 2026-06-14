@@ -17,3 +17,5 @@ cryptography
 alembic>=1.14.0,<2
 # ── Redis (sesiones SSE + pub/sub) ────────────────────────────────────────
 redis[asyncio]>=5.0
+# ── Exportación PDF ───────────────────────────────────────────────────────
+reportlab>=4.0
