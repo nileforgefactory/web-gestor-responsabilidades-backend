@@ -48,6 +48,7 @@ class ActorIn(BaseModel):
 
 class ActorOut(ActorIn):
     id:           int
+    origen_contexto: str | None = None
     competencias: list[ActorCompetenciaOut] = []
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +64,7 @@ class ResponsabilidadIn(BaseModel):
 
 class ResponsabilidadOut(ResponsabilidadIn):
     id: int
+    origen_contexto: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -77,6 +79,9 @@ class BrechaIn(BaseModel):
 
 class BrechaOut(BrechaIn):
     id: int
+    tipo_detallado:  str | None = None
+    recomendacion:   str | None = None
+    origen_contexto: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -88,6 +93,7 @@ class ActorVinculado(BaseModel):
 
 class MatrizIn(BaseModel):
     competencia:        str
+    actor:              str | None                        = None
     ley_base:           str | None                        = None
     nacion:             Literal["P", "C", "S", "N"]      = "N"
     departamento:       Literal["P", "C", "S", "N"]      = "N"
@@ -99,6 +105,8 @@ class MatrizIn(BaseModel):
 
 class MatrizOut(MatrizIn):
     id: int
+    sector:          str | None = None
+    origen_contexto: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
     @field_validator("actores_vinculados", mode="before")
@@ -119,7 +127,10 @@ class NormaIn(BaseModel):
     titulo:        str
     articulos:     str | None = None
     extracto:      str | None = None
-    tipo:          Literal["ley", "decreto", "resolucion", "circular", "otro"] = "ley"
+    tipo:          Literal[
+        "ley", "decreto", "resolucion", "circular",
+        "politica", "conpes", "ordenanza", "acuerdo", "sentencia", "otro",
+    ] = "ley"
     vigente:       bool       = True
     advertencia:   str | None = None
     relevancia:    int        = Field(default=80, ge=0, le=100)
@@ -127,6 +138,8 @@ class NormaIn(BaseModel):
 
 class NormaOut(NormaIn):
     id: int
+    id_norma:        str | None = None
+    origen_contexto: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 
