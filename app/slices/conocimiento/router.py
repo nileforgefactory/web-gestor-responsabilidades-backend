@@ -13,12 +13,14 @@ from app.slices.auth.permissions import (
     ensure_collection_access,
     is_superadmin,
 )
+from app.dependencies import get_rag_service
 from app.slices.conocimiento import repository as repo
 from app.slices.conocimiento.schemas import (
     ConocimientoCreate,
     ConocimientoOut,
     ConocimientoUpdate,
 )
+from app.slices.rag.service import RagService
 
 router = APIRouter(
     prefix="/conocimiento",
@@ -119,16 +121,80 @@ async def update_doc(
     return doc  # type: ignore[return-value]
 
 
+@router.post(
+    "/{doc_id}/deshabilitar",
+    response_model=ConocimientoOut,
+    summary="Deshabilitar documento del catálogo",
+    description=(
+        "Marca el documento como `deshabilitado` en MySQL. "
+        "Los vectores en Qdrant se eliminan para que no aparezca en búsquedas RAG. "
+        "El registro permanece en catálogo para auditoría. Use `/habilitar` para revertir."
+    ),
+    responses=RESPUESTAS_MYSQL,
+)
+async def deshabilitar_doc(
+    doc_id: str,
+    db: AsyncSession = Depends(get_db),
+    rag: RagService = Depends(get_rag_service),
+) -> ConocimientoOut:
+    doc = await repo.get_doc(db, doc_id)
+    if doc is None:
+        raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
+    if doc.estado == "deshabilitado":
+        raise HTTPException(409, f"El documento '{doc_id}' ya está deshabilitado")
+
+    if doc.qdrant_doc_id and doc.coleccion_id:
+        try:
+            await rag.repository.delete_document_chunks(
+                collection_id=doc.coleccion_id,
+                document_id=doc.qdrant_doc_id,
+            )
+        except Exception as exc:
+            raise HTTPException(502, f"No se pudieron eliminar los vectores en Qdrant: {exc}") from exc
+
+    updated = await repo.update_doc(db, doc_id, ConocimientoUpdate(estado="deshabilitado"))
+    return updated  # type: ignore[return-value]
+
+
+@router.post(
+    "/{doc_id}/habilitar",
+    response_model=ConocimientoOut,
+    summary="Re-habilitar documento del catálogo",
+    description=(
+        "Revierte el estado de un documento `deshabilitado` a `indexado` en MySQL. "
+        "No restaura vectores en Qdrant — para re-indexar usa el endpoint de ingesta."
+    ),
+    responses=RESPUESTAS_MYSQL,
+)
+async def habilitar_doc(
+    doc_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ConocimientoOut:
+    doc = await repo.get_doc(db, doc_id)
+    if doc is None:
+        raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
+    if doc.estado != "deshabilitado":
+        raise HTTPException(409, f"El documento '{doc_id}' no está deshabilitado (estado actual: {doc.estado})")
+
+    updated = await repo.update_doc(db, doc_id, ConocimientoUpdate(estado="indexado"))
+    return updated  # type: ignore[return-value]
+
+
 @router.delete(
     "/{doc_id}",
     status_code=204,
-    summary="Eliminar registro de documento",
+    summary="Eliminar documento del catálogo y Qdrant",
+    description=(
+        "Elimina el registro de MySQL **y** los vectores asociados en Qdrant. "
+        "Operación irreversible. Para solo desactivarlo sin borrar, usa `POST /{doc_id}/deshabilitar`."
+    ),
     responses={**RESPUESTAS_MYSQL, 204: {"description": "Registro eliminado."}},
 )
 async def delete_doc(
     doc_id: str,
     admin: WriteUser,
     db: AsyncSession = Depends(get_db),
+    rag: RagService = Depends(get_rag_service),
 ) -> None:
     """Elimina el registro del catálogo (no borra vectores en Qdrant)."""
     existing = await repo.get_doc(db, doc_id)
@@ -138,3 +204,14 @@ async def delete_doc(
     deleted = await repo.delete_doc(db, doc_id)
     if not deleted:
         raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
+
+    if doc.qdrant_doc_id and doc.coleccion_id:
+        try:
+            await rag.repository.delete_document_chunks(
+                collection_id=doc.coleccion_id,
+                document_id=doc.qdrant_doc_id,
+            )
+        except Exception as exc:
+            raise HTTPException(502, f"No se pudieron eliminar los vectores en Qdrant: {exc}") from exc
+
+    await repo.delete_doc(db, doc_id)
