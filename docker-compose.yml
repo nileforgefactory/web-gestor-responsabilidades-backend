@@ -113,6 +113,16 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
       OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-llama3.1:8b}
+      # OpenAI — máxima prioridad; cobro por uso sin prepago
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4o-mini}
+      # OpenRouter — prioridad sobre Gemini; embeddings siguen usando Ollama
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_CHAT_MODEL: ${OPENROUTER_CHAT_MODEL:-google/gemini-3.5-flash}
+      # Gemini — solo se usa si OPENROUTER_API_KEY está vacío
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-2.0-flash}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
       INGEST_EMBED_CONCURRENCY: "4"
       RAG_DEFAULT_SCORE_THRESHOLD: "0.25"
       MYSQL_URL: mysql+aiomysql://gestor:gestor_pass@mysql:3306/gestor_responsabilidades?charset=utf8mb4
@@ -126,14 +136,23 @@ services:
       OCR_LANG: spa
       OCR_DPI: "200"
       OCR_MIN_CHARS_PER_PAGE: "50"
+      OCR_BATCH_PAGES: ${OCR_BATCH_PAGES:-4}
       BULK_MAX_FILES: "50"
       BULK_MAX_FILE_BYTES: "52428800"
       BULK_INGEST_CONCURRENCY: "2"
       DEFAULT_CHUNK_STRATEGY: "adaptive"
       ANALYSIS_MAX_ITERATIONS: "3"
-      USE_GEMINI_CHAT: "true"
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-2.0-flash}
+      # Profundidad de lectura del plan por agente (cuánto del documento ve el LLM)
+      ANALYSIS_PLAN_TOP_K: ${ANALYSIS_PLAN_TOP_K:-20}
+      ANALYSIS_NORMATIVA_TOP_K: ${ANALYSIS_NORMATIVA_TOP_K:-8}
+      ANALYSIS_PLAN_BLOB_CHARS: ${ANALYSIS_PLAN_BLOB_CHARS:-16000}
+      ANALYSIS_NORMATIVA_BLOB_CHARS: ${ANALYSIS_NORMATIVA_BLOB_CHARS:-4000}
+      ANALYSIS_MATRIZ_MODE: ${ANALYSIS_MATRIZ_MODE:-deterministic}
+      ANALYSIS_SCRAPE_MISSING_LAWS: ${ANALYSIS_SCRAPE_MISSING_LAWS:-true}
+      ANALYSIS_SCRAPE_MAX_LAWS: ${ANALYSIS_SCRAPE_MAX_LAWS:-5}
+      BACKGROUND_SCRAPER_DURATION_MIN: ${BACKGROUND_SCRAPER_DURATION_MIN:-30}
+      BACKGROUND_SCRAPER_AUTO_START: ${BACKGROUND_SCRAPER_AUTO_START:-false}
+      BACKGROUND_SCRAPER_CONCURRENCY: ${BACKGROUND_SCRAPER_CONCURRENCY:-2}
     ports:
       - "8000:8000"
     volumes:
