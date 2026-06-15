@@ -517,12 +517,23 @@ def _seccion_actores(actores: list[dict], styles: dict) -> list:
         Paragraph("Competencias / Rol", styles["tabla_header"]),
     ]
     filas = [enc]
-    for nivel_key in ["nacional","departamental","municipal","sectorial","sin_nivel"]:
+    # Orden de niveles conocidos primero; luego cualquier otro presente (ej. regional, especializado)
+    _orden_niveles = ["nacional", "regional", "departamental", "municipal", "especializado", "sectorial", "sin_nivel"]
+    claves_nivel = [k for k in _orden_niveles if k in por_nivel] + [k for k in por_nivel if k not in _orden_niveles]
+    for nivel_key in claves_nivel:
         for a in por_nivel.get(nivel_key, []):
             nombre = a.get("nombre") or ""
             tipo   = a.get("tipo") or "otro"
             nivel  = _nivel_label(nivel_key)
-            comps  = a.get("competencias") or a.get("badge_label") or ""
+            # competencias puede venir como lista de objetos {titulo,...} o como string
+            comps_raw = a.get("competencias")
+            if isinstance(comps_raw, list):
+                comps = "; ".join(
+                    (c.get("titulo", "") if isinstance(c, dict) else str(c)) for c in comps_raw
+                )
+            else:
+                comps = comps_raw or a.get("badge_label") or ""
+            comps = str(comps or "")
             filas.append([
                 Paragraph(f"<b>{nombre}</b>", styles["tabla_cell"]),
                 Paragraph(tipo,               styles["tabla_cell"]),
@@ -676,13 +687,14 @@ def _seccion_matriz(matriz: list[dict], styles: dict) -> list:
     story.append(Spacer(1, 0.2 * cm))
 
     enc = [
-        Paragraph("Competencia",    styles["tabla_header"]),
-        Paragraph("Ley base",       styles["tabla_header"]),
-        Paragraph("Nación",         styles["tabla_header"]),
-        Paragraph("Dpto.",          styles["tabla_header"]),
-        Paragraph("Municipio",      styles["tabla_header"]),
-        Paragraph("Especializado",  styles["tabla_header"]),
-        Paragraph("Estado brecha",  styles["tabla_header"]),
+        Paragraph("Competencia",        styles["tabla_header"]),
+        Paragraph("Sector",             styles["tabla_header"]),
+        Paragraph("Ley base",           styles["tabla_header"]),
+        Paragraph("Nación",             styles["tabla_header"]),
+        Paragraph("Dpto.",              styles["tabla_header"]),
+        Paragraph("Municipio",          styles["tabla_header"]),
+        Paragraph("Esp.",               styles["tabla_header"]),
+        Paragraph("Brecha",             styles["tabla_header"]),
         Paragraph("Actores vinculados", styles["tabla_header"]),
     ]
     filas = [enc]
@@ -704,23 +716,25 @@ def _seccion_matriz(matriz: list[dict], styles: dict) -> list:
         else:
             actores_txt = str(actores_v)
 
-        brecha_label = {"ok":"OK","critica":"CRÍTICA","duplicidad":"DUPLICIDAD","indefinido":"INDEFINIDO"}.get(brecha, brecha.upper())
+        brecha_label = {"ok":"✓ OK","critica":"🚨 CRÍTICA","duplicidad":"⚠ DUPLICIDAD","indefinido":"? INDEF."}.get(brecha, brecha.upper())
         ley_base = m.get("ley_base") or "—"
+        sector   = m.get("sector") or "—"
 
         filas.append([
             Paragraph(m.get("competencia","")[:100], styles["tabla_cell_bold"]),
-            Paragraph(ley_base[:60],                 styles["tabla_cell"]),
+            Paragraph(sector[:40],                   styles["tabla_cell"]),
+            Paragraph(ley_base[:50],                 styles["tabla_cell"]),
             _matriz_cell(m.get("nacion","N"),         styles),
             _matriz_cell(m.get("departamento","N"),   styles),
             _matriz_cell(m.get("municipio","N"),      styles),
             _matriz_cell(m.get("especializado","N"),  styles),
             Paragraph(brecha_label,                  styles["tabla_cell_bold"]),
-            Paragraph(actores_txt[:120],             styles["tabla_cell"]),
+            Paragraph(actores_txt[:100],             styles["tabla_cell"]),
         ])
 
     tabla = Table(
         filas,
-        colWidths=[4.0*cm, 2.5*cm, 1.3*cm, 1.3*cm, 1.8*cm, 2.0*cm, 1.8*cm, 4.3*cm],
+        colWidths=[3.5*cm, 1.8*cm, 2.2*cm, 1.1*cm, 1.1*cm, 1.5*cm, 1.2*cm, 1.6*cm, 3.0*cm],
         repeatRows=1,
     )
     estilo = _estilo_tabla_alternada()
@@ -869,6 +883,166 @@ def _seccion_conclusiones(plan: dict, responsabilidades: list, brechas: list,
     return story
 
 
+def _seccion_analisis_ia(analisis_ia: dict[str, Any], styles: dict) -> list:
+    """Sección generada por IA: qué hacer, presupuesto, suficiencia y fuentes de recursos."""
+    story = [*_seccion_banner("Análisis estratégico IA — Viabilidad y recursos", "7", styles)]
+
+    story.append(Paragraph(
+        "Este capítulo es generado automáticamente por inteligencia artificial a partir del "
+        "contenido del plan, las responsabilidades identificadas y el marco normativo. "
+        "Sirve como insumo orientador para la gestión presupuestal y la búsqueda de recursos.",
+        styles["cuerpo"],
+    ))
+    story.append(Spacer(1, 0.3*cm))
+
+    # ── Qué debe hacer la entidad ──────────────────────────────────────────────
+    que_hacer = analisis_ia.get("que_hacer", "")
+    if que_hacer:
+        story.append(Paragraph("¿Qué debe implementar esta entidad?", styles["subseccion"]))
+        story.append(Paragraph(que_hacer, styles["cuerpo"]))
+        story.append(Spacer(1, 0.2*cm))
+
+    # ── Contexto legal ─────────────────────────────────────────────────────────
+    contexto_legal = analisis_ia.get("contexto_legal", "")
+    if contexto_legal:
+        story.append(Paragraph("¿Bajo qué marco legal?", styles["subseccion"]))
+        story.append(Paragraph(contexto_legal, styles["cuerpo"]))
+        story.append(Spacer(1, 0.2*cm))
+
+    # ── Presupuesto estimado ───────────────────────────────────────────────────
+    presupuesto = analisis_ia.get("presupuesto_estimado", "")
+    if presupuesto:
+        story.append(Paragraph("Presupuesto estimado requerido", styles["subseccion"]))
+        story.append(Paragraph(presupuesto, styles["cuerpo"]))
+        story.append(Spacer(1, 0.2*cm))
+
+    # ── Suficiencia presupuestal ───────────────────────────────────────────────
+    suficiencia = analisis_ia.get("suficiencia", "")
+    nivel_sfx   = analisis_ia.get("nivel_suficiencia", "indefinido")
+    if suficiencia:
+        color_sfx = {"suficiente": _VERDE_CLARO, "insuficiente": _ROJO_CLARO, "parcial": _AMARILLO_CLARO}.get(nivel_sfx, _GRIS_CLARO)
+        label_sfx = {"suficiente": "✓ SUFICIENTE", "insuficiente": "✗ INSUFICIENTE", "parcial": "⚠ PARCIAL"}.get(nivel_sfx, "? INDEFINIDO")
+        sfx_data = [[
+            Paragraph(f"<b>{label_sfx}</b>", styles["tabla_cell_bold"]),
+            Paragraph(suficiencia, styles["cuerpo"]),
+        ]]
+        sfx_tabla = Table(sfx_data, colWidths=[3*cm, 14*cm])
+        sfx_tabla.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(0,0), color_sfx),
+            ("BACKGROUND",    (1,0),(1,0), _BLANCO),
+            ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+            ("TOPPADDING",    (0,0),(-1,-1), 8),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 8),
+            ("LEFTPADDING",   (0,0),(-1,-1), 8),
+            ("BOX",           (0,0),(-1,-1), 0.5, _GRIS_MEDIO),
+        ]))
+        story.append(Paragraph("¿Alcanza el presupuesto disponible?", styles["subseccion"]))
+        story.append(sfx_tabla)
+        story.append(Spacer(1, 0.2*cm))
+
+    # ── Fuentes de recursos recomendadas ──────────────────────────────────────
+    fuentes = analisis_ia.get("fuentes_recursos", [])
+    if fuentes:
+        story.append(Paragraph("¿Con quién y dónde buscar recursos?", styles["subseccion"]))
+        story.append(Paragraph(
+            "Se identifican las siguientes fuentes de recursos monetarios, físicos y legales:",
+            styles["cuerpo"],
+        ))
+        story.append(Spacer(1, 0.15*cm))
+
+        enc_f = [
+            Paragraph("Tipo",           styles["tabla_header"]),
+            Paragraph("Fuente / Entidad", styles["tabla_header"]),
+            Paragraph("Descripción y cómo acceder", styles["tabla_header"]),
+        ]
+        filas_f = [enc_f]
+        tipo_color = {
+            "monetario":  _AZUL_CLARO,
+            "físico":     _VERDE_CLARO,
+            "legal":      _AMARILLO_CLARO,
+            "técnico":    _NARANJA_CLARO,
+        }
+        for f in fuentes:
+            tipo = str(f.get("tipo","")).lower()
+            filas_f.append([
+                Paragraph(f.get("tipo","").upper(), styles["tabla_cell_bold"]),
+                Paragraph(str(f.get("entidad",""))[:80],    styles["tabla_cell_bold"]),
+                Paragraph(str(f.get("descripcion",""))[:250], styles["tabla_cell"]),
+            ])
+
+        tabla_f = Table(filas_f, colWidths=[2.2*cm, 4.5*cm, 10.3*cm], repeatRows=1)
+        estilo_f = _estilo_tabla_alternada()
+        for i, f in enumerate(fuentes, 1):
+            tipo = str(f.get("tipo","")).lower()
+            bg   = tipo_color.get(tipo, _GRIS_CLARO)
+            estilo_f.add("BACKGROUND", (0, i), (0, i), bg)
+        tabla_f.setStyle(estilo_f)
+        story.append(tabla_f)
+        story.append(Spacer(1, 0.3*cm))
+
+    # ── Recomendaciones para mejorar el plan ───────────────────────────────────
+    recomendaciones = analisis_ia.get("recomendaciones_mejora", []) or []
+    if recomendaciones:
+        story.append(Paragraph("¿Cómo mejorar el plan?", styles["subseccion"]))
+        for rec in recomendaciones:
+            story.append(Paragraph(f"→ {rec}", styles["cuerpo"]))
+        story.append(Spacer(1, 0.3*cm))
+
+    # ── Competencias que no recaen en la entidad ───────────────────────────────
+    no_propias = analisis_ia.get("competencias_no_propias", []) or []
+    if no_propias:
+        story.append(Paragraph("Competencias que no recaen en esta entidad — cómo gestionarlas", styles["subseccion"]))
+        story.append(Paragraph(
+            "Las siguientes responsabilidades tienen como titular principal a otro nivel de gobierno. "
+            "La entidad puede impulsarlas mediante cofinanciación, convenios o solicitudes formales:",
+            styles["cuerpo"],
+        ))
+        story.append(Spacer(1, 0.15*cm))
+        enc_np = [
+            Paragraph("Competencia",      styles["tabla_header"]),
+            Paragraph("Titular real",     styles["tabla_header"]),
+            Paragraph("Cómo gestionarla", styles["tabla_header"]),
+            Paragraph("Norma / Formato",  styles["tabla_header"]),
+        ]
+        filas_np = [enc_np]
+        for c in no_propias:
+            filas_np.append([
+                Paragraph(str(c.get("competencia", ""))[:120],     styles["tabla_cell_bold"]),
+                Paragraph(str(c.get("responsable", ""))[:80],      styles["tabla_cell"]),
+                Paragraph(str(c.get("como_gestionar", ""))[:240],  styles["tabla_cell"]),
+                Paragraph(str(c.get("norma_o_formato", ""))[:120], styles["tabla_cell"]),
+            ])
+        tabla_np = Table(filas_np, colWidths=[4.0*cm, 3.0*cm, 6.5*cm, 3.5*cm], repeatRows=1)
+        tabla_np.setStyle(_estilo_tabla_alternada())
+        story.append(tabla_np)
+        story.append(Spacer(1, 0.3*cm))
+
+    # ── Mitigación de brechas ──────────────────────────────────────────────────
+    mitigacion = analisis_ia.get("mitigacion_brechas", []) or []
+    if mitigacion:
+        story.append(Paragraph("¿Cómo mitigar las brechas detectadas?", styles["subseccion"]))
+        enc_m = [
+            Paragraph("Brecha",     styles["tabla_header"]),
+            Paragraph("Severidad",  styles["tabla_header"]),
+            Paragraph("Acción de mitigación", styles["tabla_header"]),
+            Paragraph("Norma base", styles["tabla_header"]),
+        ]
+        filas_m = [enc_m]
+        for m in sorted(mitigacion, key=lambda x: {"alta":0,"media":1,"baja":2}.get(str(x.get("severidad","baja")).lower(), 3)):
+            filas_m.append([
+                Paragraph(str(m.get("brecha", ""))[:120],   styles["tabla_cell_bold"]),
+                _badge_severidad(str(m.get("severidad", "baja")).lower(), styles),
+                Paragraph(str(m.get("accion", ""))[:280],   styles["tabla_cell"]),
+                Paragraph(str(m.get("norma_base", ""))[:120], styles["tabla_cell"]),
+            ])
+        tabla_m = Table(filas_m, colWidths=[4.0*cm, 1.8*cm, 7.7*cm, 3.5*cm], repeatRows=1)
+        tabla_m.setStyle(_estilo_tabla_alternada())
+        story.append(tabla_m)
+        story.append(Spacer(1, 0.3*cm))
+
+    return story
+
+
 def _pie_pagina(plan: dict, styles: dict) -> list:
     fecha_hoy = datetime.now().strftime("%d/%m/%Y %H:%M")
     return [
@@ -909,7 +1083,7 @@ def _estilo_tabla_alternada() -> TableStyle:
 
 # ─── Función principal ────────────────────────────────────────────────────────
 
-def generar_pdf_analisis(plan: dict[str, Any]) -> bytes:
+def generar_pdf_analisis(plan: dict[str, Any], analisis_ia: dict[str, Any] | None = None) -> bytes:
     """
     Genera el PDF detallado del análisis de un plan de desarrollo.
 
@@ -954,6 +1128,9 @@ def generar_pdf_analisis(plan: dict[str, Any]) -> bytes:
     story += _seccion_matriz(matriz, styles)
     story.append(PageBreak())
     story += _seccion_conclusiones(plan, responsabilidades, brechas, actores, normas, matriz, styles)
+    if analisis_ia:
+        story.append(PageBreak())
+        story += _seccion_analisis_ia(analisis_ia, styles)
     story += _pie_pagina(plan, styles)
 
     doc.build(story)

@@ -31,7 +31,7 @@ class BaseConocimiento(Base):
     qdrant_doc_id:  Mapped[str | None] = mapped_column(String(100))
     chunk_count:    Mapped[int]      = mapped_column(Integer, default=0)
     estado:         Mapped[str]      = mapped_column(
-        Enum("pendiente", "procesando", "indexado", "error"),
+        Enum("pendiente", "procesando", "indexado", "error", "deshabilitado"),
         default="pendiente",
         index=True,
     )

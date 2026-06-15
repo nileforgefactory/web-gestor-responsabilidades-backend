@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.slices.common.territorio import TERRITORIO_LEN, normalize_territorio, territorio_from_json, territorio_to_json
 
 TipoDocumento = Literal["ley", "decreto", "resolucion", "circular", "pdf", "texto", "otro"]
-EstadoDoc     = Literal["pendiente", "procesando", "indexado", "error"]
+EstadoDoc     = Literal["pendiente", "procesando", "indexado", "error", "deshabilitado"]
 
 
 class ConocimientoCreate(BaseModel):

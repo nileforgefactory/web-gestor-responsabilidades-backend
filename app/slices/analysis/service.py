@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
+import time
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
@@ -21,6 +23,7 @@ from app.slices.rag.extract import (
     extract_document_from_bytes,
 )
 from app.slices.rag.service import RagService
+from app.slices.scraper.service import ScraperService
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,22 @@ async def _noop_emit(_: dict[str, Any]) -> None:
     pass
 
 
+async def _await_con_progreso(coro: Awaitable[Any], *, emit: EmitFn, msg: str, intervalo: float = 10.0) -> Any:
+    """
+    Espera una corrutina larga (OCR, indexación) emitiendo un evento de progreso
+    cada ``intervalo`` segundos para mantener viva la conexión SSE y evitar que la
+    petición se corte por inactividad. El trabajo pesado corre fuera del event loop
+    (asyncio.to_thread), por lo que el loop queda libre para emitir.
+    """
+    task: asyncio.Task[Any] = asyncio.ensure_future(coro)
+    t0 = time.monotonic()
+    while not task.done():
+        done, _ = await asyncio.wait({task}, timeout=intervalo)
+        if not done:
+            await emit({"type": "log", "msg": f"{msg}… ({int(time.monotonic() - t0)}s)"})
+    return task.result()
+
+
 def _merge_unique(items: list[dict], new_items: list[dict], key: str = "titulo") -> None:
     """Añade ítems evitando duplicados por clave (titulo o codigo)."""
     seen = {str(i.get(key, "")).lower() for i in items}
@@ -52,6 +71,184 @@ def _merge_unique(items: list[dict], new_items: list[dict], key: str = "titulo")
         if k and k not in seen:
             items.append(row)
             seen.add(k)
+
+
+def _cobertura_metrics(context: dict[str, Any]) -> dict[str, Any]:
+    """
+    Confianza OBJETIVA del análisis (0-1), calculada sobre señales medibles del
+    contexto extraído — NO auto-reportada por el LLM. Da soporte real al corte
+    de iteraciones del coordinador.
+
+    Señales y pesos:
+      · presencia  (0.35): que existan responsabilidades, leyes y actores (3/3).
+      · vínculo    (0.25): % de responsabilidades con norma relacional (id_norma_ref).
+      · rag        (0.20): score RAG promedio de las responsabilidades (similitud de chunks).
+      · sectorial  (0.20): nº de sectores distintos cubiertos (≥5 = completo).
+    """
+    resp    = context.get("responsabilidades", []) or []
+    leyes   = context.get("leyes", []) or []
+    actores = context.get("actores", []) or []
+
+    n_resp, n_ley, n_act = len(resp), len(leyes), len(actores)
+
+    s_presencia = sum(1 for n in (n_resp, n_ley, n_act) if n > 0) / 3.0
+
+    con_norma = sum(1 for r in resp if (r.get("id_norma_ref") or r.get("referencia_legal")))
+    s_vinculo = (con_norma / n_resp) if n_resp else 0.0
+
+    scores = [float(r.get("confidence_score") or 0.0) for r in resp if r.get("confidence_score") is not None]
+    s_rag = (sum(scores) / len(scores)) if scores else 0.0
+    s_rag = max(0.0, min(1.0, s_rag))
+
+    sectores = {str(r.get("sector", "")).strip().lower() for r in resp if r.get("sector")}
+    s_sector = min(1.0, len(sectores) / 5.0)
+
+    score = round(0.35 * s_presencia + 0.25 * s_vinculo + 0.20 * s_rag + 0.20 * s_sector, 3)
+
+    return {
+        "score":         score,
+        "n_resp":        n_resp,
+        "n_leyes":       n_ley,
+        "n_actores":     n_act,
+        "pct_con_norma": round(s_vinculo, 2),
+        "rag_promedio":  round(s_rag, 2),
+        "sectores":      len(sectores),
+    }
+
+
+# ── Detección de citas legales en el texto del plan (regex, sin depender del LLM) ──
+_TIPO_NORMA_CANON = {
+    "ley": "Ley", "decreto": "Decreto", "decreto ley": "Decreto Ley",
+    "resolucion": "Resolución", "resolución": "Resolución",
+    "acuerdo": "Acuerdo", "ordenanza": "Ordenanza", "circular": "Circular",
+}
+_LEY_CITA_RE = re.compile(
+    r"\b(decreto\s+ley|ley|decreto|resoluci[oó]n|acuerdo|ordenanza|circular)\s+"
+    r"(?:n[o°.º]*\s*)?(\d{1,5})\s+de\s+(\d{4})",
+    re.IGNORECASE,
+)
+_CONPES_CITA_RE = re.compile(r"\bconpes\s+(?:n[o°.º]*\s*)?(\d{3,4})", re.IGNORECASE)
+
+
+def _extraer_leyes_citadas(plan_text: str, *, max_citas: int = 40) -> list[str]:
+    """
+    Extrae citas legales explícitas del texto COMPLETO del plan mediante regex
+    (ej: 'Ley 715 de 2001', 'Decreto 1077 de 2015', 'Acuerdo 05 de 2024', 'CONPES 3918').
+
+    Es independiente del LLM y del top_k de lectura: garantiza que toda norma
+    citada en el documento sea candidata a scraping aunque el agente no la viera.
+    """
+    if not plan_text:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for m in _LEY_CITA_RE.finditer(plan_text):
+        tipo = re.sub(r"\s+", " ", m.group(1).strip().lower())
+        canon = _TIPO_NORMA_CANON.get(tipo, m.group(1).strip().capitalize())
+        codigo = f"{canon} {m.group(2)} de {m.group(3)}"
+        if codigo.lower() not in seen:
+            seen.add(codigo.lower())
+            out.append(codigo)
+            if len(out) >= max_citas:
+                return out
+    for m in _CONPES_CITA_RE.finditer(plan_text):
+        codigo = f"CONPES {m.group(1)}"
+        if codigo.lower() not in seen:
+            seen.add(codigo.lower())
+            out.append(codigo)
+            if len(out) >= max_citas:
+                break
+    return out
+
+
+async def _scrape_leyes_faltantes(
+    *,
+    leyes: list[dict[str, Any]],
+    rag: RagService,
+    settings: Settings,
+    all_collections: list[str],
+    emit: EmitFn,
+    plan_text: str = "",
+) -> int:
+    """
+    Detecta leyes referenciadas en el plan que no están en RAG y las indexa.
+
+    Candidatas = citas explícitas del texto del plan (regex, prioridad) + códigos
+    que identificó el agente de leyes. RAG es la fuente: lo que falte se trae con
+    el scraper para que el reanálisis posterior lo extraiga ya desde RAG.
+
+    Retorna el número de leyes efectivamente indexadas.
+    """
+    max_leyes = settings.analysis_scrape_max_laws
+
+    candidatas: list[str] = []
+    vistas: set[str] = set()
+
+    # 1) Citas explícitas del texto completo del plan (prioridad)
+    for codigo in _extraer_leyes_citadas(plan_text):
+        if codigo.lower() not in vistas:
+            vistas.add(codigo.lower())
+            candidatas.append(codigo)
+
+    # 2) Códigos de leyes identificadas por el agente
+    for ley in leyes:
+        codigo = str(ley.get("codigo", "")).strip()
+        if not codigo or codigo.lower() in vistas:
+            continue
+        vistas.add(codigo.lower())
+        candidatas.append(codigo)
+
+    if not candidatas:
+        return 0
+
+    # Verificar cuáles ya están en RAG haciendo una búsqueda rápida
+    faltantes: list[str] = []
+    for codigo in candidatas[:max_leyes * 3]:  # revisar más candidatas de las que vamos a buscar
+        try:
+            resp = await rag.search(
+                query=codigo,
+                collection_ids=all_collections,
+                top_k=1,
+                score_threshold=0.5,
+            )
+            if not resp.chunks:
+                faltantes.append(codigo)
+        except Exception:
+            faltantes.append(codigo)
+
+        if len(faltantes) >= max_leyes:
+            break
+
+    if not faltantes:
+        return 0
+
+    await emit({
+        "type": "scraping_laws",
+        "msg": f"Buscando {len(faltantes)} ley(es) no encontradas en RAG: {', '.join(faltantes[:3])}{'...' if len(faltantes) > 3 else ''}",
+        "leyes": faltantes,
+    })
+
+    scraper = ScraperService(settings=settings, rag=rag)
+    indexadas = 0
+    for codigo in faltantes:
+        await emit({"type": "scraping_law", "norma": codigo})
+        try:
+            resp = await scraper.buscar_normas([codigo], pais=settings.scraper_default_pais)
+            if resp.resultados and resp.resultados[0].estado == "indexada":
+                indexadas += 1
+                await emit({
+                    "type": "law_indexed",
+                    "codigo": codigo,
+                    "chunks": resp.resultados[0].chunks_indexados,
+                })
+            else:
+                motivo = resp.resultados[0].motivo if resp.resultados else "sin resultado"
+                await emit({"type": "law_not_found", "codigo": codigo, "motivo": motivo})
+        except Exception as exc:
+            logger.warning("[ANALYSIS] scraping on-demand norma=%r error=%s", codigo, exc)
+            await emit({"type": "law_not_found", "codigo": codigo, "motivo": str(exc)})
+
+    return indexadas
 
 
 async def run_document_analysis(
@@ -83,22 +280,30 @@ async def run_document_analysis(
     await rag.ensure_collection()
 
     await emit({"type": "log", "msg": "Extrayendo texto (OCR si aplica)..."})
-    extraccion = await extract_document_from_bytes(raw, filename, settings=settings)
+    extraccion = await _await_con_progreso(
+        extract_document_from_bytes(raw, filename, settings=settings),
+        emit=emit,
+        msg="Extrayendo texto (OCR en proceso)",
+    )
 
     doc_id = derive_document_id_from_filename(filename)
     all_collections = list(dict.fromkeys([collection_id, *normativa_collection_ids]))
 
     await emit({"type": "log", "msg": "Indexando plan en Qdrant..."})
-    ingesta = await rag.ingest_text(
-        collection_id=collection_id,
-        document_id=doc_id,
-        content=extraccion.text,
-        chunk_size=700,
-        chunk_overlap=120,
-        title=titulo_plan or doc_id,
-        source_filename=filename,
-        chunk_strategy=settings.default_chunk_strategy,
-        extraction_method=extraccion.extraction_method.value,
+    ingesta = await _await_con_progreso(
+        rag.ingest_text(
+            collection_id=collection_id,
+            document_id=doc_id,
+            content=extraccion.text,
+            chunk_size=700,
+            chunk_overlap=120,
+            title=titulo_plan or doc_id,
+            source_filename=filename,
+            chunk_strategy=settings.default_chunk_strategy,
+            extraction_method=extraccion.extraction_method.value,
+        ),
+        emit=emit,
+        msg="Indexando plan en Qdrant",
     )
 
     await emit(
@@ -115,7 +320,10 @@ async def run_document_analysis(
         "actores": [],
         "brechas": [],
     }
-    plan_excerpt = extraccion.text[:12_000]
+    # Texto completo para queries dinámicas (sin truncar — solo se usa para extraer frases)
+    plan_text_full = extraccion.text
+    # Excerpt corto como fallback si Qdrant no devuelve chunks del plan
+    plan_excerpt = extraccion.text[:8_000]
     http = rag.http
 
     async def run_agents_batch(extra_query: str | None = None) -> None:
@@ -135,6 +343,10 @@ async def run_document_analysis(
                     entidad=entidad,
                     extra_query=extra,
                     plan_excerpt=plan_excerpt,
+                    plan_collection_id=collection_id,
+                    plan_doc_id=doc_id,
+                    plan_text=plan_text_full,
+                    normativa_collection_ids=normativa_collection_ids,
                 )
                 merge_key = {"leyes": "codigo", "actores": "nombre"}.get(name, "titulo")
                 _merge_unique(context[name], rows, key=merge_key)
@@ -145,8 +357,9 @@ async def run_document_analysis(
 
         await asyncio.gather(*(one(a) for a in base_agents))
 
-        # Brechas: se ejecuta DESPUÉS de los demás para poder cruzar información
-        if profundidad == "profundo":
+        # Brechas: se ejecuta DESPUÉS de los demás para poder cruzar información.
+        # Se corre en TODOS los niveles de profundidad (basico, estandar, profundo).
+        if profundidad in ("basico", "estandar", "profundo"):
             # Construye un resumen del contexto extraído para inyectar al agente de brechas
             resp_lines = "\n".join(
                 f"- {r.get('titulo','')} [{r.get('tipo','P')}] sector={r.get('sector','')} ley={r.get('referencia_legal','')}"
@@ -171,14 +384,80 @@ async def run_document_analysis(
     await emit({"type": "log", "msg": "Ejecutando agentes iniciales..."})
     await run_agents_batch()
 
+    # ── Scraping on-demand de leyes referenciadas pero ausentes en RAG ───────
+    # Se ejecuta siempre (aunque el agente no haya extraído leyes): las citas del
+    # texto completo del plan bastan para detectar normas faltantes en RAG.
+    if settings.analysis_scrape_missing_laws:
+        leyes_scrapeadas = await _scrape_leyes_faltantes(
+            leyes=context["leyes"],
+            rag=rag,
+            settings=settings,
+            all_collections=all_collections,
+            emit=emit,
+            plan_text=plan_text_full,
+        )
+        if leyes_scrapeadas:
+            # Re-ejecutar agente de leyes con el nuevo conocimiento disponible
+            await emit({
+                "type": "log",
+                "msg": f"{leyes_scrapeadas} ley(es) nuevas indexadas — re-ejecutando agente de leyes...",
+            })
+            await emit({"type": "agent_start", "agent": "leyes"})
+            try:
+                nuevas_leyes = await run_agent(
+                    rag=rag,
+                    http=http,
+                    settings=settings,
+                    agent="leyes",
+                    collection_ids=all_collections,
+                    nivel=nivel,
+                    profundidad=profundidad,
+                    entidad=entidad,
+                    extra_query=None,
+                    plan_excerpt=plan_excerpt,
+                    plan_collection_id=collection_id,
+                    plan_doc_id=doc_id,
+                    plan_text=plan_text_full,
+                    normativa_collection_ids=normativa_collection_ids,
+                )
+                _merge_unique(context["leyes"], nuevas_leyes, key="codigo")
+                await emit({"type": "agent_done", "agent": "leyes", "count": len(context["leyes"])})
+            except Exception as exc:
+                logger.warning("Re-ejecución agente leyes falló: %s", exc)
+
     iteraciones = 0
     max_iter = 0 if profundidad == "basico" else (
         max_iteraciones if max_iteraciones is not None else settings.analysis_max_iterations
     )
 
+    umbral = float(settings.analysis_confidence_threshold)
+
     for iteration in range(1, max_iter + 1):
         iteraciones = iteration
-        await emit({"type": "log", "msg": f"Coordinador iteración {iteration}/{max_iter}..."})
+
+        # Confianza OBJETIVA (no auto-reportada por el LLM) sobre el contexto extraído.
+        cobertura = _cobertura_metrics(context)
+
+        # Corte temprano fundamentado: si la cobertura objetiva alcanza el umbral
+        # configurado, se finaliza sin gastar más iteraciones ni llamadas al LLM.
+        if cobertura["score"] >= umbral:
+            await emit(
+                {
+                    "type": "coordinator_decision",
+                    "accion": "finalizar",
+                    "razon": (
+                        f"Cobertura objetiva {cobertura['score']} ≥ umbral {umbral}: "
+                        f"{cobertura['n_resp']} resp, {int(cobertura['pct_con_norma']*100)}% con norma, "
+                        f"score RAG {cobertura['rag_promedio']}, {cobertura['sectores']} sectores"
+                    ),
+                    "confianza": cobertura["score"],
+                    "confianza_objetiva": cobertura["score"],
+                    "metricas": cobertura,
+                }
+            )
+            break
+
+        await emit({"type": "log", "msg": f"Coordinador iteración {iteration}/{max_iter} (cobertura {cobertura['score']})..."})
         decision = await coordinator_decide(
             http=http,
             settings=settings,
@@ -187,6 +466,7 @@ async def run_document_analysis(
             profundidad=profundidad,
             iteration=iteration,
             max_iterations=max_iter,
+            cobertura=cobertura,
         )
         await emit(
             {
@@ -194,6 +474,8 @@ async def run_document_analysis(
                 "accion": decision.get("accion"),
                 "razon": decision.get("razon"),
                 "confianza": decision.get("confianza"),
+                "confianza_objetiva": cobertura["score"],
+                "metricas": cobertura,
             }
         )
         accion = decision.get("accion", "finalizar")
@@ -215,6 +497,7 @@ async def run_document_analysis(
                 context=context,
                 nivel=nivel,
                 profundidad=profundidad,
+                plan_excerpt=plan_excerpt,
             )
             await emit({"type": "agent_done", "agent": "matriz", "count": len(matriz)})
         except Exception as exc:
@@ -334,7 +617,7 @@ async def stream_document_analysis(
     try:
         while True:
             try:
-                event = await asyncio.wait_for(queue.get(), timeout=20.0)
+                event = await asyncio.wait_for(queue.get(), timeout=10.0)
             except asyncio.TimeoutError:
                 yield f"data: {json.dumps({'type': 'heartbeat'}, ensure_ascii=False)}\n\n"
                 continue

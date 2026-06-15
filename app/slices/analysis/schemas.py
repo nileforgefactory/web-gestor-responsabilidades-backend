@@ -53,6 +53,8 @@ class EventoAnalisis(BaseModel):
     accion: str | None = None
     razon: str | None = None
     confianza: float | None = None
+    confianza_objetiva: float | None = None
+    metricas: dict[str, Any] | None = None
     error: str | None = None
     plan_id: str | None = None
     session_id: str | None = None

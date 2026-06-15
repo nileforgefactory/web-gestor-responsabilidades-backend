@@ -15,6 +15,19 @@ def _split_pipe_line(line: str) -> list[str]:
     return [p.strip() for p in line.split("|")]
 
 
+# id relacional en snake_case (ej: ley_715_2001) — sin espacios ni mayúsculas
+_ID_NORMA_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+def slugify_norma(valor: str) -> str:
+    """Normaliza un código/título de norma a id_norma snake_case (ej: 'Ley 715 de 2001' → 'ley_715_2001')."""
+    s = (valor or "").strip().lower()
+    s = s.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u").replace("ñ", "n")
+    s = re.sub(r"\bde\b", " ", s)          # quitar conector "de" (Ley 715 de 2001)
+    s = re.sub(r"[^a-z0-9]+", "_", s)       # todo lo no alfanumérico → _
+    return s.strip("_")
+
+
 def _clean_line(raw: str) -> str:
     """Elimina prefijos de lista (-, *, 1., **) y espacios."""
     line = raw.strip()
@@ -22,6 +35,35 @@ def _clean_line(raw: str) -> str:
     line = re.sub(r"^\d+\.\s*", "", line)          # 1.
     line = re.sub(r"^[-*]\s*", "", line)           # - o *
     return line.strip()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Muralla ontológica: filtro semántico que previene la contaminación cruzada
+# (que un actor o una ley caigan como responsabilidad, etc.). Complementa las
+# prohibiciones de los prompts; aquí el CÓDIGO tiene la última palabra.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Verbo en infinitivo al inicio (termina en -ar/-er/-ir) ⇒ es una ACCIÓN/responsabilidad.
+_INFINITIVO_RE = re.compile(r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:ar|er|ir)\b", re.IGNORECASE)
+
+# Código de norma con número (ej: "Ley 715", "Decreto 1075") ⇒ es una LEY.
+_CONTAM_NORMA_CODIGO_RE = re.compile(
+    r"\b(ley|decreto|resoluci[oó]n|ordenanza|acuerdo|conpes|circular|sentencia)\s+\d",
+    re.IGNORECASE,
+)
+
+# Términos de norma jurídica que NO deben aparecer en el nombre de un actor.
+_CONTAM_LEY_RE = re.compile(
+    r"\b(ley|decreto|resoluci[oó]n|constituci[oó]n|art[íi]culo|arts?|ordenanza|acuerdo|conpes|circular|sentencia)\b",
+    re.IGNORECASE,
+)
+
+# Confirma que una línea es realmente una norma (debe estar en su código o título).
+_ES_NORMA_KEYWORD_RE = re.compile(
+    r"(ley|decreto|resoluci[oó]n|constituci[oó]n|ordenanza|acuerdo|conpes|circular|sentencia"
+    r"|c[oó]digo|directiva|estatuto|pol[ií]tica\s+p[úu]blica|plan\s+nacional)",
+    re.IGNORECASE,
+)
 
 
 def _extract_section(text: str, *keywords: str) -> list[str]:
@@ -79,16 +121,27 @@ def _parse_pipe_responsabilidades(text: str) -> list[dict[str, Any]]:
         if len(parts) < 2:
             continue
         titulo = parts[0].strip()
-        # Descartar líneas que sean nombres de actores o leyes, no acciones
+        # ── Muralla ontológica ──
+        # 1. Descartar si empieza como actor o ley (chequeo anclado al inicio).
         if _TITULO_ES_ACTOR_O_LEY_RE.match(titulo):
             continue
+        # 2. Una responsabilidad es una ACCIÓN: debe iniciar con verbo en infinitivo.
+        if not _INFINITIVO_RE.match(titulo):
+            continue
+        # 3. No puede llevar un código de norma embebido (ej: "...aplicar la Ley 715").
+        if _CONTAM_NORMA_CODIGO_RE.search(titulo):
+            continue
+        # Formato nuevo (7 campos): titulo|descripcion|tipo|sector|id_norma_ref|obligatoriedad|origen_contexto
+        id_norma_ref = (parts[4] if len(parts) > 4 else "") or ""
         out.append({
             "titulo": titulo,
             "descripcion": parts[1] if len(parts) > 1 else "",
             "tipo": parts[2] if len(parts) > 2 else "P",
             "sector": parts[3] if len(parts) > 3 else "",
-            "referencia_legal": parts[4] if len(parts) > 4 else None,
+            "referencia_legal": id_norma_ref or None,
+            "id_norma_ref": id_norma_ref or None,
             "obligatoriedad": parts[5] if len(parts) > 5 else None,
+            "origen_contexto": parts[6] if len(parts) > 6 else None,
         })
     return out
 
@@ -102,14 +155,44 @@ def _parse_pipe_leyes(text: str) -> list[dict[str, Any]]:
         parts = _split_pipe_line(line)
         if len(parts) < 2:
             continue
+        # Formato nuevo (9 campos): id_norma|codigo|titulo|tipo|articulos|relevancia|vigente|jerarquia|origen
+        # Se detecta porque parts[0] es un id snake_case (sin espacios ni mayúsculas).
+        if len(parts) >= 8 and _ID_NORMA_RE.match(parts[0]):
+            id_norma = parts[0]
+            codigo   = parts[1]
+            titulo   = parts[2]
+            tipo     = parts[3] if len(parts) > 3 else "ley"
+            articulos   = parts[4] if len(parts) > 4 else ""
+            relevancia  = parts[5] if len(parts) > 5 else ""
+            vigente     = parts[6] if len(parts) > 6 else "si"
+            jerarquia   = parts[7] if len(parts) > 7 else ""
+            origen      = parts[8] if len(parts) > 8 else None
+        else:
+            # Formato antiguo (7 campos): codigo|titulo|tipo|articulos|relevancia|vigente|jerarquia
+            codigo   = parts[0]
+            titulo   = parts[1]
+            tipo     = parts[2] if len(parts) > 2 else "ley"
+            articulos   = parts[3] if len(parts) > 3 else ""
+            relevancia  = parts[4] if len(parts) > 4 else ""
+            vigente     = parts[5] if len(parts) > 5 else "si"
+            jerarquia   = parts[6] if len(parts) > 6 else ""
+            origen      = None
+            id_norma = slugify_norma(codigo)
+        # ── Muralla ontológica: debe parecer una norma, no un actor ni una acción ──
+        if not (_ES_NORMA_KEYWORD_RE.search(codigo) or _ES_NORMA_KEYWORD_RE.search(titulo)):
+            continue
+        if _INFINITIVO_RE.match(codigo.strip()):
+            continue
         out.append({
-            "codigo": parts[0],
-            "titulo": parts[1],
-            "tipo": parts[2] if len(parts) > 2 else "ley",
-            "articulos": parts[3] if len(parts) > 3 else "",
-            "relevancia": parts[4] if len(parts) > 4 else "",
-            "vigente": parts[5] if len(parts) > 5 else "si",
-            "jerarquia": parts[6] if len(parts) > 6 else "",
+            "id_norma": id_norma,
+            "codigo": codigo,
+            "titulo": titulo,
+            "tipo": tipo,
+            "articulos": articulos,
+            "relevancia": relevancia,
+            "vigente": vigente,
+            "jerarquia": jerarquia,
+            "origen_contexto": origen,
         })
     return out
 
@@ -131,20 +214,28 @@ def _parse_pipe_actores(text: str) -> list[dict[str, Any]]:
         if len(parts) < 2:
             continue
         nombre = parts[0].strip()
-        # Descartar si es una norma, una oración larga, o empieza como frase
+        # ── Muralla ontológica ──
+        # Descartar si es una norma, una oración larga, o empieza como frase.
         if _NOMBRE_ES_NORMA_RE.match(nombre):
             continue
         if _NOMBRE_LARGO_RE.match(nombre):
             continue
         if _NOMBRE_ORACION_RE.match(nombre):
             continue
+        # Un actor es un SUJETO: nunca empieza con verbo en infinitivo (eso es una acción).
+        if _INFINITIVO_RE.match(nombre):
+            continue
+        # El nombre de un actor no contiene términos de norma jurídica.
+        if _CONTAM_LEY_RE.search(nombre):
+            continue
         nivel_raw = (parts[3] if len(parts) > 3 else "").strip().lower()
         out.append({
             "nombre": nombre,
             "sigla": parts[1] if len(parts) > 1 else "",
             "tipo": parts[2] if len(parts) > 2 else "ejecutor",
-            "nivel": nivel_raw if nivel_raw in ("nacional", "departamental", "municipal", "especializado") else "municipal",
+            "nivel": nivel_raw if nivel_raw in ("nacional", "regional", "departamental", "municipal", "especializado") else "municipal",
             "competencias": parts[4] if len(parts) > 4 else "",
+            "origen_contexto": parts[5] if len(parts) > 5 else None,
         })
     return out
 
@@ -158,13 +249,17 @@ def _parse_pipe_brechas(text: str) -> list[dict[str, Any]]:
         parts = _split_pipe_line(line)
         if len(parts) < 2:
             continue
+        # Formato nuevo (7 campos): titulo|descripcion|tipo|severidad|id_norma_base|recomendacion|origen_contexto
+        id_norma_base = (parts[4] if len(parts) > 4 else "") or ""
         out.append({
             "titulo": parts[0],
             "descripcion": parts[1],
             "tipo": parts[2] if len(parts) > 2 else "alerta",
             "severidad": parts[3] if len(parts) > 3 else "media",
-            "norma_base": parts[4] if len(parts) > 4 else None,
+            "norma_base": id_norma_base or None,
+            "id_norma_base": id_norma_base or None,
             "recomendacion": parts[5] if len(parts) > 5 else None,
+            "origen_contexto": parts[6] if len(parts) > 6 else None,
         })
     return out
 
@@ -262,6 +357,7 @@ def _fallback_leyes(text: str) -> list[dict[str, Any]]:
             continue
         seen.add(key)
         out.append({
+            "id_norma": slugify_norma(codigo),
             "codigo": codigo,
             "titulo": codigo,
             "tipo": _guess_tipo_ley(codigo),
@@ -269,6 +365,7 @@ def _fallback_leyes(text: str) -> list[dict[str, Any]]:
             "relevancia": "",
             "vigente": "si",
             "jerarquia": "",
+            "origen_contexto": None,
         })
     return out
 
@@ -299,12 +396,16 @@ def _fallback_actores(text: str) -> list[dict[str, Any]]:
         seen.add(key)
         if _NOMBRE_ES_NORMA_RE.match(nombre):
             continue
+        # Muralla ontológica: un actor no empieza con verbo ni contiene términos de norma.
+        if _INFINITIVO_RE.match(nombre) or _CONTAM_LEY_RE.search(nombre):
+            continue
         out.append({
             "nombre": nombre,
             "sigla": sigla,
             "tipo": "ejecutor",
             "nivel": _guess_nivel(nombre),
             "competencias": "",
+            "origen_contexto": None,
         })
     return out
 
@@ -329,7 +430,13 @@ def _fallback_responsabilidades(text: str) -> list[dict[str, Any]]:
                     candidates.append(cleaned)
 
     for item in candidates:
-        if _TITULO_ES_ACTOR_O_LEY_RE.match(item.strip()):
+        item_s = item.strip()
+        # Muralla ontológica: descartar actores/leyes y exigir verbo en infinitivo.
+        if _TITULO_ES_ACTOR_O_LEY_RE.match(item_s):
+            continue
+        if not _INFINITIVO_RE.match(item_s):
+            continue
+        if _CONTAM_NORMA_CODIGO_RE.search(item_s):
             continue
         key = item.lower()[:40]
         if key in seen:
@@ -341,7 +448,9 @@ def _fallback_responsabilidades(text: str) -> list[dict[str, Any]]:
             "tipo": "P",
             "sector": "",
             "referencia_legal": None,
+            "id_norma_ref": None,
             "obligatoriedad": None,
+            "origen_contexto": None,
         })
     return out
 
@@ -362,7 +471,9 @@ def _fallback_brechas(text: str) -> list[dict[str, Any]]:
             "tipo": "indefinido",
             "severidad": "media",
             "norma_base": None,
+            "id_norma_base": None,
             "recomendacion": None,
+            "origen_contexto": None,
         })
     return out
 
@@ -407,6 +518,58 @@ def parse_matriz_json(text: str) -> list[dict[str, Any]]:
     if not isinstance(data, list):
         return []
     return [row for row in data if isinstance(row, dict)]
+
+
+# Sectores válidos del catálogo DNP-KPT (usados para validar la salida del Agente 5 LLM)
+_VALID_SECTORES = {
+    "salud", "educacion", "agua_y_saneamiento", "vivienda", "transporte",
+    "agropecuario", "ambiental", "justicia_y_seguridad", "inclusion_social",
+    "cultura", "deporte", "tic", "fortalecimiento_institucional", "ordenamiento_territorial",
+}
+
+# Tipos jurídicos de brecha del prompt de matriz → enum de la matriz en BD
+_MATRIZ_BRECHA_MAP = {
+    "riesgo_disciplinario": "critica",
+    "vacio_competencia":    "critica",
+    "duplicidad_ilegal":    "duplicidad",
+    "desarmonizacion":      "indefinido",
+    "ok":                   "ok",
+    "critica":              "critica",
+    "duplicidad":           "duplicidad",
+    "indefinido":           "indefinido",
+}
+
+
+def limpiar_y_validar_matriz(json_raw: str) -> list[dict[str, Any]]:
+    """
+    Sanea la salida del Agente 5 (modo LLM): extrae el array JSON, normaliza
+    ``ley_base`` a snake_case, valida ``sector`` contra el catálogo DNP, mapea
+    ``brecha`` al enum de la matriz y normaliza las celdas territoriales a P/C/S/N.
+
+    Devuelve [] si la respuesta no contiene un array JSON válido (el caller
+    cae al modo determinista).
+    """
+    rows = parse_matriz_json(json_raw)
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if not str(row.get("competencia", "")).strip():
+            continue
+        # actor → clave relacional de cruce (vista "Por Actores"); se conserva como string.
+        row["actor"] = str(row.get("actor", "") or "").strip()
+        # ley_base → snake_case relacional (mismo normalizador que el resto del pipeline)
+        row["ley_base"] = slugify_norma(str(row.get("ley_base", "") or ""))
+        # sector → catálogo DNP, con default seguro
+        sector = str(row.get("sector", "") or "").lower().strip()
+        row["sector"] = sector if sector in _VALID_SECTORES else "fortalecimiento_institucional"
+        # celdas territoriales → P/C/S/N
+        for col in ("nacion", "departamento", "municipio", "especializado"):
+            v = str(row.get(col, "N")).upper()[:1]
+            row[col] = v if v in ("P", "C", "S", "N") else "N"
+        # brecha → enum de la matriz
+        brecha = str(row.get("brecha", "ok")).lower().strip()
+        row["brecha"] = _MATRIZ_BRECHA_MAP.get(brecha, "ok")
+        out.append(row)
+    return out
 
 
 def parse_coordinator_json(text: str) -> dict[str, Any]:

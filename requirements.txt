@@ -1,4 +1,5 @@
 fastapi
+google-generativeai>=0.8
 uvicorn[standard]
 pydantic-settings
 qdrant-client>=1.16,<2
@@ -23,3 +24,5 @@ reportlab>=4.0
 PyJWT>=2.8.0,<3
 bcrypt>=4.1.0,<5
 email-validator>=2.0.0,<3
+# ── IA providers ─────────────────────────────────────────────────────────────
+google-genai>=1.0
