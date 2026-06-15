@@ -29,6 +29,7 @@ from app.slices.conocimiento.router import router as conocimiento_router
 from app.slices.documents.router import router as documents_router
 from app.slices.analysis.router import router as analysis_router
 from app.slices.scraper.router import router as scraper_router
+from app.slices.background_scraper.router import router as background_scraper_router
 
 
 @asynccontextmanager
@@ -50,6 +51,11 @@ async def lifespan(_: FastAPI):
     # ── Redis (opcional — sesiones SSE) ──
     if settings.redis_url:
         init_session_store(settings.redis_url)
+
+    # ── Background scraper de normativa base (auto-start opcional) ──
+    if settings.background_scraper_auto_start:
+        from app.slices.background_scraper import service as bg_service
+        bg_service.start_background_scraper(settings=settings, rag=rag_service)
 
     yield
 
@@ -248,10 +254,21 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
+def _make_serializable(obj: Any) -> Any:
+    """Convierte recursivamente cualquier objeto a tipos JSON-serializables."""
+    if isinstance(obj, dict):
+        return {k: _make_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_make_serializable(i) for i in obj]
+    if isinstance(obj, (str, int, float, bool, type(None))):
+        return obj
+    return str(obj)
+
+
 @app.exception_handler(RequestValidationError)
 async def request_validation_hints(_request: Request, exc: RequestValidationError):
     """Añade pistas en español cuando el cuerpo JSON es inválido (comillas, BOM)."""
-    errs = exc.errors()
+    errs = _make_serializable(exc.errors())
     payload: dict[str, Any] = {"detail": errs}
     if errs and isinstance(errs[0], dict):
         row = errs[0]
@@ -271,7 +288,8 @@ app.include_router(planes_router,       prefix="/api/v1")
 app.include_router(conocimiento_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
 app.include_router(analysis_router, prefix="/api/v1")
-app.include_router(scraper_router, prefix="/api/v1")
+app.include_router(scraper_router,            prefix="/api/v1")
+app.include_router(background_scraper_router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)
