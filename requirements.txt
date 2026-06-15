@@ -24,3 +24,5 @@ reportlab>=4.0
 PyJWT>=2.8.0,<3
 bcrypt>=4.1.0,<5
 email-validator>=2.0.0,<3
+# ── IA providers ─────────────────────────────────────────────────────────────
+google-genai>=1.0
