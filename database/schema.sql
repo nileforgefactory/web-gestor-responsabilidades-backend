@@ -54,6 +54,9 @@ CREATE TABLE plan_actores (
     tipo           ENUM('ejecutor','beneficiario','financiador','coordinador','regulador','aliado','operador','supervisor','tomador_decision','participante','apoyo_tecnico','control','otro') DEFAULT 'otro',
     icono          VARCHAR(10),
     resp_count     INT           DEFAULT 0,
+    nivel          VARCHAR(50),
+    sector         VARCHAR(200),
+    origen_contexto TEXT,
     badge_label    VARCHAR(100),
     badge_variant  VARCHAR(20)   DEFAULT 'blue',
     destacado      BOOLEAN       DEFAULT FALSE,
@@ -71,6 +74,7 @@ CREATE TABLE responsabilidades (
     sector           VARCHAR(200),
     tipo             ENUM('P','C','S','N') DEFAULT 'P',
     referencia_legal VARCHAR(200),
+    origen_contexto  TEXT,
     icono            VARCHAR(10)   DEFAULT '✅',
     FOREIGN KEY (plan_id) REFERENCES planes(id) ON DELETE CASCADE,
     INDEX idx_plan   (plan_id),
@@ -86,6 +90,9 @@ CREATE TABLE brechas (
     tipo             ENUM('critica','duplicidad','indefinido','sin_responsable') DEFAULT 'critica',
     severidad        ENUM('alta','media','baja') DEFAULT 'alta',
     referencia_legal VARCHAR(200),
+    tipo_detallado   VARCHAR(50),
+    recomendacion    TEXT,
+    origen_contexto  TEXT,
     icono            VARCHAR(10)   DEFAULT '🚨',
     FOREIGN KEY (plan_id) REFERENCES planes(id) ON DELETE CASCADE,
     INDEX idx_plan (plan_id)
@@ -97,12 +104,15 @@ CREATE TABLE matriz_competencias (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     plan_id        VARCHAR(36)   NOT NULL,
     competencia    VARCHAR(300)  NOT NULL,
+    actor          VARCHAR(300),
     ley_base       VARCHAR(200),
     nacion         ENUM('P','C','S','N') DEFAULT 'N',
     departamento   ENUM('P','C','S','N') DEFAULT 'N',
     municipio      ENUM('P','C','S','N') DEFAULT 'N',
     especializado  ENUM('P','C','S','N') DEFAULT 'N',
     brecha              ENUM('ok','critica','duplicidad','indefinido') DEFAULT 'ok',
+    sector              VARCHAR(120),
+    origen_contexto     TEXT NULL,
     actores_vinculados  TEXT NULL,
     FOREIGN KEY (plan_id) REFERENCES planes(id) ON DELETE CASCADE,
     INDEX idx_plan (plan_id)
@@ -112,17 +122,20 @@ CREATE TABLE matriz_competencias (
 CREATE TABLE plan_normas (
     id               INT AUTO_INCREMENT PRIMARY KEY,
     plan_id          VARCHAR(36)   NOT NULL,
+    id_norma         VARCHAR(100),                -- FK relacional snake_case (ej: ley_715_2001)
     norma_codigo     VARCHAR(100),
     titulo           VARCHAR(500)  NOT NULL,
     articulos        VARCHAR(200),
     extracto         TEXT,
-    tipo             ENUM('ley','decreto','resolucion','circular','otro') DEFAULT 'ley',
+    origen_contexto  TEXT,
+    tipo             ENUM('ley','decreto','resolucion','circular','politica','conpes','ordenanza','acuerdo','sentencia','otro') DEFAULT 'ley',
     vigente          BOOLEAN       DEFAULT TRUE,
     advertencia      VARCHAR(300),
     relevancia       INT           DEFAULT 80,   -- score 0–100
     FOREIGN KEY (plan_id) REFERENCES planes(id) ON DELETE CASCADE,
     INDEX idx_plan (plan_id),
-    INDEX idx_tipo (tipo)
+    INDEX idx_tipo (tipo),
+    INDEX idx_id_norma (id_norma)
 ) ENGINE=InnoDB;
 
 -- ── BASE DE CONOCIMIENTO RAG ─────────────────────────────────────────────
@@ -138,7 +151,7 @@ CREATE TABLE base_conocimiento (
     archivo_tamano  BIGINT,                      -- bytes
     qdrant_doc_id   VARCHAR(100),
     chunk_count     INT           DEFAULT 0,
-    estado          ENUM('pendiente','procesando','indexado','error') DEFAULT 'pendiente',
+    estado          ENUM('pendiente','procesando','indexado','error','deshabilitado') DEFAULT 'pendiente',
     error_mensaje   TEXT,
     creado_en       DATETIME      DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_estado (estado),
