@@ -14,7 +14,15 @@ from app.core.config import Settings
 from app.slices.ocr.extractor import ExtractionResult
 from app.slices.rag.extract import extract_document_from_bytes
 from app.slices.common.network_errors import NetworkErrorKind, classify_http_error
-from app.slices.scraper.utils import url_looks_like_pdf
+from app.slices.scraper.suin_juriscol import (
+    SuinJuriscolClient,
+    extract_suin_html_text,
+    is_suin_url,
+    path_from_suin_url,
+    scraper_hit_source,
+    url_looks_like_suin_document,
+)
+from app.slices.scraper.utils import url_is_scraper_fetchable, url_looks_like_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +44,7 @@ def _sanitize_pdf_bytes(raw: bytes) -> bytes:
 
 
 def _looks_like_pdf(raw: bytes, content_type: str, path_lower: str, filename: str) -> bool:
-    ct = content_type.lower()
-    if "pdf" in ct:
-        return True
-    if Path(filename).suffix.lower() == ".pdf":
-        return True
-    if path_lower.endswith(_PDF_HINT):
-        return True
+    """True solo si el contenido tiene cabecera PDF real (``%PDF``)."""
     return raw.lstrip()[:8].startswith(_PDF_MAGIC)
 
 
@@ -72,15 +74,32 @@ async def fetch_and_extract(
     settings: Settings,
 ) -> FetchedDocument:
     """
-    Descarga una URL PDF y devuelve texto extraído.
+    Descarga una URL normativa y devuelve texto extraído.
 
-    Solo acepta archivos PDF (URL con indicio de PDF y contenido ``%PDF`` o
-    ``application/pdf``). Rechaza HTML, texto plano y otros formatos.
+    Acepta PDFs y documentos oficiales SUIN-Juriscol (``viewDocument.asp``).
+    Para SUIN intenta primero generación PDF y, si falla, extrae HTML.
 
     Raises:
-        ValueError: enlace no PDF, descarga vacía, PDF ilegible o texto insuficiente.
+        ValueError: enlace no soportado, descarga vacía o texto insuficiente.
         httpx.HTTPError: error de red tras agotar reintentos.
     """
+    if (
+        settings.scraper_suin_enabled
+        and is_suin_url(url, settings=settings)
+        and url_looks_like_suin_document(url, settings=settings)
+        and not url_looks_like_pdf(url)
+    ):
+        logger.info(
+            "[SCRAPER] fase=descarga_suin fuente=%s url=%s",
+            scraper_hit_source(url, settings=settings),
+            url,
+        )
+        return await _fetch_suin_view_document(
+            url,
+            http=http,
+            settings=settings,
+        )
+
     attempts = max(1, settings.scraper_fetch_retries)
     verify = settings.scraper_fetch_verify_ssl
     last_exc: BaseException | None = None
@@ -141,10 +160,14 @@ async def _fetch_and_extract_once(
     verify: bool,
 ) -> FetchedDocument:
     """Un intento de descarga y extracción de PDF."""
-    if not url_looks_like_pdf(url):
-        raise ValueError("Solo se aceptan enlaces a archivos PDF")
+    if not url_is_scraper_fetchable(url):
+        raise ValueError("Solo se aceptan enlaces PDF o documentos oficiales SUIN-Juriscol")
 
-    logger.debug("[SCRAPER] fase=descarga url=%s verify_ssl=%s", url, verify)
+    logger.info(
+        "[SCRAPER] fase=descarga_pdf fuente=pdf url=%s verify_ssl=%s",
+        url,
+        verify,
+    )
     headers = {"User-Agent": settings.scraper_user_agent}
     timeout = httpx.Timeout(settings.scraper_fetch_timeout_sec, connect=20.0)
 
@@ -193,6 +216,11 @@ async def _fetch_and_extract_once(
 
     ct = (content_type or "").lower()
     if not _looks_like_pdf(raw, ct, path_lower, filename):
+        preview = raw.lstrip()[:32]
+        if preview.lower().startswith(b"<!doc") or preview.startswith(b"<"):
+            raise ValueError(
+                "El enlace devolvió HTML en lugar de PDF (enlace roto o protegido)."
+            )
         raise ValueError(
             "El enlace no devolvió un PDF válido (solo se indexan archivos PDF normativos)."
         )
@@ -215,6 +243,15 @@ async def _fetch_and_extract_once(
         raise ValueError(
             f"PDF ilegible o corrupto ({msg}). Se probará otro enlace."
         ) from exc
+    except Exception as exc:
+        logger.warning(
+            "[SCRAPER] pdf_ilegible url=%s motivo=%s",
+            url,
+            str(exc)[:200],
+        )
+        raise ValueError(
+            f"PDF ilegible o corrupto ({exc}). Se probará otro enlace."
+        ) from exc
 
     if result.char_count < settings.scraper_min_extracted_chars:
         raise ValueError("Texto extraído del PDF demasiado corto")
@@ -225,4 +262,36 @@ async def _fetch_and_extract_once(
         filename=result.filename,
         extraction_method=result.extraction_method.value,
         char_count=result.char_count,
+    )
+
+
+async def _fetch_suin_view_document(
+    url: str,
+    *,
+    http: httpx.AsyncClient,
+    settings: Settings,
+) -> FetchedDocument:
+    """Extrae metadatos y texto completo desde la página ``viewDocument`` de SUIN."""
+    path = path_from_suin_url(url)
+    if not path:
+        raise ValueError("URL SUIN sin ruta de documento reconocible")
+
+    client = SuinJuriscolClient(http=http, settings=settings)
+    doc_ref = await client.resolve_document_ref(url)
+    if doc_ref is None:
+        raise ValueError("No se pudo resolver el documento SUIN")
+
+    logger.info("[SCRAPER] fase=descarga_suin_html url=%s path=%s", url, path)
+    html = await client.fetch_view_html(doc_ref)
+    text = extract_suin_html_text(html)
+    if len(text) < settings.scraper_min_extracted_chars:
+        raise ValueError("Texto extraído del documento SUIN demasiado corto")
+
+    filename = f"{path.replace('/', '_')}.html"
+    return FetchedDocument(
+        url=url,
+        text=text,
+        filename=filename,
+        extraction_method="suin_html",
+        char_count=len(text),
     )
