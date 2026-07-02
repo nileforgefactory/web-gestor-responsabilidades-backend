@@ -107,6 +107,7 @@ async def validate_norm_document(
     url: str,
     titulo_resultado: str | None = None,
     pais_esperado: str = "COLOMBIA",
+    extraction_method: str | None = None,
 ) -> ValidationResult:
     """Pide al LLM confirmar si el texto corresponde a la norma pedida."""
     pais_objetivo = resolve_scraper_pais(pais_esperado)
@@ -126,14 +127,27 @@ async def validate_norm_document(
 
     max_chars = settings.scraper_validation_text_max_chars
     muestra = texto[:max_chars]
+    if extraction_method == "suin_html":
+        tipo_fuente = "página HTML oficial de SUIN-Juriscol (viewDocument)"
+        instruccion = (
+            "El contenido proviene del sistema oficial SUIN-Juriscol. "
+            "Debe ser el texto normativo de la norma solicitada."
+        )
+    else:
+        tipo_fuente = "PDF"
+        instruccion = (
+            "El archivo es un PDF. Debe ser el texto oficial de la norma solicitada, "
+            "NO un documento que solo la mencione o analice."
+        )
     user = f"""País objetivo de búsqueda: {pais_objetivo}
 Norma solicitada: {norma_solicitada}
-URL del PDF: {url}
+URL: {url}
 Título en resultados de búsqueda: {titulo_resultado or "(sin título)"}
+Fuente: {tipo_fuente}
 
-El archivo es un PDF. Debe ser el texto oficial de la norma solicitada, NO un documento que solo la mencione o analice.
+{instruccion}
 
-Texto extraído del PDF (extracto):
+Texto extraído (extracto):
 {muestra}
 """.strip()
 
