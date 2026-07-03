@@ -112,7 +112,7 @@ async def create_user(
     )
     db.add(user)
     await db.flush()
-    await db.refresh(user, attribute_names=["role"])
+    await db.refresh(user, attribute_names=["role", "creado_en", "actualizado_en"])
     return user
 
 
