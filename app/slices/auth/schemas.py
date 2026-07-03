@@ -92,6 +92,54 @@ class ChangeRolRequest(BaseModel):
     rol: RolAsignable = Field(..., description="Nuevo rol del usuario")
 
 
+# ── Onboarding SGR ─────────────────────────────────────────────────────────────
+
+EstadoOnboarding = Literal[
+    "credenciales_provisionales",
+    "contrasena_cambiada",
+    "plan_cargando",
+    "plan_analizado",
+]
+
+
+class ChangePasswordRequest(BaseModel):
+    """Cambio obligatorio de contraseña en el primer login (bloqueante)."""
+
+    password_actual: str = Field(..., min_length=1, description="Contraseña actual o provisional")
+    password_nuevo: str = Field(
+        ...,
+        min_length=10,
+        description="Mínimo 10 caracteres; al menos 1 mayúscula, 1 minúscula y 1 número",
+    )
+    password_confirmar: str = Field(..., min_length=10)
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "password_actual": "provisional123",
+                    "password_nuevo": "MiClaveSegura2024",
+                    "password_confirmar": "MiClaveSegura2024",
+                }
+            ]
+        }
+    )
+
+
+class OnboardingStatusResponse(BaseModel):
+    """Estado actual del onboarding del usuario autenticado."""
+
+    estado: EstadoOnboarding
+    password_provisional: bool
+    divipola: str | None = None
+    categoria_municipio: str | None = None
+    nbi: float | None = None
+    icld: float | None = None
+    acceso_completo: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserCreateRequest(BaseModel):
     """Alta de usuario. El superadmin puede asignar cualquier territorio."""
 

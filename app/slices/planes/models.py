@@ -169,6 +169,9 @@ class Brecha(Base):
     recomendacion:    Mapped[str | None] = mapped_column(Text)
     origen_contexto:  Mapped[str | None] = mapped_column(Text)
     icono:            Mapped[str]        = mapped_column(String(10), default="🚨")
+    # ── SGR: clasificación de elegibilidad ──
+    elegibilidad_sgr: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    sector_sgr:       Mapped[str | None]  = mapped_column(String(80), nullable=True)
 
     plan: Mapped[Plane] = relationship(back_populates="brechas")
 
