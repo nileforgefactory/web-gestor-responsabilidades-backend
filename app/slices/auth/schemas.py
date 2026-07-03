@@ -66,11 +66,16 @@ class MeResponse(BaseModel):
     territorio: TerritorioOut
     activo: bool
     creado_en: datetime
+    plan_activo_id: str | None = None
 
     @field_validator("email", mode="before")
     @classmethod
     def _val_email(cls, v: str) -> str:
         return _normalize_email_value(v)
+
+
+class SetPlanActivoRequest(BaseModel):
+    plan_id: str
 
 
 class UserSummary(BaseModel):

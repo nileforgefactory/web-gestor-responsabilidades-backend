@@ -268,6 +268,7 @@ async def run_document_analysis(
     db: AsyncSession | None,
     emit: EmitFn = _noop_emit,
     max_iteraciones: int | None = None,
+    coleccion_id: str | None = None,
 ) -> AnalisisDocumentoResponse:
     """
     Ejecuta el pipeline completo de análisis de un plan de desarrollo.
@@ -555,6 +556,7 @@ async def run_document_analysis(
             qdrant_doc_id=doc_id,
             result=context,
             descripcion=sintesis,
+            coleccion_id=coleccion_id,
         )
         guardado = True
 

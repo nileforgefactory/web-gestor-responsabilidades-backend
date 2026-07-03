@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
@@ -25,6 +26,7 @@ from app.slices.auth.repository import (
     list_all_active,
     list_by_territory,
     list_roles,
+    set_plan_activo,
     soft_delete,
     update_rol,
 )
@@ -35,11 +37,13 @@ from app.slices.auth.schemas import (
     MeResponse,
     OnboardingStatusResponse,
     RoleOut,
+    SetPlanActivoRequest,
     TokenResponse,
     UserCreateRequest,
     UserSummary,
 )
 from app.slices.auth.security import create_access_token, hash_password, verify_password
+from app.slices.planes.models import Plane
 
 router = APIRouter(tags=["auth"])
 
@@ -88,6 +92,31 @@ async def login(
 )
 async def get_me(current_user: CurrentUser) -> MeResponse:
     return to_me_response(current_user)
+
+
+@router.patch(
+    "/me/plan-activo",
+    response_model=MeResponse,
+    summary="Seleccionar plan activo",
+    description="Define el plan sobre el que trabajara el usuario en los flujos SGR (ej. Evaluacion Inversa).",
+    responses=RESPUESTAS_AUTH,
+)
+async def set_plan_activo_endpoint(
+    payload: SetPlanActivoRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> MeResponse:
+    result = await db.execute(select(Plane).where(Plane.id == payload.plan_id))
+    plane = result.scalar_one_or_none()
+    if plane is None:
+        raise HTTPException(status_code=404, detail="Plan no encontrado.")
+
+    if current_user.rol_codigo != "superadmin":
+        if plane.coleccion_id is None or plane.coleccion_id != current_user.coleccion_id:
+            raise HTTPException(status_code=403, detail="No tiene acceso a este plan.")
+
+    usuario_actualizado = await set_plan_activo(db, current_user, payload.plan_id)
+    return to_me_response(usuario_actualizado)
 
 
 @router.get(

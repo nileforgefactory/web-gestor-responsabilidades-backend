@@ -137,3 +137,10 @@ async def soft_delete(db: AsyncSession, user: User) -> User:
     await db.flush()
     await db.refresh(user, attribute_names=["role"])
     return user
+
+
+async def set_plan_activo(db: AsyncSession, user: User, plan_id: str) -> User:
+    user.plan_activo_id = plan_id
+    await db.flush()
+    await db.refresh(user, attribute_names=["role"])
+    return user

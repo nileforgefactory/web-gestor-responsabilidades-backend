@@ -138,6 +138,7 @@ async def analyze_document(
         guardar_mysql=guardar_mysql,
         db=db if guardar_mysql and db is not None else None,
         max_iteraciones=max_iteraciones,
+        coleccion_id=current_user.coleccion_id,
     )
 
     if guardar_mysql and db is None:
@@ -179,6 +180,7 @@ class SaveResultRequest(BaseModel):
     status_code=200,
 )
 async def save_analysis_result(
+    current_user: CurrentUser,
     body: SaveResultRequest,
     db: AsyncSession | None = Depends(get_optional_db),
 ) -> dict:
@@ -196,6 +198,7 @@ async def save_analysis_result(
         archivo_nombre=body.archivo_nombre or "",
         qdrant_doc_id=body.qdrant_doc_id or "",
         result=body.result,
+        coleccion_id=current_user.coleccion_id,
     )
     await db.commit()
     return {"plan_id": plan_id, "guardado": True}

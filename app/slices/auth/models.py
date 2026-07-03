@@ -59,6 +59,10 @@ class User(Base):
         comment="Colección lógica derivada del territorio",
     )
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    plan_activo_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("planes.id", ondelete="SET NULL"), nullable=True,
+        comment="Plan seleccionado como contexto activo para flujos SGR",
+    )
 
     # ── SGR: perfil municipal ──────────────────────────────────────────────
     divipola: Mapped[str | None] = mapped_column(
