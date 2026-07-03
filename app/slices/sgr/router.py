@@ -15,6 +15,8 @@ from app.slices.auth.dependencies import CurrentUser, get_current_user, require_
 from app.slices.sgr.models import ProyectoSGR
 from app.slices.sgr.schemas import (
     EvaluarPlanResponse,
+    EvaluarProyectoRequest,
+    EvaluarProyectoResponse,
     FichaMGAOut,
     GenerarFichaMGARequest,
     ProyectoSGROut,
@@ -22,6 +24,7 @@ from app.slices.sgr.schemas import (
 )
 from app.slices.sgr.service import (
     evaluar_plan_sgr,
+    evaluar_proyecto_service,
     generar_ficha_mga_service,
     verificar_duplicidad_service,
 )
@@ -236,4 +239,56 @@ async def verificar_duplicidad(
         logger.exception("[verificar_duplicidad] Error proyecto=%s", proyecto_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    return response
+
+
+# ── M5: Evaluación Inversa (Modo 2) ───────────────────────────────────────────
+
+@router.post(
+    "/evaluar-proyecto",
+    response_model=EvaluarProyectoResponse,
+    summary="M5 — Modo 2: evaluación inversa de un proyecto SGR existente",
+    description=(
+        "Diagnostica un proyecto de inversión ya formulado (o en formulación) "
+        "evaluándolo en 4 dimensiones:\n\n"
+        "- **Estructura MGA**: coherencia con las 4 secciones de la MGA Web\n"
+        "- **Alineación Plan**: el proyecto resuelve un problema del Plan de Desarrollo\n"
+        "- **Análisis Estratégico**: pertinencia, complementariedad y capacidad institucional\n"
+        "- **Calificación SGR**: elegibilidad normativa y fuente correcta\n\n"
+        "Clasifica el proyecto en uno de 4 cuadrantes:\n"
+        "- `OPTIMO`: alta estructura + alta alineación → proceder\n"
+        "- `BIEN_JUSTIFICADO`: baja estructura + alta alineación → reformular MGA\n"
+        "- `ATRACTIVO_CON_RIESGO`: alta estructura + baja alineación → incluir en Plan primero\n"
+        "- `REFORMULAR`: todo bajo → rediseñar\n\n"
+        "Si el proyecto **no está en el Plan de Desarrollo**, genera automáticamente "
+        "el texto del Acuerdo Municipal para presentar ante el Concejo."
+    ),
+    responses={
+        422: {"description": "texto_proyecto demasiado corto (mínimo 50 caracteres)"},
+        503: {"description": "MySQL no configurado"},
+    },
+)
+async def evaluar_proyecto_endpoint(
+    body: EvaluarProyectoRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+    rag: RagService = Depends(get_rag_service),
+) -> EvaluarProyectoResponse:
+    """Modo 2 — diagnóstico inverso de un proyecto SGR con RAG bidireccional."""
+    settings = get_settings()
+    try:
+        response = await evaluar_proyecto_service(
+            texto_proyecto=body.texto_proyecto,
+            plan_id=body.plan_id,
+            proyecto_id=body.proyecto_id,
+            db=db,
+            rag=rag,
+            http=rag.http,
+            settings=settings,
+            guardar=body.guardar,
+            top_chunks_plan=body.top_chunks_plan,
+        )
+    except Exception as exc:
+        logger.exception("[evaluar_proyecto] Error")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return response

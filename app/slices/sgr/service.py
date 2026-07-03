@@ -14,12 +14,16 @@ from app.core.config import Settings
 from app.slices.planes.models import Brecha, Plane
 from app.slices.sgr.agents.agente_duplicidad import verificar_duplicidad
 from app.slices.sgr.agents.agente_elegibilidad import evaluar_elegibilidad
+from app.slices.sgr.agents.agente_evaluador import evaluar_proyecto
 from app.slices.sgr.agents.agente_mga import generar_ficha_mga
 from app.slices.sgr.models import FichaMGA, ProyectoSGR
 from app.slices.sgr.schemas import (
+    DiagnosticoDimension,
     EvaluarPlanResponse,
+    EvaluarProyectoResponse,
     ProyectoCandidatoResponse,
     SimilarRagItem,
+    SubflujoInclusion,
     VerificarDuplicidadResponse,
 )
 
@@ -541,4 +545,118 @@ async def verificar_duplicidad_service(
         puede_continuar=resultado["puede_continuar"],
         bloqueado=resultado.get("bloqueado", False),
         similares_rag=similares_rag,
+    )
+
+
+# ── M5: Evaluación Inversa (Modo 2) ───────────────────────────────────────────
+
+async def evaluar_proyecto_service(
+    *,
+    texto_proyecto: str,
+    plan_id: str | None,
+    proyecto_id: str | None,
+    db: AsyncSession,
+    rag,
+    http: httpx.AsyncClient,
+    settings: Settings,
+    guardar: bool = True,
+    top_chunks_plan: int = 6,
+) -> EvaluarProyectoResponse:
+    """
+    Modo 2 — Evaluación Inversa: diagnóstica un proyecto existente en 4 dimensiones.
+
+    Flujo:
+    1. Recupera chunks del Plan de Desarrollo vía RAG (si plan_id dado)
+    2. Construye datos del municipio (desde ProyectoSGR si proyecto_id dado)
+    3. Llama al agente_evaluador (RAG bidireccional + LLM)
+    4. Mapea resultado a EvaluarProyectoResponse
+    5. Persiste diagnostico_mga en ProyectoSGR si guardar=True
+    """
+    # ── 1. RAG: chunks del plan ────────────────────────────────────────────
+    plan_chunks: list[str] = []
+    if plan_id:
+        try:
+            resultados_rag = await rag.search(
+                query=texto_proyecto[:400],
+                limit=top_chunks_plan,
+            )
+            plan_chunks = [
+                r.get("text", "") if isinstance(r, dict) else str(r)
+                for r in resultados_rag if r
+            ]
+        except Exception as exc:
+            logger.warning("[evaluar_proyecto_service] RAG search falló: %s", exc)
+
+    # ── 2. Datos del municipio (desde proyecto si existe) ──────────────────
+    datos_municipio: dict = {
+        "divipola": None,
+        "nombre_municipio": None,
+        "categoria_municipio": None,
+        "nbi": None,
+        "icld": None,
+    }
+
+    proyecto_obj: ProyectoSGR | None = None
+    if proyecto_id:
+        result = await db.execute(select(ProyectoSGR).where(ProyectoSGR.id == proyecto_id))
+        proyecto_obj = result.scalar_one_or_none()
+        if proyecto_obj:
+            datos_municipio["divipola"] = proyecto_obj.municipio_codigo
+            datos_municipio["nombre_municipio"] = proyecto_obj.nombre
+
+    # ── 3. Agente evaluador ────────────────────────────────────────────────
+    resultado = await evaluar_proyecto(
+        texto_proyecto=texto_proyecto,
+        plan_chunks=plan_chunks,
+        datos_municipio=datos_municipio,
+        http=http,
+        settings=settings,
+    )
+
+    # ── 4. Persistir diagnóstico ───────────────────────────────────────────
+    if guardar and proyecto_obj:
+        proyecto_obj.diagnostico_mga = {
+            "score_total": resultado["score_total"],
+            "cuadrante": resultado["cuadrante"],
+            "semaforo": resultado["semaforo"],
+            "en_plan": resultado["en_plan"],
+            "estructura_mga": resultado["estructura_mga"]["score"],
+            "alineacion_plan": resultado["alineacion_plan"]["score"],
+            "analisis_estrategico": resultado["analisis_estrategico"]["score"],
+            "calificacion_sgr": resultado["calificacion_sgr"]["score"],
+        }
+        proyecto_obj.en_plan = resultado["en_plan"]
+        proyecto_obj.cuadrante = resultado["cuadrante"].lower().replace("_", "_")
+        await db.commit()
+
+    # ── 5. Construir response ──────────────────────────────────────────────
+    def _dim(key: str) -> DiagnosticoDimension:
+        d = resultado[key]
+        return DiagnosticoDimension(
+            nombre=d["nombre"],
+            score=d["score"],
+            nivel=d["nivel"],
+            hallazgos=d.get("hallazgos", []),
+            recomendaciones=d.get("recomendaciones", []),
+        )
+
+    return EvaluarProyectoResponse(
+        estructura_mga=_dim("estructura_mga"),
+        alineacion_plan=_dim("alineacion_plan"),
+        analisis_estrategico=_dim("analisis_estrategico"),
+        calificacion_sgr=_dim("calificacion_sgr"),
+        score_total=resultado["score_total"],
+        cuadrante=resultado["cuadrante"],
+        cuadrante_label=resultado["cuadrante_label"],
+        semaforo=resultado["semaforo"],
+        semaforo_label=resultado["semaforo_label"],
+        en_plan=resultado["en_plan"],
+        evidencia_plan=resultado.get("evidencia_plan", ""),
+        subflujo_inclusion=SubflujoInclusion(
+            necesita_inclusion=resultado.get("necesita_inclusion_plan", False),
+            checklist_concejo=resultado.get("checklist_concejo", []),
+            texto_acuerdo_sugerido=resultado.get("acuerdo_concejo"),
+        ),
+        proyecto_id=proyecto_id,
+        plan_id=plan_id,
     )

@@ -169,3 +169,78 @@ class VerificarDuplicidadResponse(BaseModel):
     )
     similares_rag: list[SimilarRagItem] = Field(default_factory=list)
     verificado_en: datetime = Field(default_factory=datetime.utcnow)
+
+
+# ── Modo 2: Evaluación Inversa (M5) ───────────────────────────────────────────
+
+class EvaluarProyectoRequest(BaseModel):
+    """Body del POST /sgr/evaluar-proyecto."""
+
+    texto_proyecto: str = Field(
+        ...,
+        min_length=50,
+        description=(
+            "Texto descriptivo del proyecto a evaluar: nombre, objeto, sector, "
+            "justificación, valor estimado, fuente SGR propuesta. "
+            "Puede pegarse el resumen ejecutivo de una ficha existente."
+        ),
+    )
+    plan_id: str | None = Field(
+        None,
+        description="ID del plan de desarrollo para buscar chunks contextuales vía RAG",
+    )
+    proyecto_id: str | None = Field(
+        None,
+        description="Si ya existe como ProyectoSGR, su ID; se persiste el diagnóstico allí",
+    )
+    guardar: bool = Field(True, description="Persistir diagnóstico en ProyectoSGR.diagnostico_mga")
+    top_chunks_plan: int = Field(6, ge=1, le=20)
+
+
+class DiagnosticoDimension(BaseModel):
+    """Resultado de una dimensión del diagnóstico inverso."""
+
+    nombre: str
+    score: float = Field(..., ge=0.0, le=1.0)
+    nivel: Literal["alto", "medio", "bajo"]
+    hallazgos: list[str] = Field(default_factory=list)
+    recomendaciones: list[str] = Field(default_factory=list)
+
+
+class SubflujoInclusion(BaseModel):
+    """Sub-flujo para incluir el proyecto en el Plan de Desarrollo via Concejo."""
+
+    necesita_inclusion: bool
+    checklist_concejo: list[str] = Field(default_factory=list)
+    texto_acuerdo_sugerido: str | None = None
+
+
+class EvaluarProyectoResponse(BaseModel):
+    """Respuesta completa del Modo 2 — Evaluación Inversa."""
+
+    # Dimensiones
+    estructura_mga: DiagnosticoDimension
+    alineacion_plan: DiagnosticoDimension
+    analisis_estrategico: DiagnosticoDimension
+    calificacion_sgr: DiagnosticoDimension
+
+    # Score agregado y clasificación
+    score_total: float = Field(..., ge=0.0, le=1.0)
+    cuadrante: Literal["OPTIMO", "BIEN_JUSTIFICADO", "ATRACTIVO_CON_RIESGO", "REFORMULAR"]
+    cuadrante_label: str
+    semaforo: Literal["verde", "amarillo", "rojo"]
+    semaforo_label: str
+
+    # ¿Está en el plan?
+    en_plan: bool
+    evidencia_plan: str = ""
+
+    # Sub-flujo inclusión
+    subflujo_inclusion: SubflujoInclusion
+
+    # Metadata
+    proyecto_id: str | None = None
+    plan_id: str | None = None
+    procesado_en: datetime = Field(default_factory=datetime.utcnow)
+
+    model_config = ConfigDict(from_attributes=True)
