@@ -12,11 +12,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
 from app.slices.planes.models import Brecha, Plane
+from app.slices.sgr.agents.agente_duplicidad import verificar_duplicidad
 from app.slices.sgr.agents.agente_elegibilidad import evaluar_elegibilidad
-from app.slices.sgr.models import ProyectoSGR
+from app.slices.sgr.agents.agente_mga import generar_ficha_mga
+from app.slices.sgr.models import FichaMGA, ProyectoSGR
 from app.slices.sgr.schemas import (
     EvaluarPlanResponse,
     ProyectoCandidatoResponse,
+    SimilarRagItem,
+    VerificarDuplicidadResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -299,4 +303,242 @@ async def evaluar_plan_sgr(
         total_no_elegibles=no_elegibles,
         proyectos_candidatos=top_candidatos,
         advertencias=advertencias,
+    )
+
+
+# ── M4: Generación Ficha MGA ───────────────────────────────────────────────────
+
+async def generar_ficha_mga_service(
+    *,
+    proyecto_id: str,
+    db: AsyncSession,
+    rag,
+    http: httpx.AsyncClient,
+    settings: Settings,
+    forzar_regeneracion: bool = False,
+    top_chunks_plan: int = 5,
+) -> FichaMGA:
+    """
+    Genera (o regenera) la Ficha MGA de un ProyectoSGR existente.
+
+    Flujo:
+    1. Carga ProyectoSGR y su Brecha origen
+    2. Recupera fragmentos del Plan de Desarrollo vía RAG
+    3. Llama al agente_mga para generar las 4 secciones
+    4. Persiste en la tabla fichas_mga (upsert)
+    5. Actualiza estado del proyecto a 'pre_validado' si campos_completos == 4
+    """
+    from app.slices.rag.service import RagService  # import local para evitar circular
+
+    # ── 1. Cargar proyecto ─────────────────────────────────────────────────
+    result = await db.execute(select(ProyectoSGR).where(ProyectoSGR.id == proyecto_id))
+    proyecto = result.scalar_one_or_none()
+    if proyecto is None:
+        raise ValueError(f"Proyecto '{proyecto_id}' no encontrado")
+
+    # ── 2. Verificar si ya existe ficha y no se fuerza regeneración ─────
+    ficha_existente_result = await db.execute(
+        select(FichaMGA).where(FichaMGA.proyecto_id == proyecto_id)
+    )
+    ficha_existente = ficha_existente_result.scalar_one_or_none()
+    if ficha_existente and not forzar_regeneracion:
+        return ficha_existente
+
+    # ── 3. Cargar brecha origen ────────────────────────────────────────────
+    brecha_dict: dict = {}
+    if proyecto.brecha_id:
+        brecha_result = await db.execute(
+            select(Brecha).where(Brecha.id == proyecto.brecha_id)
+        )
+        brecha_obj = brecha_result.scalar_one_or_none()
+        if brecha_obj:
+            brecha_dict = {
+                "titulo": brecha_obj.titulo,
+                "descripcion": brecha_obj.descripcion or "",
+                "severidad": brecha_obj.severidad,
+                "referencia_legal": brecha_obj.referencia_legal or "",
+                "recomendacion": brecha_obj.recomendacion or "",
+            }
+
+    # ── 4. RAG: fragmentos del plan de desarrollo ──────────────────────────
+    plan_chunks: list[str] = []
+    if proyecto.plan_id:
+        query_text = (
+            f"{proyecto.nombre} {proyecto.sector_sgr or ''} "
+            f"{brecha_dict.get('titulo', '')} inversión pública"
+        ).strip()
+        try:
+            resultados_rag = await rag.search(query=query_text, limit=top_chunks_plan)
+            plan_chunks = [
+                r.get("text", "") if isinstance(r, dict) else str(r)
+                for r in resultados_rag
+                if r
+            ]
+        except Exception as exc:
+            logger.warning("[generar_ficha_mga] RAG search falló: %s", exc)
+
+    # ── 5. Datos municipio desde el proyecto ───────────────────────────────
+    datos_municipio = {
+        "divipola": proyecto.municipio_codigo,
+        "nombre_municipio": proyecto.nombre,
+        "categoria_municipio": None,
+        "nbi": None,
+        "icld": None,
+        "departamento": None,
+        "region_geografica": None,
+    }
+
+    proyecto_dict = {
+        "id": proyecto.id,
+        "nombre": proyecto.nombre,
+        "sector_sgr": proyecto.sector_sgr or "",
+        "tipo_inversion": proyecto.tipo_inversion or "",
+        "fuente_sgr": proyecto.fuente_sgr or "inversion_local",
+        "razon_elegibilidad": proyecto.razon_elegibilidad or "",
+        "score_sgr": proyecto.score_sgr,
+    }
+
+    # ── 6. Llamar al agente MGA ────────────────────────────────────────────
+    resultado_mga = await generar_ficha_mga(
+        proyecto=proyecto_dict,
+        brecha=brecha_dict,
+        datos_municipio=datos_municipio,
+        plan_chunks=plan_chunks,
+        http=http,
+        settings=settings,
+    )
+
+    # ── 7. Persistir ficha (upsert) ────────────────────────────────────────
+    if ficha_existente:
+        ficha_existente.identificacion = resultado_mga.get("identificacion")
+        ficha_existente.preparacion = resultado_mga.get("preparacion")
+        ficha_existente.evaluacion = resultado_mga.get("evaluacion")
+        ficha_existente.programacion = resultado_mga.get("programacion")
+        ficha_existente.campos_completos = resultado_mga.get("campos_completos", 0)
+        ficha_existente.modelo_usado = resultado_mga.get("modelo_usado")
+        ficha = ficha_existente
+    else:
+        ficha = FichaMGA(
+            proyecto_id=proyecto_id,
+            identificacion=resultado_mga.get("identificacion"),
+            preparacion=resultado_mga.get("preparacion"),
+            evaluacion=resultado_mga.get("evaluacion"),
+            programacion=resultado_mga.get("programacion"),
+            campos_completos=resultado_mga.get("campos_completos", 0),
+            modelo_usado=resultado_mga.get("modelo_usado"),
+        )
+        db.add(ficha)
+
+    # ── 8. Avanzar estado del proyecto si la ficha está completa ──────────
+    if resultado_mga.get("campos_completos", 0) == 4:
+        if proyecto.estado in ("borrador", "diagnosticado"):
+            proyecto.estado = "pre_validado"
+
+    await db.commit()
+    await db.refresh(ficha)
+    logger.info(
+        "[generar_ficha_mga] Proyecto %s → %d/4 secciones, estado=%s",
+        proyecto_id,
+        ficha.campos_completos,
+        proyecto.estado,
+    )
+    return ficha
+
+
+# ── M3: Verificación de Duplicidad ────────────────────────────────────────────
+
+async def verificar_duplicidad_service(
+    *,
+    proyecto_id: str,
+    db: AsyncSession,
+    rag,
+    http: httpx.AsyncClient,
+    settings: Settings,
+) -> VerificarDuplicidadResponse:
+    """
+    Verifica duplicidad de un ProyectoSGR contra el Mapa de Inversiones (RAG).
+
+    Flujo:
+    1. Carga ProyectoSGR y su Brecha
+    2. Llama al agente_duplicidad (RAG semántico + LLM)
+    3. Persiste resultado en proyecto.resultado_duplicidad (JSON)
+    4. Si bloqueado → estado = 'borrador' con advertencia en diagnostico_mga
+    5. Devuelve VerificarDuplicidadResponse
+    """
+    import json
+
+    # ── 1. Cargar proyecto ─────────────────────────────────────────────────
+    result = await db.execute(select(ProyectoSGR).where(ProyectoSGR.id == proyecto_id))
+    proyecto = result.scalar_one_or_none()
+    if proyecto is None:
+        raise ValueError(f"Proyecto '{proyecto_id}' no encontrado")
+
+    # ── 2. Cargar brecha ───────────────────────────────────────────────────
+    brecha_dict: dict = {}
+    if proyecto.brecha_id:
+        brecha_result = await db.execute(
+            select(Brecha).where(Brecha.id == proyecto.brecha_id)
+        )
+        brecha_obj = brecha_result.scalar_one_or_none()
+        if brecha_obj:
+            brecha_dict = {
+                "titulo": brecha_obj.titulo,
+                "descripcion": brecha_obj.descripcion or "",
+                "severidad": brecha_obj.severidad,
+            }
+
+    datos_municipio = {
+        "divipola": proyecto.municipio_codigo,
+        "nombre_municipio": proyecto.nombre,
+        "categoria_municipio": None,
+    }
+
+    proyecto_dict = {
+        "id": proyecto.id,
+        "nombre": proyecto.nombre,
+        "sector_sgr": proyecto.sector_sgr or "",
+        "tipo_inversion": proyecto.tipo_inversion or "",
+        "fuente_sgr": proyecto.fuente_sgr or "inversion_local",
+        "municipio_codigo": proyecto.municipio_codigo,
+    }
+
+    # ── 3. Agente de duplicidad ────────────────────────────────────────────
+    resultado = await verificar_duplicidad(
+        proyecto=proyecto_dict,
+        brecha=brecha_dict,
+        datos_municipio=datos_municipio,
+        rag=rag,
+        http=http,
+        settings=settings,
+    )
+
+    # ── 4. Persistir resultado en el proyecto ──────────────────────────────
+    resultado_persistible = {
+        k: v for k, v in resultado.items() if k != "similares_rag"
+    }
+    proyecto.resultado_duplicidad = resultado_persistible
+
+    if resultado.get("bloqueado"):
+        proyecto.diagnostico_mga = {
+            "alerta": "DUPLICIDAD_ALTA",
+            "mensaje": resultado.get("recomendacion", ""),
+        }
+
+    await db.commit()
+
+    similares_rag = [
+        SimilarRagItem(**s) for s in resultado.get("similares_rag", [])
+    ]
+
+    return VerificarDuplicidadResponse(
+        proyecto_id=proyecto_id,
+        nivel=resultado["nivel"],
+        score_similitud=resultado["score_similitud"],
+        proyecto_similar=resultado.get("proyecto_similar"),
+        codigo_bpin=resultado.get("codigo_bpin"),
+        estado_similar=resultado.get("estado_similar"),
+        recomendacion=resultado["recomendacion"],
+        puede_continuar=resultado["puede_continuar"],
+        bloqueado=resultado.get("bloqueado", False),
+        similares_rag=similares_rag,
     )

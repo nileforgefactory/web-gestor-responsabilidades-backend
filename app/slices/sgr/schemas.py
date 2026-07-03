@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -107,6 +107,21 @@ class ProyectoSGROut(BaseModel):
 
 # ── Ficha MGA ─────────────────────────────────────────────────────────────────
 
+class GenerarFichaMGARequest(BaseModel):
+    """Body opcional para POST /sgr/generar-ficha-mga/{proyecto_id}."""
+
+    forzar_regeneracion: bool = Field(
+        False,
+        description="Si true, regenera la ficha aunque ya exista una guardada",
+    )
+    top_chunks_plan: int = Field(
+        5,
+        ge=1,
+        le=20,
+        description="Número de fragmentos del plan a incluir como contexto RAG",
+    )
+
+
 class FichaMGAOut(BaseModel):
     id: int
     proyecto_id: str
@@ -120,3 +135,37 @@ class FichaMGAOut(BaseModel):
     actualizado_en: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ── Verificación de duplicidad ─────────────────────────────────────────────────
+
+NivelDuplicidad = Literal["ALTO", "MEDIO", "BAJO"]
+
+
+class SimilarRagItem(BaseModel):
+    """Ítem del mapa de inversiones encontrado por búsqueda semántica."""
+
+    texto: str
+    nombre_proyecto: str
+    codigo_bpin: str | None
+    municipio: str
+    score_qdrant: float
+
+
+class VerificarDuplicidadResponse(BaseModel):
+    """Respuesta del endpoint POST /sgr/verificar-duplicidad/{proyecto_id}."""
+
+    proyecto_id: str
+    nivel: NivelDuplicidad
+    score_similitud: float = Field(..., ge=0.0, le=1.0)
+    proyecto_similar: str | None
+    codigo_bpin: str | None
+    estado_similar: str | None
+    recomendacion: str
+    puede_continuar: bool
+    bloqueado: bool = Field(
+        False,
+        description="True si nivel ALTO o score ≥ 0.85; impide avanzar en el flujo",
+    )
+    similares_rag: list[SimilarRagItem] = Field(default_factory=list)
+    verificado_en: datetime = Field(default_factory=datetime.utcnow)

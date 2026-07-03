@@ -13,8 +13,18 @@ from app.core.database import get_db
 from app.dependencies import get_rag_service
 from app.slices.auth.dependencies import CurrentUser, get_current_user, require_write
 from app.slices.sgr.models import ProyectoSGR
-from app.slices.sgr.schemas import EvaluarPlanResponse, ProyectoSGROut
-from app.slices.sgr.service import evaluar_plan_sgr
+from app.slices.sgr.schemas import (
+    EvaluarPlanResponse,
+    FichaMGAOut,
+    GenerarFichaMGARequest,
+    ProyectoSGROut,
+    VerificarDuplicidadResponse,
+)
+from app.slices.sgr.service import (
+    evaluar_plan_sgr,
+    generar_ficha_mga_service,
+    verificar_duplicidad_service,
+)
 from app.slices.rag.service import RagService
 
 logger = logging.getLogger(__name__)
@@ -138,3 +148,92 @@ async def detalle_proyecto(
     if proyecto is None:
         raise HTTPException(status_code=404, detail=f"Proyecto '{proyecto_id}' no encontrado")
     return ProyectoSGROut.model_validate(proyecto)
+
+
+# ── M4: Generación de Ficha MGA ───────────────────────────────────────────────
+
+@router.post(
+    "/generar-ficha-mga/{proyecto_id}",
+    response_model=FichaMGAOut,
+    summary="M4 — Generar Ficha MGA Web para un proyecto SGR",
+    description=(
+        "Genera el contenido de las cuatro secciones de la MGA Web "
+        "(Identificación, Preparación, Evaluación, Programación) "
+        "para un proyecto SGR candidato usando el agente LLM + contexto RAG del plan.\n\n"
+        "Si la ficha ya existe, retorna la guardada salvo que `forzar_regeneracion=true`. "
+        "Al completar las 4 secciones, el proyecto avanza a estado `pre_validado`."
+    ),
+    responses={
+        404: {"description": "Proyecto no encontrado"},
+        503: {"description": "MySQL no configurado"},
+    },
+)
+async def generar_ficha_mga(
+    proyecto_id: str,
+    body: GenerarFichaMGARequest = GenerarFichaMGARequest(),
+    db: AsyncSession = Depends(get_db),
+    rag: RagService = Depends(get_rag_service),
+) -> FichaMGAOut:
+    """Genera o recupera la Ficha MGA Web para el proyecto indicado."""
+    settings = get_settings()
+    try:
+        ficha = await generar_ficha_mga_service(
+            proyecto_id=proyecto_id,
+            db=db,
+            rag=rag,
+            http=rag.http,
+            settings=settings,
+            forzar_regeneracion=body.forzar_regeneracion,
+            top_chunks_plan=body.top_chunks_plan,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("[generar_ficha_mga] Error proyecto=%s", proyecto_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return FichaMGAOut.model_validate(ficha)
+
+
+# ── M3: Verificación de Duplicidad ────────────────────────────────────────────
+
+@router.post(
+    "/verificar-duplicidad/{proyecto_id}",
+    response_model=VerificarDuplicidadResponse,
+    summary="M3 — Verificar duplicidad de un proyecto SGR",
+    description=(
+        "Busca proyectos similares en la base de conocimiento (Qdrant) y evalúa "
+        "el nivel de duplicidad vía LLM.\n\n"
+        "**Umbrales:**\n"
+        "- `ALTO` (score ≥ 0.85): bloquea la formulación — proyecto muy similar ya existe.\n"
+        "- `MEDIO` (0.60–0.84): advertencia — revisar diferenciación.\n"
+        "- `BAJO` (< 0.60): sin duplicidad detectada.\n\n"
+        "El resultado queda persistido en `resultado_duplicidad` del proyecto."
+    ),
+    responses={
+        404: {"description": "Proyecto no encontrado"},
+        503: {"description": "MySQL no configurado"},
+    },
+)
+async def verificar_duplicidad(
+    proyecto_id: str,
+    db: AsyncSession = Depends(get_db),
+    rag: RagService = Depends(get_rag_service),
+) -> VerificarDuplicidadResponse:
+    """Verifica duplicidad del proyecto contra el Mapa de Inversiones SGR."""
+    settings = get_settings()
+    try:
+        response = await verificar_duplicidad_service(
+            proyecto_id=proyecto_id,
+            db=db,
+            rag=rag,
+            http=rag.http,
+            settings=settings,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("[verificar_duplicidad] Error proyecto=%s", proyecto_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return response
