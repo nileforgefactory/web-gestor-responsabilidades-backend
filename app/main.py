@@ -30,6 +30,7 @@ from app.slices.documents.router import router as documents_router
 from app.slices.analysis.router import router as analysis_router
 from app.slices.scraper.router import router as scraper_router
 from app.slices.background_scraper.router import router as background_scraper_router
+from app.slices.sgr.router import router as sgr_router
 
 
 @asynccontextmanager
@@ -213,6 +214,10 @@ openapi_tags_docs = [
         "name": "scraper",
         "description": "Búsqueda de normativa en internet, validación IA e indexación en RAG.",
     },
+    {
+        "name": "sgr",
+        "description": "Caja de Herramientas SGR: evaluación de elegibilidad, generación MGA y verificación de duplicidad para municipios Cat. 5 y 6.",
+    },
 ]
 
 app = FastAPI(
@@ -290,6 +295,7 @@ app.include_router(documents_router, prefix="/api/v1")
 app.include_router(analysis_router, prefix="/api/v1")
 app.include_router(scraper_router,            prefix="/api/v1")
 app.include_router(background_scraper_router, prefix="/api/v1")
+app.include_router(sgr_router,               prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)
