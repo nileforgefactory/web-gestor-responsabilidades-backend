@@ -55,9 +55,15 @@ async def persist_analysis(
     qdrant_doc_id: str,
     result: dict[str, Any],
     descripcion: str | None = None,
+    coleccion_id: str | None = None,
 ) -> str:
     """
     Inserta o actualiza plan y entidades hijas desde el resultado del análisis.
+
+    Args:
+        coleccion_id: territorio dueño del plan (usuarios.coleccion_id del usuario
+            autenticado). Solo se estampa al CREAR un plan nuevo; en actualización
+            se conserva el dueño original.
 
     Returns:
         ID del plan persistido (existente o nuevo UUID).
@@ -73,6 +79,7 @@ async def persist_analysis(
             archivo_nombre=archivo_nombre[:500] if archivo_nombre else None,
             qdrant_doc_id=qdrant_doc_id,
             descripcion=descripcion[:2000] if descripcion else None,
+            coleccion_id=coleccion_id,
         )
         db.add(plane)
     else:

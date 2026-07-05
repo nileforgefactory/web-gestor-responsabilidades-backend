@@ -22,7 +22,29 @@ def url_looks_like_pdf(url: str) -> bool:
         return True
     if re.search(r"(?:^|[&?])(?:format|type|download)=[^&]*pdf", query):
         return True
+    if "html2word_generator/convertservice" in path and "justdownload=true" in query:
+        return True
+    if "/ciclopews/ciclope.svc/convertir/pdf/" in path:
+        return True
     return False
+
+
+def url_is_scraper_fetchable(url: str) -> bool:
+    """True si el scraper puede descargar y extraer texto desde la URL."""
+    if url_looks_like_pdf(url):
+        return True
+    try:
+        parsed = urlparse(url.strip())
+    except ValueError:
+        return False
+    host = parsed.netloc.lower()
+    if host.startswith("www."):
+        host = host[4:]
+    if host != "suin-juriscol.gov.co":
+        return False
+    path = parsed.path.lower()
+    query = parsed.query.lower()
+    return "viewdocument.asp" in path and ("ruta=" in query or "id=" in query)
 
 
 def build_search_query(norma: str, *, suffix: str, pais: str | None = None) -> str:

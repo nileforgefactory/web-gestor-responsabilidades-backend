@@ -15,7 +15,7 @@ from app.slices.planes.schemas import (
     PlanUpdate,
 )
 
-from app.slices.auth.dependencies import WriteUser, get_current_user
+from app.slices.auth.dependencies import CurrentUser, WriteUser, get_current_user
 
 router = APIRouter(
     prefix="/planes",
@@ -33,6 +33,7 @@ router = APIRouter(
     responses=RESPUESTAS_MYSQL,
 )
 async def list_planes(
+    current_user: CurrentUser,
     nivel: str | None = Query(
         None,
         description="nacional | departamental | municipal | sectorial",
@@ -45,8 +46,17 @@ async def list_planes(
     limit: int = Query(50, ge=1, le=200, description="Máximo de registros"),
     db: AsyncSession = Depends(get_db),
 ) -> list[PlanSummary]:
-    """Devuelve planes ordenados por fecha de creación descendente."""
-    return await repo.list_planes(db, nivel=nivel, estado=estado, skip=skip, limit=limit)  # type: ignore[return-value]
+    """Devuelve planes ordenados por fecha de creación descendente.
+
+    Filtra por territorio (coleccion_id) del usuario autenticado, salvo
+    superadmin que ve todos los planes sin restricción.
+    """
+    coleccion_id = (
+        None if current_user.rol_codigo == "superadmin" else current_user.coleccion_id
+    )
+    return await repo.list_planes(
+        db, nivel=nivel, estado=estado, coleccion_id=coleccion_id, skip=skip, limit=limit
+    )  # type: ignore[return-value]
 
 
 @router.get(

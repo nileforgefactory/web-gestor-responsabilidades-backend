@@ -29,6 +29,7 @@ class Plane(Base):
     __table_args__ = (
         Index("idx_planes_nivel",  "nivel"),
         Index("idx_planes_estado", "estado"),
+        Index("idx_planes_coleccion", "coleccion_id"),
     )
 
     id:             Mapped[str]      = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -48,6 +49,7 @@ class Plane(Base):
     descripcion:    Mapped[str | None] = mapped_column(Text)
     archivo_nombre: Mapped[str | None] = mapped_column(String(500))
     qdrant_doc_id:  Mapped[str | None] = mapped_column(String(100))
+    coleccion_id:   Mapped[str | None] = mapped_column(String(100), nullable=True, comment="Territorio dueño del plan (igual a usuarios.coleccion_id)")
 
     resp_total:     Mapped[int]   = mapped_column(Integer, default=0)
     leyes_total:    Mapped[int]   = mapped_column(Integer, default=0)
@@ -169,6 +171,9 @@ class Brecha(Base):
     recomendacion:    Mapped[str | None] = mapped_column(Text)
     origen_contexto:  Mapped[str | None] = mapped_column(Text)
     icono:            Mapped[str]        = mapped_column(String(10), default="🚨")
+    # ── SGR: clasificación de elegibilidad ──
+    elegibilidad_sgr: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    sector_sgr:       Mapped[str | None]  = mapped_column(String(80), nullable=True)
 
     plan: Mapped[Plane] = relationship(back_populates="brechas")
 

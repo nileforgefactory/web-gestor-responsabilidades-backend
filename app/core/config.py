@@ -132,6 +132,16 @@ class Settings(BaseSettings):
     scraper_tavily_api_key: str | None = None
     # Normas procesadas en paralelo (asyncio; no saturar Ollama ni búsqueda)
     scraper_max_concurrency: int = 3
+    # SUIN-Juriscol (primera fuente de búsqueda para normas colombianas)
+    scraper_suin_enabled: bool = True
+    scraper_suin_base_url: str = "https://www.suin-juriscol.gov.co"
+    # Búsqueda web ``{norma} suin`` (p. ej. Google/DDG) como vía principal
+    scraper_suin_primary_web_search: bool = True
+    # API Find de SUIN (suele fallar o devolver vacío; solo respaldo)
+    scraper_suin_use_find_api: bool = False
+    scraper_suin_fallback_site_search: bool = True
+    scraper_suin_user: str = "web"
+    scraper_suin_passwd: str = "dA4qd1uUGLLtM6IK+1xiVQ=="
 
     # JWT — autenticación y autorización
     jwt_secret_key: str = "cambiar-en-produccion-usar-secreto-largo-y-aleatorio"

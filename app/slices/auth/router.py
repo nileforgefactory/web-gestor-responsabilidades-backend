@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
@@ -23,19 +26,24 @@ from app.slices.auth.repository import (
     list_all_active,
     list_by_territory,
     list_roles,
+    set_plan_activo,
     soft_delete,
     update_rol,
 )
 from app.slices.auth.schemas import (
+    ChangePasswordRequest,
     ChangeRolRequest,
     LoginRequest,
     MeResponse,
+    OnboardingStatusResponse,
     RoleOut,
+    SetPlanActivoRequest,
     TokenResponse,
     UserCreateRequest,
     UserSummary,
 )
 from app.slices.auth.security import create_access_token, hash_password, verify_password
+from app.slices.planes.models import Plane
 
 router = APIRouter(tags=["auth"])
 
@@ -84,6 +92,31 @@ async def login(
 )
 async def get_me(current_user: CurrentUser) -> MeResponse:
     return to_me_response(current_user)
+
+
+@router.patch(
+    "/me/plan-activo",
+    response_model=MeResponse,
+    summary="Seleccionar plan activo",
+    description="Define el plan sobre el que trabajara el usuario en los flujos SGR (ej. Evaluacion Inversa).",
+    responses=RESPUESTAS_AUTH,
+)
+async def set_plan_activo_endpoint(
+    payload: SetPlanActivoRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> MeResponse:
+    result = await db.execute(select(Plane).where(Plane.id == payload.plan_id))
+    plane = result.scalar_one_or_none()
+    if plane is None:
+        raise HTTPException(status_code=404, detail="Plan no encontrado.")
+
+    if current_user.rol_codigo != "superadmin":
+        if plane.coleccion_id is None or plane.coleccion_id != current_user.coleccion_id:
+            raise HTTPException(status_code=403, detail="No tiene acceso a este plan.")
+
+    usuario_actualizado = await set_plan_activo(db, current_user, payload.plan_id)
+    return to_me_response(usuario_actualizado)
 
 
 @router.get(
@@ -230,3 +263,103 @@ async def delete_user(
     if rol_codigo(target) == "superadmin":
         raise HTTPException(status_code=400, detail="No se puede eliminar un superadmin.")
     await soft_delete(db, target)
+
+
+# ── Onboarding SGR ─────────────────────────────────────────────────────────────
+
+_PW_RE = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$")
+
+
+@router.get(
+    "/onboarding-status",
+    response_model=OnboardingStatusResponse,
+    summary="Estado del onboarding SGR del usuario autenticado",
+    description=(
+        "Devuelve el estado actual del flujo de onboarding bloqueante: "
+        "`credenciales_provisionales → contrasena_cambiada → plan_cargando → plan_analizado`."
+    ),
+    responses=RESPUESTAS_AUTH,
+)
+async def get_onboarding_status(current_user: CurrentUser) -> OnboardingStatusResponse:
+    return OnboardingStatusResponse(
+        estado=current_user.estado_onboarding,  # type: ignore[arg-type]
+        password_provisional=current_user.password_provisional,
+        divipola=current_user.divipola,
+        categoria_municipio=current_user.categoria_municipio,
+        nbi=current_user.nbi,
+        icld=current_user.icld,
+        acceso_completo=current_user.estado_onboarding == "plan_analizado",
+    )
+
+
+@router.post(
+    "/change-password",
+    response_model=OnboardingStatusResponse,
+    summary="Cambiar contraseña (obligatorio en primer login)",
+    description=(
+        "Valida la contraseña actual, aplica las reglas de seguridad y actualiza el estado "
+        "de onboarding a `contrasena_cambiada`. "
+        "La nueva contraseña debe tener mínimo 10 caracteres con al menos "
+        "una mayúscula, una minúscula y un número."
+    ),
+    responses={**RESPUESTAS_AUTH, 400: {"description": "Validación fallida."}},
+)
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> OnboardingStatusResponse:
+    # Verificar contraseña actual
+    if not verify_password(payload.password_actual, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta.")
+
+    # No puede ser igual a la provisional
+    if verify_password(payload.password_nuevo, current_user.password_hash):
+        raise HTTPException(
+            status_code=400,
+            detail="La nueva contraseña no puede ser igual a la contraseña actual.",
+        )
+
+    # Confirmación
+    if payload.password_nuevo != payload.password_confirmar:
+        raise HTTPException(
+            status_code=400, detail="Las contraseñas nuevas no coinciden."
+        )
+
+    # Regla de complejidad
+    if not _PW_RE.match(payload.password_nuevo):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "La contraseña debe tener mínimo 10 caracteres, "
+                "al menos una mayúscula, una minúscula y un número."
+            ),
+        )
+
+    # No puede contener el nombre del municipio ni el DIVIPOLA
+    pw_lower = payload.password_nuevo.lower()
+    if current_user.divipola and current_user.divipola in payload.password_nuevo:
+        raise HTTPException(
+            status_code=400,
+            detail="La contraseña no puede contener el código DIVIPOLA del municipio.",
+        )
+
+    # Actualizar en DB
+    current_user.password_hash = hash_password(payload.password_nuevo)
+    current_user.password_provisional = False
+    if current_user.estado_onboarding == "credenciales_provisionales":
+        current_user.estado_onboarding = "contrasena_cambiada"  # type: ignore[assignment]
+
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+
+    return OnboardingStatusResponse(
+        estado=current_user.estado_onboarding,  # type: ignore[arg-type]
+        password_provisional=current_user.password_provisional,
+        divipola=current_user.divipola,
+        categoria_municipio=current_user.categoria_municipio,
+        nbi=current_user.nbi,
+        icld=current_user.icld,
+        acceso_completo=current_user.estado_onboarding == "plan_analizado",
+    )
