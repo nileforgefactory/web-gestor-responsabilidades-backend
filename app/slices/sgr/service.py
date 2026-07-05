@@ -613,7 +613,21 @@ async def evaluar_proyecto_service(
         settings=settings,
     )
 
-    # ── 4. Persistir diagnóstico ───────────────────────────────────────────
+    # ── 4. Crear proyecto si no existe (evaluación en frío con plan_id) ────
+    if guardar and proyecto_obj is None and plan_id:
+        proyecto_obj = ProyectoSGR(
+            plan_id=plan_id,
+            municipio_codigo=datos_municipio.get("divipola") or "00000000",
+            nombre=texto_proyecto[:120],
+            sector_sgr="sin_clasificar",
+            estado="borrador",
+            modo="evaluacion_inversa",
+        )
+        db.add(proyecto_obj)
+        await db.flush()
+    # Si no hay plan_id ni proyecto_id, no hay FK válida para persistir: se omite guardado.
+
+    # ── 5. Persistir diagnóstico ───────────────────────────────────────────
     if guardar and proyecto_obj:
         proyecto_obj.diagnostico_mga = {
             "score_total": resultado["score_total"],
@@ -629,7 +643,7 @@ async def evaluar_proyecto_service(
         proyecto_obj.cuadrante = resultado["cuadrante"].lower().replace("_", "_")
         await db.commit()
 
-    # ── 5. Construir response ──────────────────────────────────────────────
+    # ── 6. Construir response ──────────────────────────────────────────────
     def _dim(key: str) -> DiagnosticoDimension:
         d = resultado[key]
         return DiagnosticoDimension(
@@ -657,6 +671,6 @@ async def evaluar_proyecto_service(
             checklist_concejo=resultado.get("checklist_concejo", []),
             texto_acuerdo_sugerido=resultado.get("acuerdo_concejo"),
         ),
-        proyecto_id=proyecto_id,
+        proyecto_id=(proyecto_obj.id if proyecto_obj else proyecto_id),
         plan_id=plan_id,
     )

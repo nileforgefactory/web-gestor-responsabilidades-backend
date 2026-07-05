@@ -126,7 +126,8 @@ async def listar_proyectos(
         stmt = stmt.where(ProyectoSGR.modo == modo)
     if estado:
         stmt = stmt.where(ProyectoSGR.estado == estado)
-    stmt = stmt.order_by(ProyectoSGR.score_sgr.desc().nullslast())
+    # MySQL no soporta NULLS LAST; en orden DESC ya ubica los NULL al final por defecto.
+    stmt = stmt.order_by(ProyectoSGR.score_sgr.desc())
 
     result = await db.execute(stmt)
     proyectos = result.scalars().all()
