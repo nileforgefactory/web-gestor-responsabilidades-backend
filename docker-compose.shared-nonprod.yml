@@ -1,0 +1,98 @@
+# Stack compartido para entornos NO productivos (QA + Develop).
+# Se despliega UNA sola vez en Coolify. Los recursos api-nonprod de QA y
+# Develop se conectan a esta misma red externa (shared-nonprod-net) y usan
+# bases/colecciones separadas dentro de estos servicios compartidos.
+#
+# Tras el primer deploy, crear la 2da base de datos manualmente:
+#   docker exec -it shared-nonprod-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" \
+#     -e "CREATE DATABASE IF NOT EXISTS gestor_dev CHARACTER SET utf8mb4; \
+#         GRANT ALL PRIVILEGES ON gestor_dev.* TO 'gestor'@'%'; FLUSH PRIVILEGES;"
+name: gestor-shared-nonprod
+
+networks:
+  default:
+    name: shared-nonprod-net
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    container_name: shared-nonprod-redis
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mysql:
+    image: mysql:8.0
+    container_name: shared-nonprod-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD requerido}
+      MYSQL_DATABASE: gestor_qa
+      MYSQL_USER: gestor
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD requerido}
+    expose:
+      - "3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: shared-nonprod-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    expose:
+      - "11434"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 40
+      start_period: 30s
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: shared-nonprod-qdrant
+    expose:
+      - "6333"
+      - "6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  ollama-pull:
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama-pull
+    image: gestor-backend-ollama-pull:local
+    container_name: shared-nonprod-ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      EMBED_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-llama3.1:8b}
+      BOOTSTRAP_MAX_WAIT_SEC: "600"
+    restart: "no"
+
+volumes:
+  mysql_data:
+  redis_data:
+  qdrant_data:
+  ollama_data:

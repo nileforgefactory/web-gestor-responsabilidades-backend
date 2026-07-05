@@ -1,0 +1,83 @@
+# Contenedor "api" para QA o Develop — se despliega DOS VECES en Coolify
+# (una vez con branch=staging, otra con branch=develop), cada una con sus
+# propias variables de entorno (APP_ENV_NAME, MYSQL_DATABASE, REDIS_DB_INDEX,
+# QDRANT_COLLECTION) apuntando al stack compartido docker-compose.shared-nonprod.yml.
+#
+# Requiere que la red externa "shared-nonprod-net" ya exista (se crea al
+# desplegar docker-compose.shared-nonprod.yml una sola vez primero).
+name: gestor-api-nonprod
+
+networks:
+  default:
+    name: shared-nonprod-net
+    external: true
+
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: ${APP_ENV_NAME:-staging}
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      QDRANT_URL: http://shared-nonprod-qdrant:6333
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-rag_chunks_qa}
+      VECTOR_SIZE: "768"
+      USE_OLLAMA: "true"
+      OLLAMA_BASE_URL: http://shared-nonprod-ollama:11434
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-llama3.1:8b}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4o-mini}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_CHAT_MODEL: ${OPENROUTER_CHAT_MODEL:-google/gemini-3.5-flash}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_CHAT_MODEL: ${GEMINI_CHAT_MODEL:-gemini-2.0-flash}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+      INGEST_EMBED_CONCURRENCY: "4"
+      RAG_DEFAULT_SCORE_THRESHOLD: "0.25"
+      MYSQL_URL: mysql+aiomysql://gestor:${MYSQL_PASSWORD:?MYSQL_PASSWORD requerido}@shared-nonprod-mysql:3306/${MYSQL_DATABASE:-gestor_qa}?charset=utf8mb4
+      MYSQL_POOL_PRE_PING: "false"
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      OLLAMA_LOG_LLM_BODIES: ${OLLAMA_LOG_LLM_BODIES:-false}
+      SCRAPER_MAX_CONCURRENCY: ${SCRAPER_MAX_CONCURRENCY:-3}
+      SCRAPER_DEFAULT_PAIS: ${SCRAPER_DEFAULT_PAIS:-COLOMBIA}
+      REDIS_URL: redis://shared-nonprod-redis:6379/${REDIS_DB_INDEX:-1}
+      OCR_ENABLED: "true"
+      OCR_LANG: spa
+      OCR_DPI: "200"
+      OCR_MIN_CHARS_PER_PAGE: "50"
+      OCR_BATCH_PAGES: ${OCR_BATCH_PAGES:-4}
+      BULK_MAX_FILES: "50"
+      BULK_MAX_FILE_BYTES: "52428800"
+      BULK_INGEST_CONCURRENCY: "2"
+      DEFAULT_CHUNK_STRATEGY: "adaptive"
+      ANALYSIS_MAX_ITERATIONS: "3"
+      ANALYSIS_PLAN_TOP_K: ${ANALYSIS_PLAN_TOP_K:-20}
+      ANALYSIS_NORMATIVA_TOP_K: ${ANALYSIS_NORMATIVA_TOP_K:-8}
+      ANALYSIS_PLAN_BLOB_CHARS: ${ANALYSIS_PLAN_BLOB_CHARS:-16000}
+      ANALYSIS_NORMATIVA_BLOB_CHARS: ${ANALYSIS_NORMATIVA_BLOB_CHARS:-4000}
+      ANALYSIS_MATRIZ_MODE: ${ANALYSIS_MATRIZ_MODE:-deterministic}
+      ANALYSIS_SCRAPE_MISSING_LAWS: ${ANALYSIS_SCRAPE_MISSING_LAWS:-true}
+      ANALYSIS_SCRAPE_MAX_LAWS: ${ANALYSIS_SCRAPE_MAX_LAWS:-5}
+      BACKGROUND_SCRAPER_DURATION_MIN: ${BACKGROUND_SCRAPER_DURATION_MIN:-30}
+      BACKGROUND_SCRAPER_AUTO_START: ${BACKGROUND_SCRAPER_AUTO_START:-false}
+      BACKGROUND_SCRAPER_CONCURRENCY: ${BACKGROUND_SCRAPER_CONCURRENCY:-2}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY requerido}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-1440}
+      AUTH_BOOTSTRAP_ADMIN_EMAIL: ${AUTH_BOOTSTRAP_ADMIN_EMAIL:?AUTH_BOOTSTRAP_ADMIN_EMAIL requerido}
+      AUTH_BOOTSTRAP_ADMIN_PASSWORD: ${AUTH_BOOTSTRAP_ADMIN_PASSWORD:?AUTH_BOOTSTRAP_ADMIN_PASSWORD requerido}
+      AUTH_BOOTSTRAP_ADMIN_NOMBRE: ${AUTH_BOOTSTRAP_ADMIN_NOMBRE:-Super Administrador}
+      AUTH_BOOTSTRAP_ADMIN_TERRITORIO: ${AUTH_BOOTSTRAP_ADMIN_TERRITORIO:-["COLOMBIA", null, null]}
+    ports:
+      - "8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8000/health/ready"]
+      interval: 20s
+      timeout: 15s
+      retries: 8
+      start_period: 120s
