@@ -4,16 +4,20 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.dependencies import get_rag_service
-from app.slices.auth.dependencies import CurrentUser, get_current_user, require_write
-from app.slices.sgr.models import ProyectoSGR
+from app.slices.auth.dependencies import CurrentUser, get_current_user
+from app.slices.sgr.export_mga_docx import generar_docx_ficha
+from app.slices.sgr.models import FichaMGA, ProyectoSGR
 from app.slices.sgr.schemas import (
+    ActualizarFichaMGARequest,
+    ChatFichaMGARequest,
+    ChatFichaMGAResponse,
     EvaluarPlanResponse,
     EvaluarProyectoRequest,
     EvaluarProyectoResponse,
@@ -23,6 +27,8 @@ from app.slices.sgr.schemas import (
     VerificarDuplicidadResponse,
 )
 from app.slices.sgr.service import (
+    actualizar_ficha_mga_service,
+    chat_ficha_mga_service,
     evaluar_plan_sgr,
     evaluar_proyecto_service,
     generar_ficha_mga_service,
@@ -197,6 +203,117 @@ async def generar_ficha_mga(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return FichaMGAOut.model_validate(ficha)
+
+
+# ── M4b: Edición manual, chat conversacional y exportación Word ───────────────
+
+@router.patch(
+    "/ficha-mga/{proyecto_id}",
+    response_model=FichaMGAOut,
+    summary="Editar manualmente la Ficha MGA",
+    description=(
+        "Actualiza manualmente una o más secciones de la Ficha MGA "
+        "(identificación, preparación, evaluación, programación). "
+        "Solo se modifican los campos enviados en el body; los omitidos "
+        "conservan su valor actual. Recalcula `campos_completos`."
+    ),
+    responses={404: {"description": "Ficha MGA no encontrada para el proyecto"}},
+)
+async def actualizar_ficha_mga_endpoint(
+    proyecto_id: str,
+    payload: ActualizarFichaMGARequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> FichaMGAOut:
+    """Edita manualmente las secciones de la Ficha MGA de un proyecto."""
+    try:
+        return await actualizar_ficha_mga_service(
+            proyecto_id=proyecto_id,
+            payload=payload,
+            db=db,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("[actualizar_ficha_mga] Error proyecto=%s", proyecto_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post(
+    "/ficha-mga/{proyecto_id}/chat",
+    response_model=ChatFichaMGAResponse,
+    summary="Chat de edición conversacional sobre la Ficha MGA",
+    description=(
+        "Permite pedirle a la IA modificaciones conversacionales sobre la Ficha MGA "
+        "completa (ej. 'amplía el cronograma', 'hazlo más específico en la población "
+        "objetivo'). La IA decide qué sección(es) reescribir y devuelve una respuesta "
+        "conversacional confirmando el cambio. El turno de usuario y de asistente "
+        "quedan persistidos en `chat_historial`."
+    ),
+    responses={404: {"description": "Ficha MGA no encontrada para el proyecto"}},
+)
+async def chat_ficha_mga_endpoint(
+    proyecto_id: str,
+    payload: ChatFichaMGARequest,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+    rag: RagService = Depends(get_rag_service),
+) -> ChatFichaMGAResponse:
+    """Chat conversacional para editar la Ficha MGA vía IA."""
+    settings = get_settings()
+    try:
+        return await chat_ficha_mga_service(
+            proyecto_id=proyecto_id,
+            mensaje=payload.mensaje,
+            db=db,
+            http=rag.http,
+            settings=settings,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("[chat_ficha_mga] Error proyecto=%s", proyecto_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/ficha-mga/{proyecto_id}/export-docx",
+    summary="Descargar la Ficha MGA como documento Word",
+    description=(
+        "Genera y descarga un documento Word (.docx) con las cuatro secciones "
+        "de la Ficha MGA del proyecto indicado."
+    ),
+    responses={404: {"description": "Ficha MGA no encontrada para el proyecto"}},
+)
+async def exportar_ficha_mga_docx(
+    proyecto_id: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    """Exporta la Ficha MGA del proyecto como documento Word descargable."""
+    result = await db.execute(select(ProyectoSGR).where(ProyectoSGR.id == proyecto_id))
+    proyecto = result.scalar_one_or_none()
+    if proyecto is None:
+        raise HTTPException(status_code=404, detail=f"Proyecto '{proyecto_id}' no encontrado")
+
+    ficha_result = await db.execute(select(FichaMGA).where(FichaMGA.proyecto_id == proyecto_id))
+    ficha = ficha_result.scalar_one_or_none()
+    if ficha is None:
+        raise HTTPException(
+            status_code=404, detail=f"Ficha MGA para proyecto '{proyecto_id}' no encontrada"
+        )
+
+    try:
+        contenido = generar_docx_ficha(ficha=ficha, proyecto_nombre=proyecto.nombre)
+    except Exception as exc:
+        logger.exception("[exportar_ficha_mga_docx] Error proyecto=%s", proyecto_id)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return Response(
+        content=contenido,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="ficha_mga_{proyecto_id}.docx"'},
+    )
 
 
 # ── M3: Verificación de Duplicidad ────────────────────────────────────────────

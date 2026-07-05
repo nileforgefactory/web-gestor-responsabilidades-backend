@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # ── Elegibilidad ───────────────────────────────────────────────────────────────
@@ -133,8 +133,37 @@ class FichaMGAOut(BaseModel):
     modelo_usado: str | None
     generado_en: datetime
     actualizado_en: datetime
+    chat_historial: list[dict] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("chat_historial", mode="before")
+    @classmethod
+    def _chat_historial_none_a_lista(cls, v: list[dict] | None) -> list[dict]:
+        """La columna JSON en BD es NULLABLE; normaliza NULL a lista vacía."""
+        return v or []
+
+
+class ActualizarFichaMGARequest(BaseModel):
+    """Body del PATCH /sgr/ficha-mga/{proyecto_id} — edición manual de secciones."""
+
+    identificacion: str | None = None
+    preparacion: str | None = None
+    evaluacion: str | None = None
+    programacion: str | None = None
+
+
+class ChatFichaMGARequest(BaseModel):
+    """Body del POST /sgr/ficha-mga/{proyecto_id}/chat."""
+
+    mensaje: str = Field(..., min_length=2, max_length=2000)
+
+
+class ChatFichaMGAResponse(BaseModel):
+    """Respuesta del chat de edición conversacional sobre la Ficha MGA."""
+
+    respuesta_ia: str
+    ficha: FichaMGAOut
 
 
 # ── Verificación de duplicidad ─────────────────────────────────────────────────

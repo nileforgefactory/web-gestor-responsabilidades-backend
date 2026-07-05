@@ -218,4 +218,8 @@ class FichaMGA(Base):
         DateTime, server_default=func.now(), onupdate=func.now()
     )
 
+    chat_historial: Mapped[list | None] = mapped_column(
+        JSON, nullable=True, comment="Historial de chat de edición: lista de {role, texto, timestamp}"
+    )
+
     proyecto: Mapped[ProyectoSGR] = relationship("ProyectoSGR", back_populates="ficha_mga")

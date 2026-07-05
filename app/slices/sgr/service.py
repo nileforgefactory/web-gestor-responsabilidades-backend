@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime
 from uuid import uuid4
 
 import httpx
@@ -12,15 +13,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
 from app.slices.planes.models import Brecha, Plane
+from app.slices.sgr.agents.agente_chat_mga import chat_editar_ficha
 from app.slices.sgr.agents.agente_duplicidad import verificar_duplicidad
 from app.slices.sgr.agents.agente_elegibilidad import evaluar_elegibilidad
 from app.slices.sgr.agents.agente_evaluador import evaluar_proyecto
 from app.slices.sgr.agents.agente_mga import generar_ficha_mga
 from app.slices.sgr.models import FichaMGA, ProyectoSGR
 from app.slices.sgr.schemas import (
+    ActualizarFichaMGARequest,
+    ChatFichaMGAResponse,
     DiagnosticoDimension,
     EvaluarPlanResponse,
     EvaluarProyectoResponse,
+    FichaMGAOut,
     ProyectoCandidatoResponse,
     SimilarRagItem,
     SubflujoInclusion,
@@ -447,6 +452,125 @@ async def generar_ficha_mga_service(
         proyecto.estado,
     )
     return ficha
+
+
+# ── M4b: Edición manual y chat conversacional de la Ficha MGA ─────────────────
+
+async def actualizar_ficha_mga_service(
+    *,
+    proyecto_id: str,
+    payload: ActualizarFichaMGARequest,
+    db: AsyncSession,
+) -> FichaMGAOut:
+    """
+    Edición manual de la Ficha MGA: solo actualiza los campos no-None del payload.
+
+    Recalcula campos_completos tras la actualización.
+    """
+    result = await db.execute(select(FichaMGA).where(FichaMGA.proyecto_id == proyecto_id))
+    ficha = result.scalar_one_or_none()
+    if ficha is None:
+        raise ValueError(f"Ficha MGA para proyecto '{proyecto_id}' no encontrada")
+
+    if payload.identificacion is not None:
+        ficha.identificacion = payload.identificacion
+    if payload.preparacion is not None:
+        ficha.preparacion = payload.preparacion
+    if payload.evaluacion is not None:
+        ficha.evaluacion = payload.evaluacion
+    if payload.programacion is not None:
+        ficha.programacion = payload.programacion
+
+    ficha.campos_completos = sum(
+        1 for v in (ficha.identificacion, ficha.preparacion, ficha.evaluacion, ficha.programacion) if v
+    )
+
+    await db.commit()
+    await db.refresh(ficha)
+    logger.info(
+        "[actualizar_ficha_mga] Proyecto %s → %d/4 secciones tras edición manual",
+        proyecto_id,
+        ficha.campos_completos,
+    )
+    return FichaMGAOut.model_validate(ficha)
+
+
+async def chat_ficha_mga_service(
+    *,
+    proyecto_id: str,
+    mensaje: str,
+    db: AsyncSession,
+    http: httpx.AsyncClient,
+    settings: Settings,
+) -> ChatFichaMGAResponse:
+    """
+    Chat de edición conversacional sobre la Ficha MGA.
+
+    Llama al agente_chat_mga, aplica los cambios devueltos a la ficha y persiste
+    el turno de usuario y el de asistente en chat_historial.
+    """
+    result = await db.execute(select(FichaMGA).where(FichaMGA.proyecto_id == proyecto_id))
+    ficha = result.scalar_one_or_none()
+    if ficha is None:
+        raise ValueError(f"Ficha MGA para proyecto '{proyecto_id}' no encontrada")
+
+    ficha_actual = {
+        "identificacion": ficha.identificacion,
+        "preparacion": ficha.preparacion,
+        "evaluacion": ficha.evaluacion,
+        "programacion": ficha.programacion,
+    }
+    historial = ficha.chat_historial or []
+
+    resultado = await chat_editar_ficha(
+        ficha_actual=ficha_actual,
+        mensaje_usuario=mensaje,
+        historial=historial,
+        http=http,
+        settings=settings,
+    )
+
+    cambios = resultado.get("cambios", {})
+    if "identificacion" in cambios:
+        ficha.identificacion = cambios["identificacion"]
+    if "preparacion" in cambios:
+        ficha.preparacion = cambios["preparacion"]
+    if "evaluacion" in cambios:
+        ficha.evaluacion = cambios["evaluacion"]
+    if "programacion" in cambios:
+        ficha.programacion = cambios["programacion"]
+
+    ficha.campos_completos = sum(
+        1 for v in (ficha.identificacion, ficha.preparacion, ficha.evaluacion, ficha.programacion) if v
+    )
+
+    nueva_historial = list(historial)
+    nueva_historial.append(
+        {"role": "usuario", "texto": mensaje, "timestamp": datetime.utcnow().isoformat()}
+    )
+    nueva_historial.append(
+        {
+            "role": "asistente",
+            "texto": resultado["respuesta_ia"],
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
+    # chat_historial es una columna JSON — reasignar la lista completa para que
+    # SQLAlchemy detecte el cambio (no trackea mutación in-place por defecto).
+    ficha.chat_historial = nueva_historial
+
+    await db.commit()
+    await db.refresh(ficha)
+    logger.info(
+        "[chat_ficha_mga] Proyecto %s → %d/4 secciones, %d cambios aplicados",
+        proyecto_id,
+        ficha.campos_completos,
+        len(cambios),
+    )
+    return ChatFichaMGAResponse(
+        respuesta_ia=resultado["respuesta_ia"],
+        ficha=FichaMGAOut.model_validate(ficha),
+    )
 
 
 # ── M3: Verificación de Duplicidad ────────────────────────────────────────────
