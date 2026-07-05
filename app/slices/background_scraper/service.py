@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.core.config import Settings
+from app.slices.background_scraper.matching import claves_posibles
 from app.slices.background_scraper.normas_base import get_normas_by_priority
 from app.slices.background_scraper.schemas import BackgroundScraperEstado
 from app.slices.rag.service import RagService
@@ -49,7 +50,12 @@ def cancel_task() -> bool:
 
 
 async def _normas_ya_indexadas(settings: Settings) -> set[str]:
-    """Consulta MySQL para obtener nombres de normas con estado=indexado."""
+    """
+    Consulta MySQL y arma el set de claves normalizadas de normas ya indexadas
+    (por `nombre` y `archivo_nombre`), para comparar contra el catálogo sin
+    depender de que el nombre de archivo coincida textualmente con el nombre
+    canónico de la norma (ver `matching.claves_posibles`).
+    """
     from app.core.database import mysql_available, session_scope
     from app.slices.conocimiento import repository as repo
 
@@ -59,7 +65,12 @@ async def _normas_ya_indexadas(settings: Settings) -> set[str]:
     try:
         async with session_scope() as db:
             docs = await repo.list_docs(db, estado="indexado", limit=500)
-            return {d.nombre.strip().lower() for d in docs}
+            claves: set[str] = set()
+            for d in docs:
+                claves |= claves_posibles(d.nombre)
+                if d.archivo_nombre:
+                    claves |= claves_posibles(d.archivo_nombre)
+            return claves
     except Exception as exc:
         logger.warning("[BG_SCRAPER] no se pudo consultar normas indexadas: %s", exc)
         return set()
@@ -80,7 +91,10 @@ async def run_background_scraper(
 
     if solo_faltantes:
         ya_indexadas = await _normas_ya_indexadas(settings)
-        normas = [n for n in normas_candidatas if n.strip().lower() not in ya_indexadas]
+        normas = [
+            n for n in normas_candidatas
+            if not (claves_posibles(n) & ya_indexadas)
+        ]
         omitidas = len(normas_candidatas) - len(normas)
         if omitidas:
             logger.info("[BG_SCRAPER] omitiendo %d normas ya indexadas", omitidas)
