@@ -151,7 +151,14 @@ Texto extraído (extracto):
 {muestra}
 """.strip()
 
-    proveedor = "Gemini" if settings.use_gemini else f"Ollama/{settings.ollama_chat_model}"
+    if settings.use_openai:
+        proveedor = f"OpenAI/{settings.openai_chat_model}"
+    elif settings.use_openrouter:
+        proveedor = f"OpenRouter/{settings.openrouter_chat_model}"
+    elif settings.use_gemini:
+        proveedor = f"Gemini/{settings.gemini_chat_model}"
+    else:
+        proveedor = f"Ollama/{settings.ollama_chat_model}"
     logger.info(
         "[SCRAPER] norma=%r fase=validacion_ia proveedor=%s",
         norma_solicitada,
