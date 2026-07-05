@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/sgr",
     tags=["sgr"],
-    dependencies=[Depends(get_current_user), Depends(require_write)],
+    dependencies=[Depends(get_current_user)],
 )
 
 
