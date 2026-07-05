@@ -17,12 +17,19 @@ branch_labels = None
 depends_on = None
 
 
+def _column_exists(connection: sa.Connection, table: str, column: str) -> bool:
+    cols = {c["name"] for c in sa.inspect(connection).get_columns(table)}
+    return column in cols
+
+
 def upgrade() -> None:
-    op.add_column(
-        "fichas_mga",
-        sa.Column("chat_historial", sa.JSON(), nullable=True,
-                   comment="Historial de chat de edición: lista de {role, texto, timestamp}"),
-    )
+    connection = op.get_bind()
+    if not _column_exists(connection, "fichas_mga", "chat_historial"):
+        op.add_column(
+            "fichas_mga",
+            sa.Column("chat_historial", sa.JSON(), nullable=True,
+                       comment="Historial de chat de edición: lista de {role, texto, timestamp}"),
+        )
 
 
 def downgrade() -> None:

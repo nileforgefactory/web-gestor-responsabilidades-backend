@@ -24,25 +24,48 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade() -> None:
-    op.add_column(
-        "planes",
-        sa.Column("coleccion_id", sa.String(length=100), nullable=True,
-                   comment="Territorio dueño del plan (igual a usuarios.coleccion_id)"),
-    )
-    op.create_index("idx_planes_coleccion", "planes", ["coleccion_id"])
+def _column_exists(connection: sa.Connection, table: str, column: str) -> bool:
+    cols = {c["name"] for c in sa.inspect(connection).get_columns(table)}
+    return column in cols
 
-    op.add_column(
-        "usuarios",
-        sa.Column("plan_activo_id", sa.String(length=36), nullable=True,
-                   comment="Plan seleccionado como contexto activo para flujos SGR"),
-    )
-    op.create_foreign_key(
-        "fk_usuarios_plan_activo",
-        "usuarios", "planes",
-        ["plan_activo_id"], ["id"],
-        ondelete="SET NULL",
-    )
+
+def _index_exists(connection: sa.Connection, table: str, index_name: str) -> bool:
+    idxs = {i["name"] for i in sa.inspect(connection).get_indexes(table)}
+    return index_name in idxs
+
+
+def _fk_exists(connection: sa.Connection, table: str, fk_name: str) -> bool:
+    fks = {fk["name"] for fk in sa.inspect(connection).get_foreign_keys(table)}
+    return fk_name in fks
+
+
+def upgrade() -> None:
+    # Idempotente: en bases nuevas, 0001_initial_schema (create_all desde el
+    # estado actual de los modelos) ya crea estas columnas.
+    connection = op.get_bind()
+
+    if not _column_exists(connection, "planes", "coleccion_id"):
+        op.add_column(
+            "planes",
+            sa.Column("coleccion_id", sa.String(length=100), nullable=True,
+                       comment="Territorio dueño del plan (igual a usuarios.coleccion_id)"),
+        )
+    if not _index_exists(connection, "planes", "idx_planes_coleccion"):
+        op.create_index("idx_planes_coleccion", "planes", ["coleccion_id"])
+
+    if not _column_exists(connection, "usuarios", "plan_activo_id"):
+        op.add_column(
+            "usuarios",
+            sa.Column("plan_activo_id", sa.String(length=36), nullable=True,
+                       comment="Plan seleccionado como contexto activo para flujos SGR"),
+        )
+    if not _fk_exists(connection, "usuarios", "fk_usuarios_plan_activo"):
+        op.create_foreign_key(
+            "fk_usuarios_plan_activo",
+            "usuarios", "planes",
+            ["plan_activo_id"], ["id"],
+            ondelete="SET NULL",
+        )
 
 
 def downgrade() -> None:
