@@ -271,6 +271,7 @@ def upgrade() -> None:
         sa.column("valor_maximo", sa.Float),
         sa.column("fuente", sa.String),
         sa.column("anio_referencia", sa.Integer),
+        sa.column("vigente", sa.Boolean),
     )
     op.bulk_insert(costos_table, [
         # Agua potable
@@ -284,6 +285,7 @@ def upgrade() -> None:
             "valor_maximo": 7_800_000,
             "fuente": "DNP precios unitarios sectoriales 2024",
             "anio_referencia": 2024,
+            "vigente": True,
         },
         {
             "sector_sgr": "Agua potable y saneamiento",
@@ -295,6 +297,7 @@ def upgrade() -> None:
             "valor_maximo": 7_200_000,
             "fuente": "DNP precios unitarios sectoriales 2024",
             "anio_referencia": 2024,
+            "vigente": True,
         },
         {
             "sector_sgr": "Agua potable y saneamiento",
@@ -306,6 +309,7 @@ def upgrade() -> None:
             "valor_maximo": 2_100_000,
             "fuente": "DNP precios unitarios sectoriales 2024",
             "anio_referencia": 2024,
+            "vigente": True,
         },
         # Transporte
         {
@@ -318,6 +322,7 @@ def upgrade() -> None:
             "valor_maximo": 650_000_000,
             "fuente": "DNP precios unitarios sectoriales 2024",
             "anio_referencia": 2024,
+            "vigente": True,
         },
         {
             "sector_sgr": "Transporte",
@@ -329,6 +334,7 @@ def upgrade() -> None:
             "valor_maximo": 900_000_000,
             "fuente": "DNP precios unitarios sectoriales 2024",
             "anio_referencia": 2024,
+            "vigente": True,
         },
         # Educación
         {
@@ -341,6 +347,7 @@ def upgrade() -> None:
             "valor_maximo": 380_000_000,
             "fuente": "MinEducación precios unitarios 2024",
             "anio_referencia": 2024,
+            "vigente": True,
         },
         # Salud
         {
@@ -353,6 +360,7 @@ def upgrade() -> None:
             "valor_maximo": 3_800_000,
             "fuente": "MinSalud precios de referencia 2024",
             "anio_referencia": 2024,
+            "vigente": True,
         },
         # Deporte y recreación
         {
@@ -365,6 +373,7 @@ def upgrade() -> None:
             "valor_maximo": 420_000_000,
             "fuente": "Coldeportes / MinDeporte precios referencia 2024",
             "anio_referencia": 2024,
+            "vigente": True,
         },
     ])
 
