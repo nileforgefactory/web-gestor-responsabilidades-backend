@@ -33,10 +33,10 @@ services:
     image: mysql:8.0
     container_name: shared-nonprod-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD requerido}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: gestor_qa
       MYSQL_USER: gestor
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD requerido}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     expose:
       - "3306"
     volumes:
