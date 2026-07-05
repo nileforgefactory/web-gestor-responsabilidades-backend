@@ -125,6 +125,8 @@ def upgrade() -> None:
             sa.column("territorio", sa.Text),
             sa.column("coleccion_id", sa.String),
             sa.column("activo", sa.Boolean),
+            sa.column("estado_onboarding", sa.String),
+            sa.column("password_provisional", sa.Boolean),
         )
         op.bulk_insert(
             usuarios_table,
@@ -138,6 +140,11 @@ def upgrade() -> None:
                     "territorio": territorio_json,
                     "coleccion_id": coleccion_id,
                     "activo": True,
+                    # El superadmin de bootstrap ya tiene contraseña definitiva
+                    # (viene de env var), no debe quedar atrapado en el flujo
+                    # de onboarding SGR de usuarios nuevos.
+                    "estado_onboarding": "plan_analizado",
+                    "password_provisional": False,
                 }
             ],
         )
