@@ -166,8 +166,8 @@ services:
       AUTH_BOOTSTRAP_ADMIN_PASSWORD: ${AUTH_BOOTSTRAP_ADMIN_PASSWORD}
       AUTH_BOOTSTRAP_ADMIN_NOMBRE: ${AUTH_BOOTSTRAP_ADMIN_NOMBRE:-Super Administrador}
       AUTH_BOOTSTRAP_ADMIN_TERRITORIO: ${AUTH_BOOTSTRAP_ADMIN_TERRITORIO:-["COLOMBIA", null, null]}
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - ./sample_documents:/samples:ro
     restart: unless-stopped
