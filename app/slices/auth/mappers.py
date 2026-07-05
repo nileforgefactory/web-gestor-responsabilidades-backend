@@ -33,6 +33,7 @@ def to_me_response(user: User) -> MeResponse:
         territorio=_territorio_out(user),
         activo=user.activo,
         creado_en=user.creado_en,
+        plan_activo_id=user.plan_activo_id,
     )
 
 
