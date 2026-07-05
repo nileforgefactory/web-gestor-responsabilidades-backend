@@ -196,22 +196,21 @@ async def delete_doc(
     db: AsyncSession = Depends(get_db),
     rag: RagService = Depends(get_rag_service),
 ) -> None:
-    """Elimina el registro del catálogo (no borra vectores en Qdrant)."""
+    """Elimina el registro del catálogo y los vectores asociados en Qdrant."""
     existing = await repo.get_doc(db, doc_id)
     if existing is None:
         raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
     ensure_collection_access(admin, existing.coleccion_id)
-    deleted = await repo.delete_doc(db, doc_id)
-    if not deleted:
-        raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
 
-    if doc.qdrant_doc_id and doc.coleccion_id:
+    if existing.qdrant_doc_id and existing.coleccion_id:
         try:
             await rag.repository.delete_document_chunks(
-                collection_id=doc.coleccion_id,
-                document_id=doc.qdrant_doc_id,
+                collection_id=existing.coleccion_id,
+                document_id=existing.qdrant_doc_id,
             )
         except Exception as exc:
             raise HTTPException(502, f"No se pudieron eliminar los vectores en Qdrant: {exc}") from exc
 
-    await repo.delete_doc(db, doc_id)
+    deleted = await repo.delete_doc(db, doc_id)
+    if not deleted:
+        raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
