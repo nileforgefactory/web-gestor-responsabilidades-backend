@@ -87,7 +87,7 @@ class ProyectoSGR(Base):
     descripcion_problema: Mapped[str | None] = mapped_column(Text)
     sector_sgr: Mapped[str] = mapped_column(String(80), nullable=False)
     subsector_sgr: Mapped[str | None] = mapped_column(String(120))
-    tipo_inversion: Mapped[str | None] = mapped_column(String(120))
+    tipo_inversion: Mapped[str | None] = mapped_column(Text)
 
     # Fuente de financiamiento principal detectada
     fuente_sgr: Mapped[str | None] = mapped_column(
