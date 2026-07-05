@@ -32,10 +32,10 @@ services:
     image: mysql:8.0
     container_name: gestor-backend-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD requerido}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: gestor_responsabilidades
       MYSQL_USER: gestor
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD requerido}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     expose:
       - "3306"
     volumes:
@@ -130,7 +130,7 @@ services:
       GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
       INGEST_EMBED_CONCURRENCY: "4"
       RAG_DEFAULT_SCORE_THRESHOLD: "0.25"
-      MYSQL_URL: mysql+aiomysql://gestor:${MYSQL_PASSWORD:?MYSQL_PASSWORD requerido}@mysql:3306/gestor_responsabilidades?charset=utf8mb4
+      MYSQL_URL: mysql+aiomysql://gestor:${MYSQL_PASSWORD}@mysql:3306/gestor_responsabilidades?charset=utf8mb4
       MYSQL_POOL_PRE_PING: "false"
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
       OLLAMA_LOG_LLM_BODIES: ${OLLAMA_LOG_LLM_BODIES:-false}
@@ -158,12 +158,12 @@ services:
       BACKGROUND_SCRAPER_AUTO_START: ${BACKGROUND_SCRAPER_AUTO_START:-false}
       BACKGROUND_SCRAPER_CONCURRENCY: ${BACKGROUND_SCRAPER_CONCURRENCY:-2}
       # JWT — obligatorio en producción; generar con: openssl rand -hex 32
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY requerido}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-1440}
       # Superadmin creado por migración Alembic (tabla roles + usuarios)
-      AUTH_BOOTSTRAP_ADMIN_EMAIL: ${AUTH_BOOTSTRAP_ADMIN_EMAIL:?AUTH_BOOTSTRAP_ADMIN_EMAIL requerido}
-      AUTH_BOOTSTRAP_ADMIN_PASSWORD: ${AUTH_BOOTSTRAP_ADMIN_PASSWORD:?AUTH_BOOTSTRAP_ADMIN_PASSWORD requerido}
+      AUTH_BOOTSTRAP_ADMIN_EMAIL: ${AUTH_BOOTSTRAP_ADMIN_EMAIL}
+      AUTH_BOOTSTRAP_ADMIN_PASSWORD: ${AUTH_BOOTSTRAP_ADMIN_PASSWORD}
       AUTH_BOOTSTRAP_ADMIN_NOMBRE: ${AUTH_BOOTSTRAP_ADMIN_NOMBRE:-Super Administrador}
       AUTH_BOOTSTRAP_ADMIN_TERRITORIO: ${AUTH_BOOTSTRAP_ADMIN_TERRITORIO:-["COLOMBIA", null, null]}
     ports:
