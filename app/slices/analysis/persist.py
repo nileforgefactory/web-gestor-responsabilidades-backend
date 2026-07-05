@@ -20,6 +20,30 @@ from app.slices.planes.models import (
     Responsabilidad,
 )
 
+# ── Mapeos de enums prompt-nuevo → enum de la BD ────────────────────────────
+# Responsabilidad: el prompt emite E|C|S|M (naturaleza de la competencia);
+# la celda territorial de la BD usa P|C|S|N (asignación).
+_RESP_TIPO_MAP = {"E": "P", "C": "C", "S": "S", "M": "C", "P": "P", "N": "N"}
+
+# Brecha: el prompt emite tipos jurídicos finos; la BD agrupa en 4 categorías.
+_BRECHA_TIPO_MAP = {
+    "riesgo_disciplinario": "critica",
+    "duplicidad_ilegal":    "duplicidad",
+    "vacio_competencia":    "sin_responsable",
+    "desarmonizacion":      "indefinido",
+    # legacy / passthrough
+    "critica":         "critica",
+    "duplicidad":      "duplicidad",
+    "indefinido":      "indefinido",
+    "sin_responsable": "sin_responsable",
+}
+
+
+def _resp_tipo_db(raw: Any) -> str:
+    """Normaliza el tipo de responsabilidad (E/C/S/M o P/C/S/N) al enum P/C/S/N de la BD."""
+    c = str(raw or "P").strip().upper()[:1]
+    return _RESP_TIPO_MAP.get(c, "P")
+
 
 async def persist_analysis(
     db: AsyncSession,
@@ -31,9 +55,15 @@ async def persist_analysis(
     qdrant_doc_id: str,
     result: dict[str, Any],
     descripcion: str | None = None,
+    coleccion_id: str | None = None,
 ) -> str:
     """
     Inserta o actualiza plan y entidades hijas desde el resultado del análisis.
+
+    Args:
+        coleccion_id: territorio dueño del plan (usuarios.coleccion_id del usuario
+            autenticado). Solo se estampa al CREAR un plan nuevo; en actualización
+            se conserva el dueño original.
 
     Returns:
         ID del plan persistido (existente o nuevo UUID).
@@ -49,6 +79,7 @@ async def persist_analysis(
             archivo_nombre=archivo_nombre[:500] if archivo_nombre else None,
             qdrant_doc_id=qdrant_doc_id,
             descripcion=descripcion[:2000] if descripcion else None,
+            coleccion_id=coleccion_id,
         )
         db.add(plane)
     else:
@@ -59,14 +90,16 @@ async def persist_analysis(
             plane.descripcion = descripcion[:2000]
 
     for row in result.get("responsabilidades", []):
+        ref = row.get("id_norma_ref") or row.get("referencia_legal")
         db.add(
             Responsabilidad(
                 plan_id=pid,
                 titulo=str(row.get("titulo", ""))[:500],
                 descripcion=row.get("descripcion"),
                 sector=row.get("sector"),
-                tipo=str(row.get("tipo", "P"))[:1] or "P",
-                referencia_legal=row.get("referencia_legal"),
+                tipo=_resp_tipo_db(row.get("tipo")),
+                referencia_legal=str(ref)[:200] if ref else None,
+                origen_contexto=row.get("origen_contexto"),
             )
         )
 
@@ -78,10 +111,12 @@ async def persist_analysis(
         db.add(
             PlanNorma(
                 plan_id=pid,
+                id_norma=str(row.get("id_norma", ""))[:100] or None,
                 norma_codigo=str(row.get("codigo", ""))[:100],
                 titulo=str(row.get("titulo", row.get("codigo", "Norma")))[:500],
                 articulos=str(row.get("articulos", ""))[:200],
                 extracto=str(row.get("relevancia", ""))[:2000] or None,
+                origen_contexto=row.get("origen_contexto"),
                 tipo=tipo,
             )
         )
@@ -101,7 +136,7 @@ async def persist_analysis(
         "regulador", "aliado", "operador", "supervisor",
         "tomador_decision", "participante", "apoyo_tecnico", "control", "otro",
     )
-    _valid_niveles = ("nacional", "departamental", "municipal", "especializado")
+    _valid_niveles = ("nacional", "regional", "departamental", "municipal", "especializado")
 
     def _split_competencias(raw: str) -> list[str]:
         """Divide una cadena de competencias separadas por coma, punto y coma o salto de línea."""
@@ -122,6 +157,7 @@ async def persist_analysis(
             ),
             nivel=nivel_raw if nivel_raw in _valid_niveles else None,
             sector=sector_raw,
+            origen_contexto=row.get("origen_contexto"),
             resp_count=_resp_count_for(nombre),
             badge_label=nivel_raw.capitalize() if nivel_raw in _valid_niveles else None,
         )
@@ -138,20 +174,25 @@ async def persist_analysis(
             ))
 
     for row in result.get("brechas", []):
-        tipo = str(row.get("tipo", "critica"))
-        if tipo not in ("critica", "duplicidad", "indefinido", "sin_responsable"):
-            tipo = "critica"
+        tipo_raw = str(row.get("tipo", "critica")).strip().lower()
+        tipo = _BRECHA_TIPO_MAP.get(tipo_raw, "critica")
+        # Conservar el tipo jurídico fino solo si difiere del enum agregado
+        tipo_detallado = tipo_raw if tipo_raw in _BRECHA_TIPO_MAP and tipo_raw != tipo else None
         sev = str(row.get("severidad", "media"))
         if sev not in ("alta", "media", "baja"):
             sev = "media"
+        ref = row.get("id_norma_base") or row.get("norma_base")
         db.add(
             Brecha(
                 plan_id=pid,
                 titulo=str(row.get("titulo", ""))[:500],
                 descripcion=row.get("descripcion"),
                 tipo=tipo,
+                tipo_detallado=tipo_detallado,
                 severidad=sev,
-                referencia_legal=row.get("norma_base"),
+                referencia_legal=str(ref)[:200] if ref else None,
+                recomendacion=row.get("recomendacion"),
+                origen_contexto=row.get("origen_contexto"),
             )
         )
 
@@ -180,12 +221,15 @@ async def persist_analysis(
             MatrizCompetencia(
                 plan_id=pid,
                 competencia=str(row.get("competencia", ""))[:300],
+                actor=str(row.get("actor", ""))[:300] or None,
                 ley_base=str(row.get("ley_base", ""))[:200],
                 nacion=_pcsn(row.get("nacion")),
                 departamento=_pcsn(row.get("departamento")),
                 municipio=_pcsn(row.get("municipio")),
                 especializado=_pcsn(row.get("especializado")),
                 brecha=brecha,
+                sector=str(row.get("sector", ""))[:120] or None,
+                origen_contexto=row.get("origen_contexto"),
                 actores_vinculados=actores_json,
             )
         )

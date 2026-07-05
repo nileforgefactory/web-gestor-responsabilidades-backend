@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 
+from app.core.config import get_settings
 from app.slices.auth.models import User
 from app.slices.common.territorio import (
     allowed_collection_ids,
@@ -11,6 +12,16 @@ from app.slices.common.territorio import (
     is_collection_allowed,
     normalize_territorio,
 )
+
+
+def _global_collection_ids() -> frozenset[str]:
+    """Colecciones compartidas visibles para cualquier usuario autenticado,
+    sin importar su territorio (ej. la base normativa nacional del scraper)."""
+    return frozenset({get_settings().scraper_collection_id.strip().upper()})
+
+
+def _is_global_collection(collection_id: str) -> bool:
+    return collection_id.strip().upper() in _global_collection_ids()
 
 
 def rol_codigo(user: User) -> str:
@@ -38,7 +49,7 @@ def user_territorio(user: User) -> list[str | None]:
 def allowed_collections_for_user(user: User) -> frozenset[str]:
     if is_superadmin(user):
         return frozenset()
-    return allowed_collection_ids(user_territorio(user))
+    return allowed_collection_ids(user_territorio(user)) | _global_collection_ids()
 
 
 def resolve_territorio_for_creation(
@@ -83,7 +94,7 @@ def ensure_can_manage_user(actor: User, target: User) -> None:
 
 
 def ensure_collection_access(user: User, collection_id: str) -> None:
-    if is_superadmin(user):
+    if is_superadmin(user) or _is_global_collection(collection_id):
         return
     if not is_collection_allowed(user_territorio(user), collection_id):
         raise HTTPException(
@@ -95,7 +106,7 @@ def ensure_collection_access(user: User, collection_id: str) -> None:
 def ensure_collections_access(user: User, collection_ids: list[str]) -> None:
     if is_superadmin(user):
         return
-    allowed = allowed_collection_ids(user_territorio(user))
+    allowed = allowed_collection_ids(user_territorio(user)) | _global_collection_ids()
     forbidden = {cid.strip().upper() for cid in collection_ids} - allowed
     if forbidden:
         raise HTTPException(
@@ -110,5 +121,5 @@ def ensure_collections_access(user: User, collection_ids: list[str]) -> None:
 def filter_allowed_collections(user: User, collection_ids: list[str]) -> list[str]:
     if is_superadmin(user):
         return collection_ids
-    allowed = allowed_collection_ids(user_territorio(user))
+    allowed = allowed_collection_ids(user_territorio(user)) | _global_collection_ids()
     return [cid for cid in collection_ids if cid.strip().upper() in allowed]

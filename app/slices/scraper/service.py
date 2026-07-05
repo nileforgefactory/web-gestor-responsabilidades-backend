@@ -23,6 +23,7 @@ from app.slices.common.network_errors import classify_http_error, is_transient_n
 from app.slices.common.territorio import (
     apply_pais_scope,
     collection_id_from_territorio,
+    normalize_territorio,
     resolve_scraper_pais,
 )
 from app.slices.scraper.fetcher import fetch_and_extract
@@ -37,7 +38,14 @@ from app.slices.scraper.utils import (
     derive_document_id,
     infer_tipo_norma,
 )
-from app.slices.scraper.validator import validate_norm_document
+from app.slices.scraper.suin_juriscol import (
+    SuinJuriscolClient,
+    dedupe_suin_search_hits,
+    scraper_hit_source,
+    sort_scraper_hits_prioritize_suin,
+    suin_hit_is_trusted,
+)
+from app.slices.scraper.validator import ValidationResult, validate_norm_document
 from app.slices.scraper.web_search import SearchHit, build_web_search_provider
 
 logger = logging.getLogger(__name__)
@@ -57,6 +65,7 @@ class ScraperService:
         self.rag = rag
         self._http = http or rag.http
         self._search = build_web_search_provider(http=self._http, settings=settings)
+        self._suin = SuinJuriscolClient(http=self._http, settings=settings)
 
     async def buscar_normas(
         self,
@@ -164,7 +173,7 @@ class ScraperService:
 
         if not hits:
             logger.info("[SCRAPER] norma=%r fase=fin estado=no_encontrada", norma)
-            motivo = "La búsqueda en red no devolvió enlaces PDF de la norma."
+            motivo = "No se encontró la norma en SUIN-Juriscol (búsqueda web) ni en la búsqueda de PDFs."
             if db is not None:
                 await self._registrar_catalogo_fallo(
                     db,
@@ -180,7 +189,18 @@ class ScraperService:
                 territorio=[pais, None, None],
             )
 
-        for hit in hits:
+        total_candidatos = len(hits)
+        for orden, hit in enumerate(hits, start=1):
+            fuente = scraper_hit_source(hit.url, settings=self.settings)
+            logger.info(
+                "[SCRAPER] norma=%r fase=procesando_url orden=%d/%d fuente=%s url=%s titulo=%r",
+                norma,
+                orden,
+                total_candidatos,
+                fuente,
+                hit.url,
+                hit.title,
+            )
             urls_intentadas.append(hit.url)
             indexado, validacion, motivo = await self._evaluar_candidato(
                 norma, hit, db=db, pais=pais
@@ -254,46 +274,82 @@ class ScraperService:
                 "[SCRAPER] norma=%r extraccion_fallo url=%s error=%s", norma, hit.url, exc
             )
             return None, None, str(exc)
-
-        try:
-            validation = await validate_norm_document(
-                http=self._http,
-                settings=self.settings,
-                norma_solicitada=norma,
-                texto=fetched.text,
-                url=hit.url,
-                titulo_resultado=hit.title,
-                pais_esperado=pais,
-            )
-        except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError, OllamaError) as exc:
-            info = classify_http_error(exc)
-            logger.error(
-                "[SCRAPER] norma=%r validacion_llm_fallo url=%s tipo=%s error=%s",
-                norma,
-                hit.url,
-                info.kind.value,
-                info.message,
-            )
-            return (
-                None,
-                None,
-                f"Validación IA no disponible ({info.kind.value}): {info.message}",
-            )
-        except httpx.HTTPStatusError as exc:
-            info = classify_http_error(exc)
-            logger.error(
-                "[SCRAPER] norma=%r validacion_llm_fallo url=%s tipo=%s error=%s",
-                norma,
-                hit.url,
-                info.kind.value,
-                info.message,
-            )
-            return None, None, f"Error HTTP en validación IA: {info.message}"
         except Exception as exc:
-            logger.exception(
-                "[SCRAPER] norma=%r validacion_error_inesperado url=%s", norma, hit.url
+            logger.warning(
+                "[SCRAPER] norma=%r extraccion_fallo url=%s error=%s", norma, hit.url, exc
             )
-            return None, None, f"Error inesperado en validación IA: {exc}"
+            return None, None, f"Error al extraer {hit.url}: {exc}"
+
+        logger.info(
+            "[SCRAPER] norma=%r fase=extraccion_ok fuente=%s url=%s chars=%d metodo=%s",
+            norma,
+            scraper_hit_source(hit.url, settings=self.settings),
+            hit.url,
+            fetched.char_count,
+            fetched.extraction_method,
+        )
+
+        trusted_suin = suin_hit_is_trusted(norma, hit)
+        if trusted_suin:
+            logger.info(
+                "[SCRAPER] norma=%r fase=validacion_suin confianza=alta url=%s "
+                "(título coincide; se ingiere página SUIN sin LLM)",
+                norma,
+                hit.url,
+            )
+            pais_objetivo = resolve_scraper_pais(pais)
+            validation = ValidationResult(
+                outcome=ValidacionNormaOut(
+                    es_documento_esperado=True,
+                    confianza=0.95,
+                    codigo_detectado=norma,
+                    motivo="Documento oficial SUIN-Juriscol; título coincide con la norma solicitada.",
+                    advertencias=[],
+                    territorio=normalize_territorio([pais_objetivo, None, None]),
+                ),
+                accepted=True,
+            )
+        else:
+            try:
+                validation = await validate_norm_document(
+                    http=self._http,
+                    settings=self.settings,
+                    norma_solicitada=norma,
+                    texto=fetched.text,
+                    url=hit.url,
+                    titulo_resultado=hit.title,
+                    pais_esperado=pais,
+                    extraction_method=fetched.extraction_method,
+                )
+            except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError, OllamaError) as exc:
+                info = classify_http_error(exc)
+                logger.error(
+                    "[SCRAPER] norma=%r validacion_llm_fallo url=%s tipo=%s error=%s",
+                    norma,
+                    hit.url,
+                    info.kind.value,
+                    info.message,
+                )
+                return (
+                    None,
+                    None,
+                    f"Validación IA no disponible ({info.kind.value}): {info.message}",
+                )
+            except httpx.HTTPStatusError as exc:
+                info = classify_http_error(exc)
+                logger.error(
+                    "[SCRAPER] norma=%r validacion_llm_fallo url=%s tipo=%s error=%s",
+                    norma,
+                    hit.url,
+                    info.kind.value,
+                    info.message,
+                )
+                return None, None, f"Error HTTP en validación IA: {info.message}"
+            except Exception as exc:
+                logger.exception(
+                    "[SCRAPER] norma=%r validacion_error_inesperado url=%s", norma, hit.url
+                )
+                return None, None, f"Error inesperado en validación IA: {exc}"
 
         val_out = validation.outcome
         territorio, scope_warnings = apply_pais_scope(val_out.territorio, pais)
@@ -337,6 +393,19 @@ class ScraperService:
             document_id,
             collection_id,
         )
+        # --- TEMP_DEBUG_INDEX_DUMP: inicio (eliminar este bloque cuando ya no haga falta) ---
+        # logger.info(
+        #     "[SCRAPER][TEMP_DEBUG_INDEX_DUMP] norma=%r url=%s doc_id=%s collection=%s "
+        #     "chars=%d metodo=%s\n--- INICIO CONTENIDO INDEXADO ---\n%s\n--- FIN CONTENIDO INDEXADO ---",
+        #     norma,
+        #     hit.url,
+        #     document_id,
+        #     collection_id,
+        #     fetched.char_count,
+        #     fetched.extraction_method,
+        #     fetched.text,
+        # )
+        # --- TEMP_DEBUG_INDEX_DUMP: fin ---
         try:
             ingest = await self.rag.ingest_text(
                 collection_id=collection_id,
@@ -492,36 +561,99 @@ class ScraperService:
             )
 
     async def _buscar_en_red(self, norma: str, *, pais: str) -> list[SearchHit]:
-        """Prueba varias formulaciones de consulta hasta obtener enlaces."""
+        """Búsqueda ``{norma} suin`` en SUIN primero; PDF solo si no hay viewDocument."""
+        max_results = self.settings.scraper_search_max_results
+        seen_urls: set[str] = set()
+        suin_hits: list[SearchHit] = []
+
+        if self.settings.scraper_suin_enabled and pais.upper() == "COLOMBIA":
+            logger.info("[SCRAPER] norma=%r fase=busqueda_suin inicio", norma)
+            try:
+                suin_hits = await self._suin.search(norma, max_results=max_results)
+            except Exception as exc:
+                logger.warning(
+                    "[SCRAPER] norma=%r suin_fallo error=%s; se continúa con búsqueda web",
+                    norma,
+                    exc,
+                )
+                suin_hits = []
+
+        suin_view_hits = [
+            hit
+            for hit in dedupe_suin_search_hits(suin_hits, settings=self.settings)
+            if scraper_hit_source(hit.url, settings=self.settings) == "suin_viewdocument"
+            and suin_hit_is_trusted(norma, hit)
+        ]
+        if suin_view_hits:
+            candidatos = sort_scraper_hits_prioritize_suin(
+                suin_view_hits, settings=self.settings
+            )[:1]
+            logger.info(
+                "[SCRAPER] norma=%r fase=cola_candidatos total=1 suin_viewdocument=1 "
+                "(solo SUIN; sin búsqueda PDF)",
+            )
+            for orden, hit in enumerate(candidatos, start=1):
+                logger.info(
+                    "[SCRAPER] norma=%r fase=cola_candidatos orden=%d fuente=%s url=%s titulo=%r",
+                    norma,
+                    orden,
+                    scraper_hit_source(hit.url, settings=self.settings),
+                    hit.url,
+                    hit.title,
+                )
+            return candidatos
+
+        merged: list[SearchHit] = []
+        for hit in suin_hits:
+            if hit.url in seen_urls:
+                continue
+            seen_urls.add(hit.url)
+            merged.append(hit)
+
         variants = build_search_query_variants(
             norma,
             suffix=self.settings.scraper_search_query_suffix,
             max_variants=self.settings.scraper_search_query_variants,
             pais=pais,
         )
-        if not variants:
-            return []
+        if variants:
+            logger.info("[SCRAPER] norma=%r fase=busqueda_pdf inicio", norma)
+            for query in variants:
+                logger.info(
+                    "[SCRAPER] norma=%r fase=busqueda_pdf variante=%r",
+                    norma,
+                    query,
+                )
+                batch = await self._search.search(query, max_results=max_results)
+                for hit in batch:
+                    if hit.url in seen_urls:
+                        continue
+                    seen_urls.add(hit.url)
+                    merged.append(hit)
+                if len(merged) >= max_results:
+                    break
 
-        seen_urls: set[str] = set()
-        merged: list[SearchHit] = []
-        max_results = self.settings.scraper_search_max_results
+        merged = sort_scraper_hits_prioritize_suin(merged, settings=self.settings)
+        candidatos = merged[:max_results]
 
-        for query in variants:
-            logger.debug("[SCRAPER] norma=%r fase=busqueda_red variante=%r", norma, query)
-            batch = await self._search.search(query, max_results=max_results)
-            for hit in batch:
-                if hit.url in seen_urls:
-                    continue
-                seen_urls.add(hit.url)
-                merged.append(hit)
-            if len(merged) >= max_results:
-                break
-
-        if merged:
+        if candidatos:
             logger.info(
-                "[SCRAPER] norma=%r fase=busqueda_red enlaces=%d variantes=%d",
+                "[SCRAPER] norma=%r fase=cola_candidatos total=%d suin_viewdocument=%d",
                 norma,
-                len(merged),
-                len(variants),
+                len(candidatos),
+                sum(
+                    1
+                    for hit in candidatos
+                    if scraper_hit_source(hit.url, settings=self.settings) == "suin_viewdocument"
+                ),
             )
-        return merged[:max_results]
+            for orden, hit in enumerate(candidatos, start=1):
+                logger.info(
+                    "[SCRAPER] norma=%r fase=cola_candidatos orden=%d fuente=%s url=%s titulo=%r",
+                    norma,
+                    orden,
+                    scraper_hit_source(hit.url, settings=self.settings),
+                    hit.url,
+                    hit.title,
+                )
+        return candidatos

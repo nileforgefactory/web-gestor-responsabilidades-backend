@@ -60,11 +60,15 @@ class DocumentExtractor:
         ocr_lang: str = "spa",
         ocr_dpi: int = 200,
         min_chars_per_page: int = 50,
+        ocr_batch_pages: int = 4,
     ) -> None:
         self.ocr_enabled = ocr_enabled
         self.ocr_lang = ocr_lang
         self.ocr_dpi = ocr_dpi
         self.min_chars_per_page = min_chars_per_page
+        # Páginas que se rasterizan a la vez. Acota el pico de memoria en PDFs
+        # escaneados grandes (rasterizar todo de golpe agota la RAM y reinicia el proceso).
+        self.ocr_batch_pages = max(1, ocr_batch_pages)
 
     def extract_from_bytes(self, raw: bytes, filename: str) -> ExtractionResult:
         """
@@ -234,26 +238,48 @@ class DocumentExtractor:
         if not page_numbers:
             return {}, None
 
-        images = convert_from_bytes(
-            raw,
-            dpi=self.ocr_dpi,
-            first_page=min(page_numbers),
-            last_page=max(page_numbers),
-        )
         page_set = set(page_numbers)
+        pages_sorted = sorted(page_set)
         confidences: list[float] = []
         out: dict[int, str] = {}
 
-        start = min(page_numbers)
-        for offset, img in enumerate(images):
-            page_num = start + offset
-            if page_num not in page_set:
-                continue
-            text, conf = self._ocr_pil_image(img)
-            if text.strip():
-                out[page_num] = text.strip()
-            if conf is not None:
-                confidences.append(conf)
+        # Agrupar en lotes CONTIGUOS de tamaño <= ocr_batch_pages. Cada lote se
+        # rasteriza por separado y se libera antes del siguiente, de modo que el
+        # pico de memoria es ~ocr_batch_pages imágenes, sin importar el nº de páginas.
+        lotes: list[list[int]] = []
+        actual: list[int] = []
+        for p in pages_sorted:
+            if actual and (p != actual[-1] + 1 or len(actual) >= self.ocr_batch_pages):
+                lotes.append(actual)
+                actual = []
+            actual.append(p)
+        if actual:
+            lotes.append(actual)
+
+        for lote in lotes:
+            images = convert_from_bytes(
+                raw,
+                dpi=self.ocr_dpi,
+                first_page=lote[0],
+                last_page=lote[-1],
+            )
+            start = lote[0]
+            for offset, img in enumerate(images):
+                page_num = start + offset
+                if page_num not in page_set:
+                    continue
+                text, conf = self._ocr_pil_image(img)
+                if text.strip():
+                    out[page_num] = text.strip()
+                if conf is not None:
+                    confidences.append(conf)
+            # Liberar las imágenes del lote (cierra los buffers PIL) antes del siguiente
+            for img in images:
+                try:
+                    img.close()
+                except Exception:
+                    pass
+            del images
 
         avg = sum(confidences) / len(confidences) if confidences else None
         return out, avg
@@ -292,4 +318,5 @@ def get_document_extractor_from_settings(settings) -> DocumentExtractor:
         ocr_lang=settings.ocr_lang,
         ocr_dpi=settings.ocr_dpi,
         min_chars_per_page=settings.ocr_min_chars_per_page,
+        ocr_batch_pages=getattr(settings, "ocr_batch_pages", 4),
     )

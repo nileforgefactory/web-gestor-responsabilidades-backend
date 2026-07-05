@@ -12,7 +12,8 @@ from qdrant_client import AsyncQdrantClient
 from app.core.config import Settings
 from app.slices.common.network_errors import classify_http_error, is_transient_network_error
 from app.slices.rag.chunking.strategy import chunk_document
-from app.slices.rag.ollama_client import OllamaError, ollama_chat, ollama_embed
+from app.slices.rag.ai_client import AiError, ai_chat, ai_embed
+from app.slices.rag.ollama_client import OllamaError
 from app.slices.rag.repository import RagRepository
 from app.slices.rag.schemas import (
     AgentContextResponse,
@@ -131,30 +132,22 @@ class RagService:
         await self.http.aclose()
 
     async def _embedding_for(self, text: str) -> list[float]:
-        """Vector de un fragmento vía Ollama o pseudo-embedding local."""
-        if not self.settings.use_ollama:
+        """Vector de un fragmento vía proveedor IA activo (Gemini u Ollama) o pseudo-embedding."""
+        if not self.settings.use_ollama and not self.settings.use_gemini:
             return pseudo_embedding(text, self.vector_size)
 
         async def embed_call() -> list[float]:
-            vec = await ollama_embed(
-                http=self.http,
-                base_url=self.settings.ollama_base_url,
-                model=self.settings.ollama_embedding_model,
-                prompt=text,
-            )
-            return vec
+            return await ai_embed(http=self.http, settings=self.settings, text=text)
 
         try:
             return await _with_retries(embed_call)
-        except OllamaError:
+        except (OllamaError, AiError):
             raise
         except HTTPStatusError as exc:
             if exc.response.status_code == 404:
                 raise RuntimeError(
-                    f"Modelo de embeddings no encontrado en Ollama: "
-                    f"{self.settings.ollama_embedding_model!r}. "
-                    f"Ejecuta: docker compose exec ollama ollama pull "
-                    f"{self.settings.ollama_embedding_model}"
+                    f"Modelo de embeddings no encontrado. "
+                    f"Proveedor activo: {'Gemini' if self.settings.use_gemini else 'Ollama'}"
                 ) from exc
             raise
 
@@ -279,14 +272,20 @@ class RagService:
         collection_ids: list[str],
         top_k: int,
         score_threshold: float,
+        document_id: str | None = None,
     ) -> RagSearchResponse:
-        """Búsqueda por similitud coseno en una o más colecciones."""
-        query_vector = await self._embedding_for(query)
+        """Búsqueda por similitud coseno en una o más colecciones, opcionalmente filtrada por documento."""
+        # Tope de longitud de la query de retrieval: el modelo de embeddings (p. ej.
+        # nomic-embed-text) devuelve 500 con entradas muy largas. Algunos agentes
+        # (brechas, coordinador) construyen queries extensas; truncarlas no afecta el
+        # retrieval (el inicio ya captura la intención) y evita el fallo.
+        query_vector = await self._embedding_for(query[:2000])
         results = await self.repository.search_chunks(
             query_vector=query_vector,
             collection_ids=collection_ids,
             top_k=top_k,
             score_threshold=score_threshold,
+            document_id=document_id,
         )
 
         chunks: list[RagChunk] = []
@@ -414,10 +413,9 @@ class RagService:
         )
 
         async def chat_call() -> str:
-            return await ollama_chat(
+            return await ai_chat(
                 http=self.http,
-                base_url=self.settings.ollama_base_url,
-                model=self.settings.ollama_chat_model,
+                settings=self.settings,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": user},
@@ -429,8 +427,8 @@ class RagService:
         except HTTPStatusError as exc:
             if exc.response.status_code == 404:
                 raise RuntimeError(
-                    f"Modelo de chat no encontrado en Ollama: {self.settings.ollama_chat_model!r}. "
-                    f"Ejecuta: docker compose exec ollama ollama pull {self.settings.ollama_chat_model}"
+                    f"Modelo de chat no encontrado. "
+                    f"Proveedor activo: {'Gemini' if self.settings.use_gemini else 'Ollama'}"
                 ) from exc
             raise
 

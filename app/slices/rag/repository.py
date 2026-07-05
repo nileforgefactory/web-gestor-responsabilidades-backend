@@ -114,14 +114,19 @@ class RagRepository:
         collection_ids: list[str],
         top_k: int,
         score_threshold: float,
+        document_id: str | None = None,
     ) -> list[models.ScoredPoint]:
         should_filters = [
             models.FieldCondition(key="collection_id", match=models.MatchValue(value=collection_id))
             for collection_id in collection_ids
         ]
-        query_filter = models.Filter(should=should_filters)
+        must_filters: list[models.Condition] = [models.Filter(should=should_filters)]
+        if document_id:
+            must_filters.append(
+                models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id))
+            )
+        query_filter = models.Filter(must=must_filters)
 
-        # qdrant-client >= 1.16 elimina `AsyncQdrantClient.search`; usar `query_points`.
         resp = await self.client.query_points(
             collection_name=self.collection_name,
             query=query_vector,

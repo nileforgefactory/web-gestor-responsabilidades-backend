@@ -12,9 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import get_db, get_optional_db
 from app.core.openapi import RESPUESTAS_ANALISIS
-from app.slices.auth.dependencies import CurrentUser, get_current_user, require_write
+from app.slices.auth.dependencies import CurrentUser, get_current_user
 from app.slices.auth.permissions import ensure_collection_access, ensure_collections_access
 from app.dependencies import get_rag_service
+from app.slices.analysis.ia_viabilidad import generar_analisis_viabilidad
 from app.slices.analysis.pdf_export import generar_pdf_analisis
 from app.slices.analysis.schemas import AnalisisDocumentoResponse, ProfundidadAnalisis
 from app.slices.analysis.service import cancel_analysis, run_document_analysis, stream_document_analysis
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/analysis",
     tags=["analisis"],
-    dependencies=[Depends(get_current_user), Depends(require_write)],
+    dependencies=[Depends(get_current_user)],
 )
 
 
@@ -137,6 +138,7 @@ async def analyze_document(
         guardar_mysql=guardar_mysql,
         db=db if guardar_mysql and db is not None else None,
         max_iteraciones=max_iteraciones,
+        coleccion_id=current_user.coleccion_id,
     )
 
     if guardar_mysql and db is None:
@@ -178,6 +180,7 @@ class SaveResultRequest(BaseModel):
     status_code=200,
 )
 async def save_analysis_result(
+    current_user: CurrentUser,
     body: SaveResultRequest,
     db: AsyncSession | None = Depends(get_optional_db),
 ) -> dict:
@@ -195,6 +198,7 @@ async def save_analysis_result(
         archivo_nombre=body.archivo_nombre or "",
         qdrant_doc_id=body.qdrant_doc_id or "",
         result=body.result,
+        coleccion_id=current_user.coleccion_id,
     )
     await db.commit()
     return {"plan_id": plan_id, "guardado": True}
@@ -233,10 +237,11 @@ async def cancel_session(session_id: str) -> dict[str, str]:
 async def export_pdf(
     plan_id: str,
     db: AsyncSession = Depends(get_db),
+    rag: RagService = Depends(get_rag_service),
 ) -> Response:
     """
     Genera y devuelve el PDF de análisis completo del plan indicado.
-
+    Incluye análisis IA de viabilidad presupuestal y fuentes de recursos.
     Requiere MySQL configurado (el plan debe estar guardado).
     """
     from app.slices.planes import repository as repo
@@ -245,13 +250,25 @@ async def export_pdf(
     if plane is None:
         raise HTTPException(404, f"Plan '{plan_id}' no encontrado")
 
-    # Serializar el ORM a dict compatible con pdf_export
     from app.slices.planes.schemas import PlanDetail
     detail = PlanDetail.model_validate(plane)
     plan_dict = detail.model_dump()
 
+    settings = get_settings()
+
+    # Generar análisis IA de viabilidad (best-effort: si falla no bloquea el PDF)
+    analisis_ia = None
     try:
-        pdf_bytes = generar_pdf_analisis(plan_dict)
+        analisis_ia = await generar_analisis_viabilidad(
+            plan=plan_dict,
+            http=rag.http,
+            settings=settings,
+        )
+    except Exception as exc:
+        logger.warning("Análisis IA de viabilidad falló para plan %s: %s", plan_id, exc)
+
+    try:
+        pdf_bytes = generar_pdf_analisis(plan_dict, analisis_ia=analisis_ia)
     except Exception as exc:
         logger.exception("Error generando PDF para plan %s", plan_id)
         raise HTTPException(500, f"Error al generar PDF: {exc}") from exc

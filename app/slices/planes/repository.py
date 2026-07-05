@@ -47,6 +47,7 @@ async def list_planes(
     *,
     nivel: str | None = None,
     estado: str | None = None,
+    coleccion_id: str | None = None,
     skip: int = 0,
     limit: int = 50,
 ) -> list[Plane]:
@@ -61,6 +62,8 @@ async def list_planes(
         stmt = stmt.where(Plane.nivel == nivel)
     if estado:
         stmt = stmt.where(Plane.estado == estado)
+    if coleccion_id:
+        stmt = stmt.where(Plane.coleccion_id == coleccion_id)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 

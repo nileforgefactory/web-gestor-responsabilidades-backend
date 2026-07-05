@@ -29,6 +29,7 @@ class Plane(Base):
     __table_args__ = (
         Index("idx_planes_nivel",  "nivel"),
         Index("idx_planes_estado", "estado"),
+        Index("idx_planes_coleccion", "coleccion_id"),
     )
 
     id:             Mapped[str]      = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
@@ -48,6 +49,7 @@ class Plane(Base):
     descripcion:    Mapped[str | None] = mapped_column(Text)
     archivo_nombre: Mapped[str | None] = mapped_column(String(500))
     qdrant_doc_id:  Mapped[str | None] = mapped_column(String(100))
+    coleccion_id:   Mapped[str | None] = mapped_column(String(100), nullable=True, comment="Territorio dueño del plan (igual a usuarios.coleccion_id)")
 
     resp_total:     Mapped[int]   = mapped_column(Integer, default=0)
     leyes_total:    Mapped[int]   = mapped_column(Integer, default=0)
@@ -104,6 +106,7 @@ class PlanActor(Base):
     resp_count:    Mapped[int]        = mapped_column(Integer, default=0)
     nivel:         Mapped[str | None] = mapped_column(String(50))
     sector:        Mapped[str | None] = mapped_column(String(200))
+    origen_contexto: Mapped[str | None] = mapped_column(Text)
     badge_label:   Mapped[str | None] = mapped_column(String(100))
     badge_variant: Mapped[str]        = mapped_column(String(20), default="blue")
     destacado:     Mapped[bool]       = mapped_column(Boolean, default=False)
@@ -142,6 +145,7 @@ class Responsabilidad(Base):
     sector:           Mapped[str | None] = mapped_column(String(200))
     tipo:             Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="P")
     referencia_legal: Mapped[str | None] = mapped_column(String(200))
+    origen_contexto:  Mapped[str | None] = mapped_column(Text)
     icono:            Mapped[str]        = mapped_column(String(10), default="✅")
 
     plan: Mapped[Plane] = relationship(back_populates="responsabilidades")
@@ -161,7 +165,15 @@ class Brecha(Base):
     )
     severidad:        Mapped[str]        = mapped_column(Enum("alta", "media", "baja"), default="alta")
     referencia_legal: Mapped[str | None] = mapped_column(String(200))
+    # Tipo jurídico detallado emitido por el agente (riesgo_disciplinario, desarmonizacion,
+    # vacio_competencia, duplicidad_ilegal). `tipo` queda como categoría agregada para el reporte.
+    tipo_detallado:   Mapped[str | None] = mapped_column(String(50))
+    recomendacion:    Mapped[str | None] = mapped_column(Text)
+    origen_contexto:  Mapped[str | None] = mapped_column(Text)
     icono:            Mapped[str]        = mapped_column(String(10), default="🚨")
+    # ── SGR: clasificación de elegibilidad ──
+    elegibilidad_sgr: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    sector_sgr:       Mapped[str | None]  = mapped_column(String(80), nullable=True)
 
     plan: Mapped[Plane] = relationship(back_populates="brechas")
 
@@ -174,6 +186,7 @@ class MatrizCompetencia(Base):
     id:                   Mapped[int]        = mapped_column(Integer, primary_key=True, autoincrement=True)
     plan_id:              Mapped[str]        = mapped_column(String(36), ForeignKey("planes.id", ondelete="CASCADE"), nullable=False, index=True)
     competencia:          Mapped[str]        = mapped_column(String(300), nullable=False)
+    actor:                Mapped[str | None] = mapped_column(String(300))  # actor titular (clave relacional de la vista "Por Actores")
     ley_base:             Mapped[str | None] = mapped_column(String(200))
     nacion:               Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
     departamento:         Mapped[str]        = mapped_column(Enum("P", "C", "S", "N"), default="N")
@@ -182,6 +195,8 @@ class MatrizCompetencia(Base):
     brecha:               Mapped[str]        = mapped_column(
         Enum("ok", "critica", "duplicidad", "indefinido"), default="ok"
     )
+    sector:               Mapped[str | None] = mapped_column(String(120))
+    origen_contexto:      Mapped[str | None] = mapped_column(Text)
     actores_vinculados:   Mapped[str | None] = mapped_column(Text)  # JSON: [{nombre, nivel, tipo}]
 
     plan: Mapped[Plane] = relationship(back_populates="matriz")
@@ -198,12 +213,14 @@ class PlanNorma(Base):
 
     id:            Mapped[int]        = mapped_column(Integer, primary_key=True, autoincrement=True)
     plan_id:       Mapped[str]        = mapped_column(String(36), ForeignKey("planes.id", ondelete="CASCADE"), nullable=False)
+    id_norma:      Mapped[str | None] = mapped_column(String(100))  # FK relacional snake_case (ej: ley_715_2001)
     norma_codigo:  Mapped[str | None] = mapped_column(String(100))
     titulo:        Mapped[str]        = mapped_column(String(500), nullable=False)
     articulos:     Mapped[str | None] = mapped_column(String(200))
     extracto:      Mapped[str | None] = mapped_column(Text)
+    origen_contexto: Mapped[str | None] = mapped_column(Text)
     tipo:          Mapped[str]        = mapped_column(
-        Enum("ley", "decreto", "resolucion", "circular", "politica", "conpes", "ordenanza", "acuerdo", "otro"), default="ley"
+        Enum("ley", "decreto", "resolucion", "circular", "politica", "conpes", "ordenanza", "acuerdo", "sentencia", "otro"), default="ley"
     )
     vigente:       Mapped[bool]       = mapped_column(Boolean, default=True)
     advertencia:   Mapped[str | None] = mapped_column(String(300))

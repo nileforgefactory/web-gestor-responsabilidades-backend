@@ -112,7 +112,7 @@ async def create_user(
     )
     db.add(user)
     await db.flush()
-    await db.refresh(user, attribute_names=["role"])
+    await db.refresh(user, attribute_names=["role", "creado_en", "actualizado_en"])
     return user
 
 
@@ -134,6 +134,13 @@ async def update_rol(db: AsyncSession, user: User, rol_codigo: str) -> User:
 async def soft_delete(db: AsyncSession, user: User) -> User:
     user.activo = False
     user.eliminado_en = datetime.now(UTC).replace(tzinfo=None)
+    await db.flush()
+    await db.refresh(user, attribute_names=["role"])
+    return user
+
+
+async def set_plan_activo(db: AsyncSession, user: User, plan_id: str) -> User:
+    user.plan_activo_id = plan_id
     await db.flush()
     await db.refresh(user, attribute_names=["role"])
     return user
