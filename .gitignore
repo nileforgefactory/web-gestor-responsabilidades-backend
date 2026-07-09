@@ -5,6 +5,7 @@
 *.pem
 *.key
 credentials.json
+docs/DEPLOY.secrets.md
 
 # Python
 __pycache__/
