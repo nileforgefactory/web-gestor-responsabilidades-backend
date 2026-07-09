@@ -1,23 +1,27 @@
 # Stack compartido para entornos NO productivos (QA + Develop).
 # Se despliega UNA sola vez en Coolify. Los recursos api-nonprod de QA y
-# Develop se conectan a esta misma red externa (shared-nonprod-net) y usan
-# bases/colecciones separadas dentro de estos servicios compartidos.
+# Develop se conectan a la red que Coolify genera para ESTE recurso (nombrada
+# con el UUID del recurso, no "shared-nonprod-net" — Coolify ignora los
+# nombres de red/container_name personalizados en compose y asigna los
+# suyos). Dentro de esa red, cada servicio es alcanzable por su nombre de
+# servicio (mysql, redis, qdrant, ollama) como alias DNS automático.
 #
-# Tras el primer deploy, crear la 2da base de datos manualmente:
-#   docker exec -it shared-nonprod-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" \
+# Cómo obtener el nombre real de la red tras el deploy:
+#   docker inspect <cualquier-contenedor-de-este-stack> \
+#     --format "{{json .NetworkSettings.Networks}}"
+# (el nombre de red = UUID del recurso, visible también en la URL de Coolify)
+#
+# Tras el primer deploy, crear la 2da base de datos manualmente
+# (usa el nombre real del contenedor mysql, ej. mysql-<uuid>-<ts>):
+#   docker exec -it <contenedor_mysql> mysql -uroot -p"$MYSQL_ROOT_PASSWORD" \
 #     -e "CREATE DATABASE IF NOT EXISTS gestor_dev CHARACTER SET utf8mb4; \
 #         GRANT ALL PRIVILEGES ON gestor_dev.* TO 'gestor'@'%'; FLUSH PRIVILEGES;"
 name: gestor-shared-nonprod
-
-networks:
-  default:
-    name: shared-nonprod-net
 
 services:
 
   redis:
     image: redis:7-alpine
-    container_name: shared-nonprod-redis
     expose:
       - "6379"
     volumes:
@@ -31,7 +35,6 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: shared-nonprod-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: gestor_qa
@@ -52,7 +55,6 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    container_name: shared-nonprod-ollama
     volumes:
       - ollama_data:/root/.ollama
     expose:
@@ -67,7 +69,6 @@ services:
 
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: shared-nonprod-qdrant
     expose:
       - "6333"
       - "6334"
@@ -80,7 +81,6 @@ services:
       context: .
       dockerfile: Dockerfile.ollama-pull
     image: gestor-backend-ollama-pull:local
-    container_name: shared-nonprod-ollama-pull
     depends_on:
       ollama:
         condition: service_healthy
