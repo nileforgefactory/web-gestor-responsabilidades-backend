@@ -3,22 +3,12 @@
 # propias variables de entorno (APP_ENV_NAME, MYSQL_DATABASE, REDIS_DB_INDEX,
 # QDRANT_COLLECTION) apuntando al stack compartido docker-compose.shared-nonprod.yml.
 #
-# IMPORTANTE — Coolify NO respeta nombres de red personalizados: cada
-# recurso obtiene su propia red nombrada con el UUID del recurso. Para
-# conectarse a la red del recurso "shared-nonprod", debes definir la
-# variable de entorno SHARED_NETWORK_NAME en ESTE recurso (Coolify →
-# Environment Variables) con ese UUID.
-#
-# Cómo obtenerlo: despliega primero shared-nonprod, luego en el VPS:
-#   docker ps --format "{{.Names}}" | grep mysql
-#   docker inspect <ese_contenedor> --format "{{json .NetworkSettings.Networks}}"
-# El nombre de la red (la clave del JSON) es el UUID a usar en SHARED_NETWORK_NAME.
+# IMPORTANTE — Coolify ignora cualquier "networks:" personalizado en el
+# compose (siempre asigna su propia red por recurso). La conexión compartida
+# se logra desplegando ESTE recurso y docker-compose.shared-nonprod.yml en la
+# MISMA Destination de Coolify (Destinations → crear una, ej. "nonprod-shared",
+# y elegirla al crear/editar ambos recursos). No agregar bloque "networks:" aquí.
 name: gestor-api-nonprod
-
-networks:
-  default:
-    name: ${SHARED_NETWORK_NAME}
-    external: true
 
 services:
 

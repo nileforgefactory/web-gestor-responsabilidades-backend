@@ -1,15 +1,11 @@
 # Stack compartido para entornos NO productivos (QA + Develop).
-# Se despliega UNA sola vez en Coolify. Los recursos api-nonprod de QA y
-# Develop se conectan a la red que Coolify genera para ESTE recurso (nombrada
-# con el UUID del recurso, no "shared-nonprod-net" — Coolify ignora los
-# nombres de red/container_name personalizados en compose y asigna los
-# suyos). Dentro de esa red, cada servicio es alcanzable por su nombre de
-# servicio (mysql, redis, qdrant, ollama) como alias DNS automático.
-#
-# Cómo obtener el nombre real de la red tras el deploy:
-#   docker inspect <cualquier-contenedor-de-este-stack> \
-#     --format "{{json .NetworkSettings.Networks}}"
-# (el nombre de red = UUID del recurso, visible también en la URL de Coolify)
+# Se despliega UNA sola vez en Coolify, en la Destination "nonprod-shared"
+# (Coolify → Destinations). Los recursos api-nonprod de QA y Develop deben
+# desplegarse en esa MISMA Destination para quedar en la misma red — Coolify
+# ignora cualquier "networks:" personalizado en el compose, la única forma
+# real de compartir red entre recursos es a través de la Destination elegida
+# al crear/editar cada recurso. Dentro de esa red, cada servicio es
+# alcanzable por su nombre de servicio (mysql, redis, qdrant, ollama).
 #
 # Tras el primer deploy, crear la 2da base de datos manualmente
 # (usa el nombre real del contenedor mysql, ej. mysql-<uuid>-<ts>):
