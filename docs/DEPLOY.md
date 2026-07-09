@@ -79,11 +79,37 @@ Viven en:
 5. **Domains for api**: `https://dev-api.nilesfactory.com`
 6. Deploy → Terminal → `alembic upgrade head`
 
-## 6. Frontends QA y Dev
+## 6. QA — frontend-qa
 
-**frontend-qa**: Environment `staging`, repo frontend branch `staging`, `/docker-compose.yml`, `BACKEND_URL=https://qa-api.nilesfactory.com`, dominio `qa-app.nilesfactory.com`.
+1. Environment `staging` → **+ New Resource → Docker Compose**
+2. Repo `web-gestor-responsabilidades-frontend`, branch `staging`
+3. **Build Pack**: `Docker Compose` (cambiarlo, no lo dejes en Nixpacks)
+4. **Docker Compose Location**: `/docker-compose.yml`
+5. Environment Variables:
+   ```
+   BACKEND_URL=https://qa-api.nilesfactory.com
+   ```
+6. **Domains for frontend**: `https://qa-app.nilesfactory.com`
+7. Deploy
+8. Verificar en `https://qa-app.nilesfactory.com` con `Ctrl+Shift+R` (caché limpia)
 
-**frontend-dev**: Environment `development`, repo frontend branch `develop`, `/docker-compose.yml`, `BACKEND_URL=https://dev-api.nilesfactory.com`, dominio `dev-app.nilesfactory.com`.
+## 7. Develop — frontend-dev
+
+Igual que el anterior, pero:
+
+1. Environment `development` → **+ New Resource → Docker Compose**
+2. Repo frontend, branch `develop`
+3. **Docker Compose Location**: `/docker-compose.yml`
+4. Environment Variables:
+   ```
+   BACKEND_URL=https://dev-api.nilesfactory.com
+   ```
+5. **Domains for frontend**: `https://dev-app.nilesfactory.com`
+6. Deploy
+
+## 8. Verificación final
+
+Login de prueba en cada entorno con su `AUTH_BOOTSTRAP_ADMIN_EMAIL`/`PASSWORD` correspondiente (QA y Dev tienen credenciales propias, distintas entre sí y de producción — ver `DEPLOY.secrets.md`). Si algo falla (login pegado a `localhost:8000`, error de puerto ya usado, etc.), revisar primero la sección "Gotchas" más abajo — son problemas que ya nos ocurrieron y tienen solución conocida.
 
 ---
 
