@@ -175,6 +175,7 @@ class RagService:
         chunk_strategy: str | None = None,
         extraction_method: str | None = None,
         territorio: list[str | None] | None = None,
+        extra_payload: dict | None = None,
     ) -> IngestTextResponse:
         """
         Fragmenta contenido, genera embeddings e indexa en Qdrant.
@@ -217,6 +218,7 @@ class RagService:
                 title=title or document_id,
                 source_filename=source_filename or "",
                 territorio=territorio,
+                extra_payload=extra_payload,
             )
 
         inserted = await _with_retries(upsert, attempts=5)
@@ -304,6 +306,7 @@ class RagService:
                     text=str(point.payload.get("text", "")),
                     title=str(title_v) if title_v is not None else None,
                     source_filename=str(src_v) if src_v else None,
+                    payload=dict(point.payload),
                 )
             )
         return RagSearchResponse(query=query, chunks=chunks)

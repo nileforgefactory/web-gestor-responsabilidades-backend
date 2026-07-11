@@ -87,6 +87,9 @@ class Settings(BaseSettings):
     bulk_max_file_bytes: int = 52_428_800  # 50 MiB por archivo
     bulk_ingest_concurrency: int = 2
 
+    # Carga del Excel GESPROY/DNP de proyectos SGR (seed de duplicidad, admin)
+    duplicidad_seed_max_file_bytes: int = 104_857_600  # 100 MiB
+
     # Límite de caracteres para cargue de texto libre (evaluación inversa, texto
     # directo en base de conocimiento, extracción de documentos) — fuerza
     # depuración de la información en vez de pegar informes completos. Ajustable

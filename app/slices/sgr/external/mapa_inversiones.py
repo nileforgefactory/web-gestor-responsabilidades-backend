@@ -133,12 +133,19 @@ async def indexar_en_qdrant(
         texto = _texto_para_vectorizar(p)
         if not texto.strip():
             continue
+        bpin = p.get("bpin") or f"sin-bpin-{hash(texto) & 0xFFFFFFFF}"
         try:
             await rag.ingest_text(
-                text=texto,
-                metadata={
+                collection_id=_COLECCION_SGR,
+                document_id=str(bpin),
+                content=texto,
+                chunk_size=700,
+                chunk_overlap=100,
+                title=p.get("nombre", ""),
+                source_filename="datos_gov_co",
+                replace_existing=True,
+                extra_payload={
                     "source": "datos_gov_co",
-                    "collection": _COLECCION_SGR,
                     "nombre": p.get("nombre", ""),
                     "bpin": p.get("bpin", ""),
                     "municipio_codigo": divipola,
@@ -146,7 +153,6 @@ async def indexar_en_qdrant(
                     "sector": p.get("sector", ""),
                     "fuente": p.get("fuente", "SGR"),
                 },
-                collection_name=_COLECCION_SGR,
             )
             indexados += 1
         except Exception as exc:

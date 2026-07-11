@@ -68,6 +68,7 @@ class RagRepository:
         title: str | None,
         source_filename: str | None,
         territorio: list[str | None] | None = None,
+        extra_payload: dict | None = None,
     ) -> int:
         points: list[models.PointStruct] = []
         for text_chunk, vector in zip(chunks, vectors, strict=True):
@@ -84,6 +85,8 @@ class RagRepository:
             }
             if territorio is not None:
                 payload["territorio"] = territorio
+            if extra_payload:
+                payload.update(extra_payload)
             points.append(
                 models.PointStruct(
                     id=point_id,

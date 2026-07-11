@@ -286,3 +286,23 @@ class EvaluarProyectoResponse(BaseModel):
     procesado_en: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ── M6: Carga de matriz de proyectos SGR (seed de duplicidad) ─────────────────
+
+EstadoSeedTarea = Literal["idle", "running", "completed", "cancelled", "error"]
+FaseSeed = Literal["extrayendo", "leyendo_filas", "indexando"]
+
+
+class DuplicidadSeedEstado(BaseModel):
+    """Estado de la carga en background del Excel GESPROY/DNP de proyectos SGR."""
+
+    estado: EstadoSeedTarea
+    fase: FaseSeed | None = None
+    iniciado_en: datetime | None = None
+    finalizado_en: datetime | None = None
+    filas_leidas: int = 0
+    filas_filtradas: int = 0
+    proyectos_indexados: int = 0
+    proyectos_fallidos: int = 0
+    error: str | None = None
