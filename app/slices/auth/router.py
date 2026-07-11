@@ -11,7 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.openapi import RESPUESTAS_MYSQL
+from app.dependencies import get_rag_service
 from app.slices.auth.dependencies import AdminUser, CurrentUser
+from app.slices.common.divipola_search import buscar_municipios
+from app.slices.rag.service import RagService
 from app.slices.auth.mappers import to_me_response, to_user_summary
 from app.slices.auth.permissions import (
     ensure_can_manage_user,
@@ -172,6 +175,24 @@ async def list_users(
     return [to_user_summary(u) for u in users]
 
 
+@router.get(
+    "/territorio/municipios",
+    summary="Buscar municipios en línea (DIVIPOLA + categoría SGR)",
+    description=(
+        "Busca departamento/municipio en línea contra el dataset DIVIPOLA de "
+        "datos.gov.co y enriquece cada resultado con la categoría municipal "
+        "(Ley 617/2000) del catálogo embebido, para asignarla al crear un usuario."
+    ),
+    responses=RESPUESTAS_AUTH,
+)
+async def buscar_municipios_endpoint(
+    admin: AdminUser,
+    q: str = Query(..., min_length=2, description="Texto de búsqueda (municipio o departamento)"),
+    rag: RagService = Depends(get_rag_service),
+) -> list[dict]:
+    return await buscar_municipios(q, http=rag.http)
+
+
 @router.post(
     "/users",
     response_model=UserSummary,
@@ -202,6 +223,8 @@ async def create_user_endpoint(
             password_hash=hash_password(payload.password),
             rol_codigo=payload.rol,
             territorio_raw=territorio,
+            divipola=payload.divipola,
+            categoria_municipio=payload.categoria_municipio,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

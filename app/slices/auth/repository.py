@@ -91,6 +91,8 @@ async def create_user(
     password_hash: str,
     rol_codigo: str,
     territorio_raw: list[str | None] | str,
+    divipola: str | None = None,
+    categoria_municipio: str | None = None,
 ) -> User:
     codigo = rol_codigo.strip().lower()
     if codigo not in _ASSIGNABLE_ROLES:
@@ -109,6 +111,8 @@ async def create_user(
         territorio=territorio_json,
         coleccion_id=coleccion_id,
         activo=True,
+        divipola=divipola,
+        categoria_municipio=categoria_municipio if categoria_municipio in ("5", "6") else None,
     )
     db.add(user)
     await db.flush()
