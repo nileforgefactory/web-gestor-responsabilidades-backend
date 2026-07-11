@@ -1,0 +1,5517 @@
+{
+  "AMAZONAS|LETICIA": {
+    "categoria": "5",
+    "icld_miles": 17590479,
+    "poblacion_dane": 54110
+  },
+  "AMAZONAS|PUERTO NARINO": {
+    "categoria": "6",
+    "icld_miles": 2861936,
+    "poblacion_dane": 10772
+  },
+  "ANTIOQUIA|ABEJORRAL": {
+    "categoria": "6",
+    "icld_miles": 5631358,
+    "poblacion_dane": 21297
+  },
+  "ANTIOQUIA|ABRIAQUI": {
+    "categoria": "6",
+    "icld_miles": 1169326,
+    "poblacion_dane": 2841
+  },
+  "ANTIOQUIA|ALEJANDRIA": {
+    "categoria": "6",
+    "icld_miles": 1925897,
+    "poblacion_dane": 4912
+  },
+  "ANTIOQUIA|AMAGA": {
+    "categoria": "6",
+    "icld_miles": 14245684,
+    "poblacion_dane": 32142
+  },
+  "ANTIOQUIA|AMALFI": {
+    "categoria": "6",
+    "icld_miles": 7542354,
+    "poblacion_dane": 27637
+  },
+  "ANTIOQUIA|ANDES": {
+    "categoria": "6",
+    "icld_miles": 13372121,
+    "poblacion_dane": 45796
+  },
+  "ANTIOQUIA|ANGELOPOLIS": {
+    "categoria": "5",
+    "icld_miles": 2942337,
+    "poblacion_dane": 6082
+  },
+  "ANTIOQUIA|ANGOSTURA": {
+    "categoria": "6",
+    "icld_miles": 4537210,
+    "poblacion_dane": 12005
+  },
+  "ANTIOQUIA|ANORI": {
+    "categoria": "6",
+    "icld_miles": 5700654,
+    "poblacion_dane": 19527
+  },
+  "ANTIOQUIA|ANZA": {
+    "categoria": "6",
+    "icld_miles": 2631249,
+    "poblacion_dane": 7433
+  },
+  "ANTIOQUIA|APARTADO": {
+    "categoria": "3",
+    "icld_miles": 40785837,
+    "poblacion_dane": 130362
+  },
+  "ANTIOQUIA|ARBOLETES": {
+    "categoria": "6",
+    "icld_miles": 6677395,
+    "poblacion_dane": 31853
+  },
+  "ANTIOQUIA|ARGELIA": {
+    "categoria": "6",
+    "icld_miles": 1824344,
+    "poblacion_dane": 7975
+  },
+  "ANTIOQUIA|ARMENIA": {
+    "categoria": "6",
+    "icld_miles": 1601413,
+    "poblacion_dane": 5358
+  },
+  "ANTIOQUIA|BAGRE": {
+    "categoria": "6",
+    "icld_miles": 9188836,
+    "poblacion_dane": 55845
+  },
+  "ANTIOQUIA|BARBOSA": {
+    "categoria": "4",
+    "icld_miles": 31462716,
+    "poblacion_dane": 55649
+  },
+  "ANTIOQUIA|BELLO": {
+    "categoria": "1",
+    "icld_miles": 232082505,
+    "poblacion_dane": 561955
+  },
+  "ANTIOQUIA|BELMIRA": {
+    "categoria": "6",
+    "icld_miles": 2608727,
+    "poblacion_dane": 6356
+  },
+  "ANTIOQUIA|BETANIA": {
+    "categoria": "6",
+    "icld_miles": 2910979,
+    "poblacion_dane": 10808
+  },
+  "ANTIOQUIA|BETULIA": {
+    "categoria": "6",
+    "icld_miles": 4383730,
+    "poblacion_dane": 16485
+  },
+  "ANTIOQUIA|BOLIVAR": {
+    "categoria": "6",
+    "icld_miles": 8572411,
+    "poblacion_dane": 27458
+  },
+  "ANTIOQUIA|BRICENO": {
+    "categoria": "6",
+    "icld_miles": 9354634,
+    "poblacion_dane": 8473
+  },
+  "ANTIOQUIA|BURITICA": {
+    "categoria": "6",
+    "icld_miles": 8581428,
+    "poblacion_dane": 9925
+  },
+  "ANTIOQUIA|CACERES": {
+    "categoria": "6",
+    "icld_miles": 7409220,
+    "poblacion_dane": 30925
+  },
+  "ANTIOQUIA|CAICEDO": {
+    "categoria": "6",
+    "icld_miles": 3040373,
+    "poblacion_dane": 8798
+  },
+  "ANTIOQUIA|CALDAS": {
+    "categoria": "3",
+    "icld_miles": 40501435,
+    "poblacion_dane": 85385
+  },
+  "ANTIOQUIA|CAMPAMENTO": {
+    "categoria": "6",
+    "icld_miles": 3098742,
+    "poblacion_dane": 9671
+  },
+  "ANTIOQUIA|CANASGORDAS": {
+    "categoria": "6",
+    "icld_miles": 10473361,
+    "poblacion_dane": 16256
+  },
+  "ANTIOQUIA|CARACOLI": {
+    "categoria": "6",
+    "icld_miles": 1770297,
+    "poblacion_dane": 4781
+  },
+  "ANTIOQUIA|CARAMANTA": {
+    "categoria": "6",
+    "icld_miles": 1515964,
+    "poblacion_dane": 4907
+  },
+  "ANTIOQUIA|CAREPA": {
+    "categoria": "6",
+    "icld_miles": 12892192,
+    "poblacion_dane": 51777
+  },
+  "ANTIOQUIA|CARMEN DE VIBORAL": {
+    "categoria": "3",
+    "icld_miles": 45833224,
+    "poblacion_dane": 63761
+  },
+  "ANTIOQUIA|CAROLINA DEL PRINCIPE": {
+    "categoria": "6",
+    "icld_miles": 2057270,
+    "poblacion_dane": 4174
+  },
+  "ANTIOQUIA|CAUCASIA": {
+    "categoria": "5",
+    "icld_miles": 25061579,
+    "poblacion_dane": 97025
+  },
+  "ANTIOQUIA|CEJA": {
+    "categoria": "2",
+    "icld_miles": 59476616,
+    "poblacion_dane": 69831
+  },
+  "ANTIOQUIA|CHIGORODO": {
+    "categoria": "6",
+    "icld_miles": 16310347,
+    "poblacion_dane": 61741
+  },
+  "ANTIOQUIA|CISNEROS": {
+    "categoria": "6",
+    "icld_miles": 4768287,
+    "poblacion_dane": 10326
+  },
+  "ANTIOQUIA|COCORNA": {
+    "categoria": "6",
+    "icld_miles": 4201639,
+    "poblacion_dane": 16390
+  },
+  "ANTIOQUIA|CONCEPCION": {
+    "categoria": "6",
+    "icld_miles": 1974737,
+    "poblacion_dane": 5020
+  },
+  "ANTIOQUIA|CONCORDIA": {
+    "categoria": "6",
+    "icld_miles": 5802113,
+    "poblacion_dane": 22540
+  },
+  "ANTIOQUIA|COPACABANA": {
+    "categoria": "3",
+    "icld_miles": 47900760,
+    "poblacion_dane": 83559
+  },
+  "ANTIOQUIA|DABEIBA": {
+    "categoria": "6",
+    "icld_miles": 14851715,
+    "poblacion_dane": 24377
+  },
+  "ANTIOQUIA|DON MATIAS": {
+    "categoria": "6",
+    "icld_miles": 10709644,
+    "poblacion_dane": 20198
+  },
+  "ANTIOQUIA|EBEJICO": {
+    "categoria": "6",
+    "icld_miles": 3141688,
+    "poblacion_dane": 12713
+  },
+  "ANTIOQUIA|ENTRERRIOS": {
+    "categoria": "6",
+    "icld_miles": 10257583,
+    "poblacion_dane": 11982
+  },
+  "ANTIOQUIA|ENVIGADO": {
+    "categoria": "1",
+    "icld_miles": 360270493,
+    "poblacion_dane": 246327
+  },
+  "ANTIOQUIA|ESTRELLA": {
+    "categoria": "2",
+    "icld_miles": 101613267,
+    "poblacion_dane": 76971
+  },
+  "ANTIOQUIA|FREDONIA": {
+    "categoria": "6",
+    "icld_miles": 8086716,
+    "poblacion_dane": 25764
+  },
+  "ANTIOQUIA|FRONTINO": {
+    "categoria": "6",
+    "icld_miles": 4979069,
+    "poblacion_dane": 21737
+  },
+  "ANTIOQUIA|GIRALDO": {
+    "categoria": "6",
+    "icld_miles": 6822556,
+    "poblacion_dane": 5899
+  },
+  "ANTIOQUIA|GIRARDOTA": {
+    "categoria": "2",
+    "icld_miles": 60868117,
+    "poblacion_dane": 55483
+  },
+  "ANTIOQUIA|GOMEZ PLATA": {
+    "categoria": "6",
+    "icld_miles": 4440304,
+    "poblacion_dane": 10300
+  },
+  "ANTIOQUIA|GRANADA": {
+    "categoria": "6",
+    "icld_miles": 2752845,
+    "poblacion_dane": 10700
+  },
+  "ANTIOQUIA|GUADALUPE": {
+    "categoria": "6",
+    "icld_miles": 2878758,
+    "poblacion_dane": 6926
+  },
+  "ANTIOQUIA|GUARNE": {
+    "categoria": "2",
+    "icld_miles": 69970090,
+    "poblacion_dane": 59226
+  },
+  "ANTIOQUIA|GUATAPE": {
+    "categoria": "6",
+    "icld_miles": 10259834,
+    "poblacion_dane": 8945
+  },
+  "ANTIOQUIA|HELICONIA": {
+    "categoria": "6",
+    "icld_miles": 2629031,
+    "poblacion_dane": 5682
+  },
+  "ANTIOQUIA|HISPANIA": {
+    "categoria": "6",
+    "icld_miles": 2778495,
+    "poblacion_dane": 5790
+  },
+  "ANTIOQUIA|ITAGUI": {
+    "categoria": "1",
+    "icld_miles": 360834740,
+    "poblacion_dane": 296953
+  },
+  "ANTIOQUIA|ITUANGO": {
+    "categoria": "6",
+    "icld_miles": 5804640,
+    "poblacion_dane": 28634
+  },
+  "ANTIOQUIA|JARDIN": {
+    "categoria": "6",
+    "icld_miles": 6710035,
+    "poblacion_dane": 15400
+  },
+  "ANTIOQUIA|JERICO": {
+    "categoria": "6",
+    "icld_miles": 6673707,
+    "poblacion_dane": 14344
+  },
+  "ANTIOQUIA|LIBORINA": {
+    "categoria": "6",
+    "icld_miles": 2648516,
+    "poblacion_dane": 10556
+  },
+  "ANTIOQUIA|MACEO": {
+    "categoria": "6",
+    "icld_miles": 6408124,
+    "poblacion_dane": 8646
+  },
+  "ANTIOQUIA|MARINILLA": {
+    "categoria": "4",
+    "icld_miles": 34298813,
+    "poblacion_dane": 69343
+  },
+  "ANTIOQUIA|MEDELLIN": {
+    "categoria": "0",
+    "icld_miles": 2147483647,
+    "poblacion_dane": 2595300
+  },
+  "ANTIOQUIA|MONTEBELLO": {
+    "categoria": "6",
+    "icld_miles": 2478622,
+    "poblacion_dane": 6973
+  },
+  "ANTIOQUIA|MURINDO": {
+    "categoria": "6",
+    "icld_miles": 6070907,
+    "poblacion_dane": 5263
+  },
+  "ANTIOQUIA|MUTATA": {
+    "categoria": "6",
+    "icld_miles": 6868437,
+    "poblacion_dane": 14904
+  },
+  "ANTIOQUIA|NARINO": {
+    "categoria": "6",
+    "icld_miles": 2574600,
+    "poblacion_dane": 10723
+  },
+  "ANTIOQUIA|NECHI": {
+    "categoria": "6",
+    "icld_miles": 5857062,
+    "poblacion_dane": 27705
+  },
+  "ANTIOQUIA|NECOCLI": {
+    "categoria": "6",
+    "icld_miles": 11461993,
+    "poblacion_dane": 45151
+  },
+  "ANTIOQUIA|OLAYA": {
+    "categoria": "6",
+    "icld_miles": 1867807,
+    "poblacion_dane": 3292
+  },
+  "ANTIOQUIA|PENOL": {
+    "categoria": "6",
+    "icld_miles": 12037557,
+    "poblacion_dane": 22410
+  },
+  "ANTIOQUIA|PEQUE": {
+    "categoria": "6",
+    "icld_miles": 2716488,
+    "poblacion_dane": 8585
+  },
+  "ANTIOQUIA|PINTADA": {
+    "categoria": "6",
+    "icld_miles": 5786721,
+    "poblacion_dane": 8571
+  },
+  "ANTIOQUIA|PUEBLORRICO": {
+    "categoria": "6",
+    "icld_miles": 2581260,
+    "poblacion_dane": 9124
+  },
+  "ANTIOQUIA|PUERTO BERRIO": {
+    "categoria": "6",
+    "icld_miles": 11877406,
+    "poblacion_dane": 41857
+  },
+  "ANTIOQUIA|PUERTO NARE (LA MAGDALENA)": {
+    "categoria": "6",
+    "icld_miles": 9757929,
+    "poblacion_dane": 15124
+  },
+  "ANTIOQUIA|PUERTO TRIUNFO": {
+    "categoria": "6",
+    "icld_miles": 9443671,
+    "poblacion_dane": 19387
+  },
+  "ANTIOQUIA|REMEDIOS": {
+    "categoria": "6",
+    "icld_miles": 13406636,
+    "poblacion_dane": 30277
+  },
+  "ANTIOQUIA|RETIRO": {
+    "categoria": "3",
+    "icld_miles": 52997970,
+    "poblacion_dane": 25227
+  },
+  "ANTIOQUIA|RIONEGRO": {
+    "categoria": "1",
+    "icld_miles": 295301951,
+    "poblacion_dane": 145704
+  },
+  "ANTIOQUIA|SABANALARGA": {
+    "categoria": "6",
+    "icld_miles": 2645794,
+    "poblacion_dane": 9592
+  },
+  "ANTIOQUIA|SABANETA": {
+    "categoria": "1",
+    "icld_miles": 209985711,
+    "poblacion_dane": 88966
+  },
+  "ANTIOQUIA|SALGAR": {
+    "categoria": "6",
+    "icld_miles": 5592761,
+    "poblacion_dane": 19153
+  },
+  "ANTIOQUIA|SAN ANDRES": {
+    "categoria": "6",
+    "icld_miles": 3306323,
+    "poblacion_dane": 7598
+  },
+  "ANTIOQUIA|SAN CARLOS": {
+    "categoria": "6",
+    "icld_miles": 8039703,
+    "poblacion_dane": 16838
+  },
+  "ANTIOQUIA|SAN FRANCISCO": {
+    "categoria": "6",
+    "icld_miles": 2343308,
+    "poblacion_dane": 5945
+  },
+  "ANTIOQUIA|SAN JERONIMO": {
+    "categoria": "6",
+    "icld_miles": 13780133,
+    "poblacion_dane": 16368
+  },
+  "ANTIOQUIA|SAN JOSE DE LA MONTANA": {
+    "categoria": "6",
+    "icld_miles": 1869511,
+    "poblacion_dane": 3867
+  },
+  "ANTIOQUIA|SAN JUAN DE URABA": {
+    "categoria": "6",
+    "icld_miles": 7445012,
+    "poblacion_dane": 21540
+  },
+  "ANTIOQUIA|SAN LUIS": {
+    "categoria": "6",
+    "icld_miles": 4285218,
+    "poblacion_dane": 13690
+  },
+  "ANTIOQUIA|SAN PEDRO": {
+    "categoria": "6",
+    "icld_miles": 15093027,
+    "poblacion_dane": 23409
+  },
+  "ANTIOQUIA|SAN PEDRO DE URABA": {
+    "categoria": "6",
+    "icld_miles": 6460132,
+    "poblacion_dane": 32895
+  },
+  "ANTIOQUIA|SAN RAFAEL": {
+    "categoria": "6",
+    "icld_miles": 5522554,
+    "poblacion_dane": 16489
+  },
+  "ANTIOQUIA|SAN ROQUE": {
+    "categoria": "6",
+    "icld_miles": 5606528,
+    "poblacion_dane": 22775
+  },
+  "ANTIOQUIA|SAN VICENTE": {
+    "categoria": "6",
+    "icld_miles": 10164526,
+    "poblacion_dane": 23349
+  },
+  "ANTIOQUIA|SANTA BARBARA": {
+    "categoria": "6",
+    "icld_miles": 4561962,
+    "poblacion_dane": 27647
+  },
+  "ANTIOQUIA|SANTA FE DE ANTIOQUIA": {
+    "categoria": "5",
+    "icld_miles": 25065252,
+    "poblacion_dane": 27831
+  },
+  "ANTIOQUIA|SANTA ROSA DE OSOS": {
+    "categoria": "5",
+    "icld_miles": 16745094,
+    "poblacion_dane": 38748
+  },
+  "ANTIOQUIA|SANTO DOMINGO": {
+    "categoria": "6",
+    "icld_miles": 4996914,
+    "poblacion_dane": 12970
+  },
+  "ANTIOQUIA|SANTUARIO": {
+    "categoria": "6",
+    "icld_miles": 15667542,
+    "poblacion_dane": 37801
+  },
+  "ANTIOQUIA|SEGOVIA": {
+    "categoria": "2",
+    "icld_miles": 58519229,
+    "poblacion_dane": 40602
+  },
+  "ANTIOQUIA|SONSON": {
+    "categoria": "5",
+    "icld_miles": 25390617,
+    "poblacion_dane": 38203
+  },
+  "ANTIOQUIA|SOPETRAN": {
+    "categoria": "6",
+    "icld_miles": 11651294,
+    "poblacion_dane": 15949
+  },
+  "ANTIOQUIA|TAMESIS": {
+    "categoria": "6",
+    "icld_miles": 6644205,
+    "poblacion_dane": 17029
+  },
+  "ANTIOQUIA|TARAZA": {
+    "categoria": "6",
+    "icld_miles": 5102994,
+    "poblacion_dane": 28874
+  },
+  "ANTIOQUIA|TARSO": {
+    "categoria": "6",
+    "icld_miles": 4615826,
+    "poblacion_dane": 6510
+  },
+  "ANTIOQUIA|TITIRIBI": {
+    "categoria": "6",
+    "icld_miles": 6954189,
+    "poblacion_dane": 11259
+  },
+  "ANTIOQUIA|TOLEDO": {
+    "categoria": "6",
+    "icld_miles": 3812168,
+    "poblacion_dane": 5225
+  },
+  "ANTIOQUIA|TURBO": {
+    "categoria": "5",
+    "icld_miles": 26317488,
+    "poblacion_dane": 133430
+  },
+  "ANTIOQUIA|UNION": {
+    "categoria": "6",
+    "icld_miles": 11828139,
+    "poblacion_dane": 22870
+  },
+  "ANTIOQUIA|URAMITA": {
+    "categoria": "6",
+    "icld_miles": 3856671,
+    "poblacion_dane": 7211
+  },
+  "ANTIOQUIA|URRAO": {
+    "categoria": "6",
+    "icld_miles": 6888907,
+    "poblacion_dane": 31885
+  },
+  "ANTIOQUIA|VALDIVIA": {
+    "categoria": "6",
+    "icld_miles": 4742716,
+    "poblacion_dane": 14596
+  },
+  "ANTIOQUIA|VALPARAISO": {
+    "categoria": "6",
+    "icld_miles": 3118882,
+    "poblacion_dane": 6876
+  },
+  "ANTIOQUIA|VEGACHI": {
+    "categoria": "6",
+    "icld_miles": 6190670,
+    "poblacion_dane": 12453
+  },
+  "ANTIOQUIA|VENECIA": {
+    "categoria": "6",
+    "icld_miles": 8068549,
+    "poblacion_dane": 12208
+  },
+  "ANTIOQUIA|VIGIA DEL FUERTE": {
+    "categoria": "6",
+    "icld_miles": 7104786,
+    "poblacion_dane": 9681
+  },
+  "ANTIOQUIA|YALI": {
+    "categoria": "6",
+    "icld_miles": 3322784,
+    "poblacion_dane": 8026
+  },
+  "ANTIOQUIA|YARUMAL": {
+    "categoria": "5",
+    "icld_miles": 18051879,
+    "poblacion_dane": 44102
+  },
+  "ANTIOQUIA|YOLOMBO": {
+    "categoria": "6",
+    "icld_miles": 6052964,
+    "poblacion_dane": 23825
+  },
+  "ANTIOQUIA|YONDO (CASABE)": {
+    "categoria": "6",
+    "icld_miles": 16916340,
+    "poblacion_dane": 20572
+  },
+  "ANTIOQUIA|ZARAGOZA": {
+    "categoria": "6",
+    "icld_miles": 9790991,
+    "poblacion_dane": 25989
+  },
+  "ARAUCA|ARAUCA": {
+    "categoria": "4",
+    "icld_miles": 26521886,
+    "poblacion_dane": 99393
+  },
+  "ARAUCA|ARAUQUITA": {
+    "categoria": "6",
+    "icld_miles": 11401796,
+    "poblacion_dane": 62499
+  },
+  "ARAUCA|CRAVO NORTE": {
+    "categoria": "6",
+    "icld_miles": 2352791,
+    "poblacion_dane": 4510
+  },
+  "ARAUCA|FORTUL": {
+    "categoria": "6",
+    "icld_miles": 4221701,
+    "poblacion_dane": 23867
+  },
+  "ARAUCA|PUERTO RONDON": {
+    "categoria": "6",
+    "icld_miles": 2311770,
+    "poblacion_dane": 5186
+  },
+  "ARAUCA|SARAVENA": {
+    "categoria": "6",
+    "icld_miles": 10833245,
+    "poblacion_dane": 64236
+  },
+  "ARAUCA|TAME": {
+    "categoria": "6",
+    "icld_miles": 11272516,
+    "poblacion_dane": 53406
+  },
+  "ARCHIPIELAGO DE SAN ANDRES|PROVIDENCIA": {
+    "categoria": "5",
+    "icld_miles": 65985119,
+    "poblacion_dane": 5936
+  },
+  "ATLANTICO|BARANOA": {
+    "categoria": "6",
+    "icld_miles": 14233895,
+    "poblacion_dane": 69143
+  },
+  "ATLANTICO|BARRANQUILLA, DISTRITO ESPECIAL, INDUSTRIAL Y PORTUARIO": {
+    "categoria": "0",
+    "icld_miles": 1344318365,
+    "poblacion_dane": 1323551
+  },
+  "ATLANTICO|CAMPO DE LA CRUZ": {
+    "categoria": "6",
+    "icld_miles": 4343666,
+    "poblacion_dane": 24850
+  },
+  "ATLANTICO|CANDELARIA": {
+    "categoria": "6",
+    "icld_miles": 3587977,
+    "poblacion_dane": 17595
+  },
+  "ATLANTICO|GALAPA": {
+    "categoria": "4",
+    "icld_miles": 29038549,
+    "poblacion_dane": 68011
+  },
+  "ATLANTICO|JUAN DE ACOSTA": {
+    "categoria": "6",
+    "icld_miles": 6407465,
+    "poblacion_dane": 23357
+  },
+  "ATLANTICO|LURUACO": {
+    "categoria": "6",
+    "icld_miles": 3451152,
+    "poblacion_dane": 30955
+  },
+  "ATLANTICO|MALAMBO": {
+    "categoria": "3",
+    "icld_miles": 42927897,
+    "poblacion_dane": 142728
+  },
+  "ATLANTICO|MANATI": {
+    "categoria": "6",
+    "icld_miles": 3132011,
+    "poblacion_dane": 21704
+  },
+  "ATLANTICO|PALMAR DE VARELA": {
+    "categoria": "6",
+    "icld_miles": 18792009,
+    "poblacion_dane": 32082
+  },
+  "ATLANTICO|PIOJO": {
+    "categoria": "6",
+    "icld_miles": 2864361,
+    "poblacion_dane": 7284
+  },
+  "ATLANTICO|POLO NUEVO": {
+    "categoria": "6",
+    "icld_miles": 2576507,
+    "poblacion_dane": 20038
+  },
+  "ATLANTICO|PONEDERA": {
+    "categoria": "6",
+    "icld_miles": 5818093,
+    "poblacion_dane": 26463
+  },
+  "ATLANTICO|PUERTO COLOMBIA": {
+    "categoria": "2",
+    "icld_miles": 60121192,
+    "poblacion_dane": 54983
+  },
+  "ATLANTICO|REPELON": {
+    "categoria": "6",
+    "icld_miles": 3921128,
+    "poblacion_dane": 28780
+  },
+  "ATLANTICO|SABANAGRANDE": {
+    "categoria": "6",
+    "icld_miles": 4155409,
+    "poblacion_dane": 36003
+  },
+  "ATLANTICO|SABANALARGA": {
+    "categoria": "5",
+    "icld_miles": 19223921,
+    "poblacion_dane": 103394
+  },
+  "ATLANTICO|SANTA LUCIA": {
+    "categoria": "6",
+    "icld_miles": 2643140,
+    "poblacion_dane": 17782
+  },
+  "ATLANTICO|SANTO TOMAS": {
+    "categoria": "6",
+    "icld_miles": 4875760,
+    "poblacion_dane": 33058
+  },
+  "ATLANTICO|SOLEDAD": {
+    "categoria": "2",
+    "icld_miles": 102624887,
+    "poblacion_dane": 676014
+  },
+  "ATLANTICO|SUAN": {
+    "categoria": "6",
+    "icld_miles": 2062896,
+    "poblacion_dane": 13085
+  },
+  "ATLANTICO|TUBARA": {
+    "categoria": "6",
+    "icld_miles": 4583507,
+    "poblacion_dane": 19132
+  },
+  "ATLANTICO|USIACURI": {
+    "categoria": "6",
+    "icld_miles": 2662472,
+    "poblacion_dane": 13573
+  },
+  "BOLIVAR|ACHI": {
+    "categoria": "6",
+    "icld_miles": 3477869,
+    "poblacion_dane": 26995
+  },
+  "BOLIVAR|ALTOS DEL ROSARIO": {
+    "categoria": "6",
+    "icld_miles": 3794233,
+    "poblacion_dane": 12060
+  },
+  "BOLIVAR|ARENAL": {
+    "categoria": "6",
+    "icld_miles": 2702035,
+    "poblacion_dane": 7937
+  },
+  "BOLIVAR|ARJONA": {
+    "categoria": "6",
+    "icld_miles": 9942070,
+    "poblacion_dane": 75429
+  },
+  "BOLIVAR|ARROYOHONDO": {
+    "categoria": "6",
+    "icld_miles": 4480509,
+    "poblacion_dane": 8762
+  },
+  "BOLIVAR|BARRANCO DE LOBA": {
+    "categoria": "6",
+    "icld_miles": 3778149,
+    "poblacion_dane": 16181
+  },
+  "BOLIVAR|CALAMAR": {
+    "categoria": "6",
+    "icld_miles": 4266968,
+    "poblacion_dane": 24575
+  },
+  "BOLIVAR|CANTAGALLO": {
+    "categoria": "6",
+    "icld_miles": 6062295,
+    "poblacion_dane": 9019
+  },
+  "BOLIVAR|CARMEN DE BOLIVAR": {
+    "categoria": "6",
+    "icld_miles": 8357306,
+    "poblacion_dane": 75923
+  },
+  "BOLIVAR|CARTAGENA DE INDIAS, DISTRITO TURISTICO Y CULTURAL": {
+    "categoria": "0",
+    "icld_miles": 939489118,
+    "poblacion_dane": 1052015
+  },
+  "BOLIVAR|CICUCO": {
+    "categoria": "6",
+    "icld_miles": 3910672,
+    "poblacion_dane": 14652
+  },
+  "BOLIVAR|CLEMENCIA": {
+    "categoria": "6",
+    "icld_miles": 7401479,
+    "poblacion_dane": 16081
+  },
+  "BOLIVAR|CORDOBA": {
+    "categoria": "6",
+    "icld_miles": 3430609,
+    "poblacion_dane": 17408
+  },
+  "BOLIVAR|GUAMO": {
+    "categoria": "6",
+    "icld_miles": 2160729,
+    "poblacion_dane": 9404
+  },
+  "BOLIVAR|HATILLO DE LOBA": {
+    "categoria": "6",
+    "icld_miles": 3763630,
+    "poblacion_dane": 13176
+  },
+  "BOLIVAR|MAGANGUE": {
+    "categoria": "5",
+    "icld_miles": 19134463,
+    "poblacion_dane": 145035
+  },
+  "BOLIVAR|MAHATES": {
+    "categoria": "6",
+    "icld_miles": 2468626,
+    "poblacion_dane": 30104
+  },
+  "BOLIVAR|MARGARITA": {
+    "categoria": "6",
+    "icld_miles": 3834632,
+    "poblacion_dane": 11710
+  },
+  "BOLIVAR|MARIA LA BAJA": {
+    "categoria": "6",
+    "icld_miles": 2668677,
+    "poblacion_dane": 50463
+  },
+  "BOLIVAR|MONTECRISTO": {
+    "categoria": "6",
+    "icld_miles": 5407242,
+    "poblacion_dane": 18243
+  },
+  "BOLIVAR|MORALES": {
+    "categoria": "6",
+    "icld_miles": 6060114,
+    "poblacion_dane": 24596
+  },
+  "BOLIVAR|NOROSI": {
+    "categoria": "6",
+    "icld_miles": 4335226,
+    "poblacion_dane": 10758
+  },
+  "BOLIVAR|PENON": {
+    "categoria": "6",
+    "icld_miles": 2824385,
+    "poblacion_dane": 8060
+  },
+  "BOLIVAR|PINILLOS": {
+    "categoria": "6",
+    "icld_miles": 3276957,
+    "poblacion_dane": 26467
+  },
+  "BOLIVAR|REGIDOR": {
+    "categoria": "6",
+    "icld_miles": 2170620,
+    "poblacion_dane": 7502
+  },
+  "BOLIVAR|RIO VIEJO": {
+    "categoria": "6",
+    "icld_miles": 4346004,
+    "poblacion_dane": 11436
+  },
+  "BOLIVAR|SAN CRISTOBAL": {
+    "categoria": "6",
+    "icld_miles": 2924242,
+    "poblacion_dane": 8676
+  },
+  "BOLIVAR|SAN ESTANISLAO": {
+    "categoria": "6",
+    "icld_miles": 3518589,
+    "poblacion_dane": 19816
+  },
+  "BOLIVAR|SAN FERNANDO": {
+    "categoria": "6",
+    "icld_miles": 3845128,
+    "poblacion_dane": 13725
+  },
+  "BOLIVAR|SAN JACINTO": {
+    "categoria": "6",
+    "icld_miles": 5119170,
+    "poblacion_dane": 25702
+  },
+  "BOLIVAR|SAN JACINTO DEL CAUCA": {
+    "categoria": "6",
+    "icld_miles": 4259040,
+    "poblacion_dane": 11024
+  },
+  "BOLIVAR|SAN JUAN NEPOMUCENO": {
+    "categoria": "6",
+    "icld_miles": 4680817,
+    "poblacion_dane": 40020
+  },
+  "BOLIVAR|SAN MARTIN DE LOBA": {
+    "categoria": "6",
+    "icld_miles": 2924242,
+    "poblacion_dane": 15943
+  },
+  "BOLIVAR|SAN PABLO": {
+    "categoria": "6",
+    "icld_miles": 4840706,
+    "poblacion_dane": 29547
+  },
+  "BOLIVAR|SANTA CATALINA": {
+    "categoria": "6",
+    "icld_miles": 5617355,
+    "poblacion_dane": 15889
+  },
+  "BOLIVAR|SANTA CRUZ DE MOMPOX": {
+    "categoria": "6",
+    "icld_miles": 5748048,
+    "poblacion_dane": 48385
+  },
+  "BOLIVAR|SANTA ROSA": {
+    "categoria": "6",
+    "icld_miles": 8197804,
+    "poblacion_dane": 22736
+  },
+  "BOLIVAR|SANTA ROSA DEL SUR": {
+    "categoria": "6",
+    "icld_miles": 8890738,
+    "poblacion_dane": 35854
+  },
+  "BOLIVAR|SIMITI": {
+    "categoria": "6",
+    "icld_miles": 3921605,
+    "poblacion_dane": 19902
+  },
+  "BOLIVAR|SOPLAVIENTO": {
+    "categoria": "6",
+    "icld_miles": 1944430,
+    "poblacion_dane": 11585
+  },
+  "BOLIVAR|TALAIGUA NUEVO": {
+    "categoria": "6",
+    "icld_miles": 3104496,
+    "poblacion_dane": 13906
+  },
+  "BOLIVAR|TIQUISIO": {
+    "categoria": "6",
+    "icld_miles": 3678372,
+    "poblacion_dane": 19500
+  },
+  "BOLIVAR|TURBACO": {
+    "categoria": "3",
+    "icld_miles": 43077363,
+    "poblacion_dane": 114716
+  },
+  "BOLIVAR|TURBANA": {
+    "categoria": "6",
+    "icld_miles": 6357717,
+    "poblacion_dane": 17776
+  },
+  "BOLIVAR|VILLANUEVA": {
+    "categoria": "6",
+    "icld_miles": 2752637,
+    "poblacion_dane": 25795
+  },
+  "BOLIVAR|ZAMBRANO": {
+    "categoria": "6",
+    "icld_miles": 3803882,
+    "poblacion_dane": 12795
+  },
+  "BOYACA|ALMEIDA": {
+    "categoria": "6",
+    "icld_miles": 1036682,
+    "poblacion_dane": 2030
+  },
+  "BOYACA|AQUITANIA": {
+    "categoria": "6",
+    "icld_miles": 4600464,
+    "poblacion_dane": 16319
+  },
+  "BOYACA|ARCABUCO": {
+    "categoria": "6",
+    "icld_miles": 2687055,
+    "poblacion_dane": 6265
+  },
+  "BOYACA|BELEN": {
+    "categoria": "6",
+    "icld_miles": 3251746,
+    "poblacion_dane": 7914
+  },
+  "BOYACA|BERBEO": {
+    "categoria": "6",
+    "icld_miles": 1268675,
+    "poblacion_dane": 1664
+  },
+  "BOYACA|BETEITIVA": {
+    "categoria": "6",
+    "icld_miles": 1129234,
+    "poblacion_dane": 2047
+  },
+  "BOYACA|BOAVITA": {
+    "categoria": "6",
+    "icld_miles": 2214757,
+    "poblacion_dane": 5368
+  },
+  "BOYACA|BOYACA": {
+    "categoria": "6",
+    "icld_miles": 1814059,
+    "poblacion_dane": 5392
+  },
+  "BOYACA|BRICENO": {
+    "categoria": "6",
+    "icld_miles": 1762955,
+    "poblacion_dane": 2297
+  },
+  "BOYACA|BUENAVISTA": {
+    "categoria": "6",
+    "icld_miles": 1599765,
+    "poblacion_dane": 4626
+  },
+  "BOYACA|BUSBANZA": {
+    "categoria": "6",
+    "icld_miles": 1359520,
+    "poblacion_dane": 1202
+  },
+  "BOYACA|CALDAS": {
+    "categoria": "6",
+    "icld_miles": 1903102,
+    "poblacion_dane": 3296
+  },
+  "BOYACA|CAMPOHERMOSO": {
+    "categoria": "6",
+    "icld_miles": 2087538,
+    "poblacion_dane": 3259
+  },
+  "BOYACA|CAPILLA": {
+    "categoria": "6",
+    "icld_miles": 1223889,
+    "poblacion_dane": 2821
+  },
+  "BOYACA|CERINZA": {
+    "categoria": "6",
+    "icld_miles": 1046585,
+    "poblacion_dane": 3912
+  },
+  "BOYACA|CHINAVITA": {
+    "categoria": "6",
+    "icld_miles": 1565086,
+    "poblacion_dane": 3373
+  },
+  "BOYACA|CHIQUINQUIRA": {
+    "categoria": "5",
+    "icld_miles": 19284931,
+    "poblacion_dane": 60138
+  },
+  "BOYACA|CHIQUIZA": {
+    "categoria": "6",
+    "icld_miles": 2160859,
+    "poblacion_dane": 4971
+  },
+  "BOYACA|CHISCAS": {
+    "categoria": "6",
+    "icld_miles": 2300903,
+    "poblacion_dane": 4155
+  },
+  "BOYACA|CHITA": {
+    "categoria": "6",
+    "icld_miles": 4747897,
+    "poblacion_dane": 8317
+  },
+  "BOYACA|CHITARAQUE": {
+    "categoria": "6",
+    "icld_miles": 2521576,
+    "poblacion_dane": 6185
+  },
+  "BOYACA|CHIVATA": {
+    "categoria": "6",
+    "icld_miles": 2714912,
+    "poblacion_dane": 2960
+  },
+  "BOYACA|CHIVOR": {
+    "categoria": "6",
+    "icld_miles": 2252696,
+    "poblacion_dane": 2640
+  },
+  "BOYACA|CIENEGA": {
+    "categoria": "6",
+    "icld_miles": 1964308,
+    "poblacion_dane": 4894
+  },
+  "BOYACA|COCUY": {
+    "categoria": "6",
+    "icld_miles": 3157819,
+    "poblacion_dane": 4377
+  },
+  "BOYACA|COMBITA": {
+    "categoria": "6",
+    "icld_miles": 5356735,
+    "poblacion_dane": 13896
+  },
+  "BOYACA|COPER": {
+    "categoria": "6",
+    "icld_miles": 1296059,
+    "poblacion_dane": 3798
+  },
+  "BOYACA|CORRALES": {
+    "categoria": "6",
+    "icld_miles": 3730492,
+    "poblacion_dane": 2662
+  },
+  "BOYACA|COVARACHIA": {
+    "categoria": "6",
+    "icld_miles": 2509434,
+    "poblacion_dane": 2904
+  },
+  "BOYACA|CUBARA": {
+    "categoria": "6",
+    "icld_miles": 6513189,
+    "poblacion_dane": 11175
+  },
+  "BOYACA|CUCAITA": {
+    "categoria": "6",
+    "icld_miles": 2680407,
+    "poblacion_dane": 3980
+  },
+  "BOYACA|CUITIVA": {
+    "categoria": "6",
+    "icld_miles": 1409415,
+    "poblacion_dane": 1899
+  },
+  "BOYACA|DUITAMA": {
+    "categoria": "3",
+    "icld_miles": 47054715,
+    "poblacion_dane": 131591
+  },
+  "BOYACA|ESPINO": {
+    "categoria": "6",
+    "icld_miles": 1388368,
+    "poblacion_dane": 3217
+  },
+  "BOYACA|FIRAVITOBA": {
+    "categoria": "6",
+    "icld_miles": 2805499,
+    "poblacion_dane": 7109
+  },
+  "BOYACA|FLORESTA": {
+    "categoria": "6",
+    "icld_miles": 1619924,
+    "poblacion_dane": 3422
+  },
+  "BOYACA|GACHANTIVA": {
+    "categoria": "6",
+    "icld_miles": 1801228,
+    "poblacion_dane": 2939
+  },
+  "BOYACA|GAMEZA": {
+    "categoria": "6",
+    "icld_miles": 1735381,
+    "poblacion_dane": 5112
+  },
+  "BOYACA|GARAGOA": {
+    "categoria": "6",
+    "icld_miles": 5381389,
+    "poblacion_dane": 19208
+  },
+  "BOYACA|GUACAMAYAS": {
+    "categoria": "6",
+    "icld_miles": 1448353,
+    "poblacion_dane": 1952
+  },
+  "BOYACA|GUATEQUE": {
+    "categoria": "6",
+    "icld_miles": 5552163,
+    "poblacion_dane": 11400
+  },
+  "BOYACA|GUAYATA": {
+    "categoria": "6",
+    "icld_miles": 1712337,
+    "poblacion_dane": 3501
+  },
+  "BOYACA|GUICAN": {
+    "categoria": "6",
+    "icld_miles": 2868399,
+    "poblacion_dane": 4492
+  },
+  "BOYACA|IZA": {
+    "categoria": "6",
+    "icld_miles": 2326128,
+    "poblacion_dane": 2078
+  },
+  "BOYACA|JENESANO": {
+    "categoria": "6",
+    "icld_miles": 3958647,
+    "poblacion_dane": 7666
+  },
+  "BOYACA|JERICO": {
+    "categoria": "6",
+    "icld_miles": 2281504,
+    "poblacion_dane": 4133
+  },
+  "BOYACA|LABRANZAGRANDE": {
+    "categoria": "6",
+    "icld_miles": 3324597,
+    "poblacion_dane": 3685
+  },
+  "BOYACA|MACANAL": {
+    "categoria": "6",
+    "icld_miles": 2426857,
+    "poblacion_dane": 5295
+  },
+  "BOYACA|MARIPI": {
+    "categoria": "6",
+    "icld_miles": 3613027,
+    "poblacion_dane": 6016
+  },
+  "BOYACA|MIRAFLORES": {
+    "categoria": "6",
+    "icld_miles": 2887030,
+    "poblacion_dane": 9400
+  },
+  "BOYACA|MONGUA": {
+    "categoria": "6",
+    "icld_miles": 2246800,
+    "poblacion_dane": 4886
+  },
+  "BOYACA|MONGUI": {
+    "categoria": "6",
+    "icld_miles": 1752320,
+    "poblacion_dane": 4453
+  },
+  "BOYACA|MONIQUIRA": {
+    "categoria": "6",
+    "icld_miles": 8664269,
+    "poblacion_dane": 24083
+  },
+  "BOYACA|MOTAVITA": {
+    "categoria": "6",
+    "icld_miles": 3090479,
+    "poblacion_dane": 5946
+  },
+  "BOYACA|MUZO": {
+    "categoria": "6",
+    "icld_miles": 5562841,
+    "poblacion_dane": 9016
+  },
+  "BOYACA|NOBSA": {
+    "categoria": "5",
+    "icld_miles": 27872987,
+    "poblacion_dane": 17167
+  },
+  "BOYACA|NUEVO COLON": {
+    "categoria": "6",
+    "icld_miles": 2154416,
+    "poblacion_dane": 5431
+  },
+  "BOYACA|OICATA": {
+    "categoria": "6",
+    "icld_miles": 2471209,
+    "poblacion_dane": 3007
+  },
+  "BOYACA|OTANCHE": {
+    "categoria": "6",
+    "icld_miles": 2884252,
+    "poblacion_dane": 8541
+  },
+  "BOYACA|PACHAVITA": {
+    "categoria": "6",
+    "icld_miles": 1293953,
+    "poblacion_dane": 2573
+  },
+  "BOYACA|PAEZ": {
+    "categoria": "6",
+    "icld_miles": 1755091,
+    "poblacion_dane": 3433
+  },
+  "BOYACA|PAIPA": {
+    "categoria": "5",
+    "icld_miles": 22370868,
+    "poblacion_dane": 36078
+  },
+  "BOYACA|PAJARITO": {
+    "categoria": "6",
+    "icld_miles": 1784477,
+    "poblacion_dane": 2527
+  },
+  "BOYACA|PANQUEBA": {
+    "categoria": "6",
+    "icld_miles": 1579810,
+    "poblacion_dane": 1794
+  },
+  "BOYACA|PAUNA": {
+    "categoria": "6",
+    "icld_miles": 3062697,
+    "poblacion_dane": 7546
+  },
+  "BOYACA|PAYA": {
+    "categoria": "6",
+    "icld_miles": 4618005,
+    "poblacion_dane": 2763
+  },
+  "BOYACA|PAZ DEL RIO": {
+    "categoria": "6",
+    "icld_miles": 2013465,
+    "poblacion_dane": 4472
+  },
+  "BOYACA|PESCA": {
+    "categoria": "6",
+    "icld_miles": 2695932,
+    "poblacion_dane": 7116
+  },
+  "BOYACA|PISBA": {
+    "categoria": "6",
+    "icld_miles": 2270869,
+    "poblacion_dane": 1859
+  },
+  "BOYACA|PUERTO BOYACA": {
+    "categoria": "2",
+    "icld_miles": 81784250,
+    "poblacion_dane": 50160
+  },
+  "BOYACA|QUIPAMA": {
+    "categoria": "6",
+    "icld_miles": 3974707,
+    "poblacion_dane": 5209
+  },
+  "BOYACA|RAMIRIQUI": {
+    "categoria": "6",
+    "icld_miles": 4470563,
+    "poblacion_dane": 10542
+  },
+  "BOYACA|RAQUIRA": {
+    "categoria": "6",
+    "icld_miles": 3069596,
+    "poblacion_dane": 8441
+  },
+  "BOYACA|RONDON": {
+    "categoria": "6",
+    "icld_miles": 1220113,
+    "poblacion_dane": 2513
+  },
+  "BOYACA|SABOYA": {
+    "categoria": "6",
+    "icld_miles": 3304246,
+    "poblacion_dane": 14471
+  },
+  "BOYACA|SACHICA": {
+    "categoria": "6",
+    "icld_miles": 2485526,
+    "poblacion_dane": 5868
+  },
+  "BOYACA|SAMACA": {
+    "categoria": "6",
+    "icld_miles": 7603203,
+    "poblacion_dane": 19645
+  },
+  "BOYACA|SAN EDUARDO": {
+    "categoria": "6",
+    "icld_miles": 1245585,
+    "poblacion_dane": 1755
+  },
+  "BOYACA|SAN JOSE DE PARE": {
+    "categoria": "6",
+    "icld_miles": 2487781,
+    "poblacion_dane": 5274
+  },
+  "BOYACA|SAN LUIS DE GACENO": {
+    "categoria": "6",
+    "icld_miles": 2920987,
+    "poblacion_dane": 5810
+  },
+  "BOYACA|SAN MATEO": {
+    "categoria": "6",
+    "icld_miles": 1835153,
+    "poblacion_dane": 3526
+  },
+  "BOYACA|SAN MIGUEL DE SEMA": {
+    "categoria": "6",
+    "icld_miles": 2854053,
+    "poblacion_dane": 3167
+  },
+  "BOYACA|SAN PABLO DE BORBUR": {
+    "categoria": "6",
+    "icld_miles": 3078620,
+    "poblacion_dane": 7027
+  },
+  "BOYACA|SANTA MARIA": {
+    "categoria": "6",
+    "icld_miles": 4394885,
+    "poblacion_dane": 3687
+  },
+  "BOYACA|SANTA ROSA DE VITERBO": {
+    "categoria": "6",
+    "icld_miles": 3016704,
+    "poblacion_dane": 13989
+  },
+  "BOYACA|SANTA SOFIA": {
+    "categoria": "6",
+    "icld_miles": 1253688,
+    "poblacion_dane": 3374
+  },
+  "BOYACA|SANTANA": {
+    "categoria": "6",
+    "icld_miles": 2933486,
+    "poblacion_dane": 8088
+  },
+  "BOYACA|SATIVANORTE": {
+    "categoria": "6",
+    "icld_miles": 1846395,
+    "poblacion_dane": 2293
+  },
+  "BOYACA|SATIVASUR": {
+    "categoria": "6",
+    "icld_miles": 1032191,
+    "poblacion_dane": 1150
+  },
+  "BOYACA|SIACHOQUE": {
+    "categoria": "6",
+    "icld_miles": 3365077,
+    "poblacion_dane": 7124
+  },
+  "BOYACA|SOATA": {
+    "categoria": "6",
+    "icld_miles": 3254958,
+    "poblacion_dane": 9423
+  },
+  "BOYACA|SOCHA": {
+    "categoria": "6",
+    "icld_miles": 3872738,
+    "poblacion_dane": 8432
+  },
+  "BOYACA|SOCOTA": {
+    "categoria": "6",
+    "icld_miles": 3313002,
+    "poblacion_dane": 7627
+  },
+  "BOYACA|SOGAMOSO": {
+    "categoria": "2",
+    "icld_miles": 63104627,
+    "poblacion_dane": 136391
+  },
+  "BOYACA|SOMONDOCO": {
+    "categoria": "6",
+    "icld_miles": 1256559,
+    "poblacion_dane": 3048
+  },
+  "BOYACA|SORA": {
+    "categoria": "6",
+    "icld_miles": 1642480,
+    "poblacion_dane": 3210
+  },
+  "BOYACA|SORACA": {
+    "categoria": "6",
+    "icld_miles": 2930825,
+    "poblacion_dane": 6352
+  },
+  "BOYACA|SOTAQUIRA": {
+    "categoria": "6",
+    "icld_miles": 5499204,
+    "poblacion_dane": 8710
+  },
+  "BOYACA|SUSACON": {
+    "categoria": "6",
+    "icld_miles": 1404392,
+    "poblacion_dane": 2830
+  },
+  "BOYACA|SUTAMARCHAN": {
+    "categoria": "6",
+    "icld_miles": 2620155,
+    "poblacion_dane": 6532
+  },
+  "BOYACA|SUTATENZA": {
+    "categoria": "6",
+    "icld_miles": 2181040,
+    "poblacion_dane": 4469
+  },
+  "BOYACA|TASCO": {
+    "categoria": "6",
+    "icld_miles": 1952087,
+    "poblacion_dane": 6170
+  },
+  "BOYACA|TENZA": {
+    "categoria": "6",
+    "icld_miles": 1636605,
+    "poblacion_dane": 4064
+  },
+  "BOYACA|TIBANA": {
+    "categoria": "6",
+    "icld_miles": 2832201,
+    "poblacion_dane": 9575
+  },
+  "BOYACA|TIBASOSA": {
+    "categoria": "5",
+    "icld_miles": 17557798,
+    "poblacion_dane": 13925
+  },
+  "BOYACA|TINJACA": {
+    "categoria": "6",
+    "icld_miles": 2209745,
+    "poblacion_dane": 3496
+  },
+  "BOYACA|TIPACOQUE": {
+    "categoria": "6",
+    "icld_miles": 1969576,
+    "poblacion_dane": 3495
+  },
+  "BOYACA|TOCA": {
+    "categoria": "6",
+    "icld_miles": 3201952,
+    "poblacion_dane": 9329
+  },
+  "BOYACA|TOGUI": {
+    "categoria": "6",
+    "icld_miles": 2778365,
+    "poblacion_dane": 4582
+  },
+  "BOYACA|TOPAGA": {
+    "categoria": "6",
+    "icld_miles": 1785679,
+    "poblacion_dane": 3832
+  },
+  "BOYACA|TOTA": {
+    "categoria": "6",
+    "icld_miles": 2592826,
+    "poblacion_dane": 5502
+  },
+  "BOYACA|TUNJA": {
+    "categoria": "1",
+    "icld_miles": 146135128,
+    "poblacion_dane": 185469
+  },
+  "BOYACA|TUNUNGUA": {
+    "categoria": "6",
+    "icld_miles": 1374540,
+    "poblacion_dane": 1627
+  },
+  "BOYACA|TURMEQUE": {
+    "categoria": "6",
+    "icld_miles": 1858141,
+    "poblacion_dane": 6455
+  },
+  "BOYACA|TUTA": {
+    "categoria": "6",
+    "icld_miles": 10509812,
+    "poblacion_dane": 8839
+  },
+  "BOYACA|TUTASA": {
+    "categoria": "6",
+    "icld_miles": 1136194,
+    "poblacion_dane": 2142
+  },
+  "BOYACA|UMBITA": {
+    "categoria": "6",
+    "icld_miles": 1942779,
+    "poblacion_dane": 7954
+  },
+  "BOYACA|UVITA": {
+    "categoria": "6",
+    "icld_miles": 1715190,
+    "poblacion_dane": 3184
+  },
+  "BOYACA|VENTAQUEMADA": {
+    "categoria": "6",
+    "icld_miles": 5097443,
+    "poblacion_dane": 16856
+  },
+  "BOYACA|VICTORIA": {
+    "categoria": "6",
+    "icld_miles": 1348446,
+    "poblacion_dane": 1177
+  },
+  "BOYACA|VILLA DE LEIVA": {
+    "categoria": "6",
+    "icld_miles": 12537831,
+    "poblacion_dane": 17466
+  },
+  "BOYACA|VIRACACHA": {
+    "categoria": "6",
+    "icld_miles": 1415814,
+    "poblacion_dane": 2985
+  },
+  "BOYACA|ZETAQUIRA": {
+    "categoria": "6",
+    "icld_miles": 2722184,
+    "poblacion_dane": 4896
+  },
+  "CALDAS|AGUADAS": {
+    "categoria": "6",
+    "icld_miles": 6102943,
+    "poblacion_dane": 23403
+  },
+  "CALDAS|ANSERMA DE LOS CABALLEROS": {
+    "categoria": "6",
+    "icld_miles": 8401062,
+    "poblacion_dane": 37366
+  },
+  "CALDAS|ARANZAZU": {
+    "categoria": "6",
+    "icld_miles": 3169520,
+    "poblacion_dane": 10792
+  },
+  "CALDAS|BELALCAZAR": {
+    "categoria": "6",
+    "icld_miles": 4114181,
+    "poblacion_dane": 10894
+  },
+  "CALDAS|CHINCHINA": {
+    "categoria": "5",
+    "icld_miles": 19905345,
+    "poblacion_dane": 53317
+  },
+  "CALDAS|DORADA": {
+    "categoria": "5",
+    "icld_miles": 24590029,
+    "poblacion_dane": 75043
+  },
+  "CALDAS|FILADELFIA": {
+    "categoria": "6",
+    "icld_miles": 2516614,
+    "poblacion_dane": 11662
+  },
+  "CALDAS|MANIZALES": {
+    "categoria": "1",
+    "icld_miles": 268192764,
+    "poblacion_dane": 454494
+  },
+  "CALDAS|MANZANARES": {
+    "categoria": "6",
+    "icld_miles": 4502142,
+    "poblacion_dane": 18655
+  },
+  "CALDAS|MARMATO": {
+    "categoria": "6",
+    "icld_miles": 4919463,
+    "poblacion_dane": 9255
+  },
+  "CALDAS|MARQUETALIA": {
+    "categoria": "6",
+    "icld_miles": 2940569,
+    "poblacion_dane": 13627
+  },
+  "CALDAS|MARULANDA": {
+    "categoria": "6",
+    "icld_miles": 1068722,
+    "poblacion_dane": 2700
+  },
+  "CALDAS|MERCED": {
+    "categoria": "6",
+    "icld_miles": 1501849,
+    "poblacion_dane": 6268
+  },
+  "CALDAS|NEIRA": {
+    "categoria": "6",
+    "icld_miles": 7610256,
+    "poblacion_dane": 21543
+  },
+  "CALDAS|NORCASIA": {
+    "categoria": "6",
+    "icld_miles": 3628159,
+    "poblacion_dane": 6123
+  },
+  "CALDAS|PACORA": {
+    "categoria": "6",
+    "icld_miles": 3376030,
+    "poblacion_dane": 15680
+  },
+  "CALDAS|PALESTINA": {
+    "categoria": "6",
+    "icld_miles": 6014117,
+    "poblacion_dane": 15978
+  },
+  "CALDAS|PENSILVANIA": {
+    "categoria": "6",
+    "icld_miles": 4304379,
+    "poblacion_dane": 20242
+  },
+  "CALDAS|RIOSUCIO": {
+    "categoria": "6",
+    "icld_miles": 7969730,
+    "poblacion_dane": 53746
+  },
+  "CALDAS|RISARALDA": {
+    "categoria": "6",
+    "icld_miles": 3176120,
+    "poblacion_dane": 11267
+  },
+  "CALDAS|SALAMINA": {
+    "categoria": "6",
+    "icld_miles": 4236107,
+    "poblacion_dane": 19959
+  },
+  "CALDAS|SAMANA": {
+    "categoria": "6",
+    "icld_miles": 3379181,
+    "poblacion_dane": 21292
+  },
+  "CALDAS|SAN JOSE": {
+    "categoria": "6",
+    "icld_miles": 2370396,
+    "poblacion_dane": 4904
+  },
+  "CALDAS|SUPIA": {
+    "categoria": "6",
+    "icld_miles": 6241896,
+    "poblacion_dane": 29856
+  },
+  "CALDAS|VICTORIA": {
+    "categoria": "6",
+    "icld_miles": 3797556,
+    "poblacion_dane": 10462
+  },
+  "CALDAS|VILLAMARIA": {
+    "categoria": "5",
+    "icld_miles": 20299156,
+    "poblacion_dane": 68601
+  },
+  "CALDAS|VITERBO": {
+    "categoria": "6",
+    "icld_miles": 4446912,
+    "poblacion_dane": 13155
+  },
+  "CAPITAL|BOGOTA D.C.": {
+    "categoria": "0",
+    "icld_miles": 2147483647,
+    "poblacion_dane": 7907281
+  },
+  "CAQUETA|ALBANIA": {
+    "categoria": "6",
+    "icld_miles": 2043308,
+    "poblacion_dane": 4775
+  },
+  "CAQUETA|BELEN ANDAQUIES": {
+    "categoria": "6",
+    "icld_miles": 3791152,
+    "poblacion_dane": 11467
+  },
+  "CAQUETA|CARTAGENA DEL CHAIRA": {
+    "categoria": "6",
+    "icld_miles": 7446670,
+    "poblacion_dane": 32611
+  },
+  "CAQUETA|CURILLO": {
+    "categoria": "6",
+    "icld_miles": 2863287,
+    "poblacion_dane": 8051
+  },
+  "CAQUETA|DONCELLO": {
+    "categoria": "6",
+    "icld_miles": 5221304,
+    "poblacion_dane": 20195
+  },
+  "CAQUETA|FLORENCIA": {
+    "categoria": "2",
+    "icld_miles": 62298780,
+    "poblacion_dane": 177946
+  },
+  "CAQUETA|MILAN": {
+    "categoria": "6",
+    "icld_miles": 4424745,
+    "poblacion_dane": 10256
+  },
+  "CAQUETA|MONTANITA": {
+    "categoria": "6",
+    "icld_miles": 4229689,
+    "poblacion_dane": 15503
+  },
+  "CAQUETA|MORELIA": {
+    "categoria": "6",
+    "icld_miles": 2258332,
+    "poblacion_dane": 3905
+  },
+  "CAQUETA|PAUJIL": {
+    "categoria": "6",
+    "icld_miles": 3527471,
+    "poblacion_dane": 19137
+  },
+  "CAQUETA|PUERTO RICO": {
+    "categoria": "6",
+    "icld_miles": 5171258,
+    "poblacion_dane": 27683
+  },
+  "CAQUETA|SAN JOSE DE FRAGUA": {
+    "categoria": "6",
+    "icld_miles": 3704971,
+    "poblacion_dane": 13711
+  },
+  "CAQUETA|SAN VICENTE DEL CAGUAN": {
+    "categoria": "6",
+    "icld_miles": 10576080,
+    "poblacion_dane": 54150
+  },
+  "CAQUETA|SOLANO": {
+    "categoria": "6",
+    "icld_miles": 3604261,
+    "poblacion_dane": 12020
+  },
+  "CAQUETA|SOLITA1": {
+    "categoria": "6",
+    "icld_miles": 3123603,
+    "poblacion_dane": 6352
+  },
+  "CAQUETA|VALPARAISO": {
+    "categoria": "6",
+    "icld_miles": 2842359,
+    "poblacion_dane": 7291
+  },
+  "CASANARE|AGUAZUL": {
+    "categoria": "4",
+    "icld_miles": 29922332,
+    "poblacion_dane": 40528
+  },
+  "CASANARE|CHAMEZA": {
+    "categoria": "6",
+    "icld_miles": 1721846,
+    "poblacion_dane": 2504
+  },
+  "CASANARE|HATO COROZAL": {
+    "categoria": "6",
+    "icld_miles": 3071274,
+    "poblacion_dane": 13627
+  },
+  "CASANARE|MANI": {
+    "categoria": "6",
+    "icld_miles": 11465193,
+    "poblacion_dane": 18038
+  },
+  "CASANARE|MONTERREY": {
+    "categoria": "6",
+    "icld_miles": 8759731,
+    "poblacion_dane": 19180
+  },
+  "CASANARE|NUNCHIA": {
+    "categoria": "6",
+    "icld_miles": 4748837,
+    "poblacion_dane": 9809
+  },
+  "CASANARE|OROCUE": {
+    "categoria": "6",
+    "icld_miles": 16289811,
+    "poblacion_dane": 13844
+  },
+  "CASANARE|PAZ DE ARIPORO": {
+    "categoria": "6",
+    "icld_miles": 12900772,
+    "poblacion_dane": 40354
+  },
+  "CASANARE|PORE": {
+    "categoria": "6",
+    "icld_miles": 9559312,
+    "poblacion_dane": 12681
+  },
+  "CASANARE|RECETOR": {
+    "categoria": "6",
+    "icld_miles": 2263136,
+    "poblacion_dane": 1569
+  },
+  "CASANARE|SABANALARGA": {
+    "categoria": "6",
+    "icld_miles": 2395496,
+    "poblacion_dane": 3995
+  },
+  "CASANARE|SACAMA": {
+    "categoria": "6",
+    "icld_miles": 2344991,
+    "poblacion_dane": 2333
+  },
+  "CASANARE|SALINA": {
+    "categoria": "6",
+    "icld_miles": 1638466,
+    "poblacion_dane": 1410
+  },
+  "CASANARE|SAN LUIS DE PALENQUE": {
+    "categoria": "6",
+    "icld_miles": 5499065,
+    "poblacion_dane": 8877
+  },
+  "CASANARE|TAMARA": {
+    "categoria": "6",
+    "icld_miles": 3198467,
+    "poblacion_dane": 6992
+  },
+  "CASANARE|TAURAMENA": {
+    "categoria": "5",
+    "icld_miles": 26730152,
+    "poblacion_dane": 26381
+  },
+  "CASANARE|TRINIDAD": {
+    "categoria": "6",
+    "icld_miles": 5965123,
+    "poblacion_dane": 14910
+  },
+  "CASANARE|VILLANUEVA": {
+    "categoria": "5",
+    "icld_miles": 27822552,
+    "poblacion_dane": 39610
+  },
+  "CASANARE|YOPAL": {
+    "categoria": "1",
+    "icld_miles": 139458344,
+    "poblacion_dane": 191133
+  },
+  "CAUCA|ALMAGUER": {
+    "categoria": "6",
+    "icld_miles": 3869827,
+    "poblacion_dane": 19450
+  },
+  "CAUCA|ARGELIA": {
+    "categoria": "6",
+    "icld_miles": 5202920,
+    "poblacion_dane": 27823
+  },
+  "CAUCA|BALBOA": {
+    "categoria": "6",
+    "icld_miles": 3570745,
+    "poblacion_dane": 22395
+  },
+  "CAUCA|BOLIVAR": {
+    "categoria": "6",
+    "icld_miles": 4046791,
+    "poblacion_dane": 39359
+  },
+  "CAUCA|BUENOS AIRES": {
+    "categoria": "6",
+    "icld_miles": 3705559,
+    "poblacion_dane": 35168
+  },
+  "CAUCA|CAJIBIO": {
+    "categoria": "6",
+    "icld_miles": 6806520,
+    "poblacion_dane": 44527
+  },
+  "CAUCA|CALDONO": {
+    "categoria": "6",
+    "icld_miles": 2885524,
+    "poblacion_dane": 42815
+  },
+  "CAUCA|CALOTO": {
+    "categoria": "6",
+    "icld_miles": 18589491,
+    "poblacion_dane": 31272
+  },
+  "CAUCA|CORINTO": {
+    "categoria": "6",
+    "icld_miles": 5171075,
+    "poblacion_dane": 26810
+  },
+  "CAUCA|FLORENCIA": {
+    "categoria": "6",
+    "icld_miles": 1363015,
+    "poblacion_dane": 5442
+  },
+  "CAUCA|GUACHENE": {
+    "categoria": "5",
+    "icld_miles": 19236004,
+    "poblacion_dane": 20401
+  },
+  "CAUCA|GUAPI": {
+    "categoria": "6",
+    "icld_miles": 6477778,
+    "poblacion_dane": 29207
+  },
+  "CAUCA|INZA": {
+    "categoria": "6",
+    "icld_miles": 7432975,
+    "poblacion_dane": 30794
+  },
+  "CAUCA|JAMBALO": {
+    "categoria": "6",
+    "icld_miles": 2462889,
+    "poblacion_dane": 19101
+  },
+  "CAUCA|LOPEZ DE MICAY": {
+    "categoria": "6",
+    "icld_miles": 12806401,
+    "poblacion_dane": 19749
+  },
+  "CAUCA|MERCADERES": {
+    "categoria": "6",
+    "icld_miles": 2696317,
+    "poblacion_dane": 24716
+  },
+  "CAUCA|MIRANDA": {
+    "categoria": "5",
+    "icld_miles": 16503677,
+    "poblacion_dane": 33395
+  },
+  "CAUCA|MORALES": {
+    "categoria": "6",
+    "icld_miles": 5609189,
+    "poblacion_dane": 41591
+  },
+  "CAUCA|PADILLA": {
+    "categoria": "6",
+    "icld_miles": 2092959,
+    "poblacion_dane": 10510
+  },
+  "CAUCA|PAEZ": {
+    "categoria": "6",
+    "icld_miles": 10787005,
+    "poblacion_dane": 49137
+  },
+  "CAUCA|PATIA (EL BORDO)": {
+    "categoria": "6",
+    "icld_miles": 5715924,
+    "poblacion_dane": 38968
+  },
+  "CAUCA|PIAMONTE": {
+    "categoria": "6",
+    "icld_miles": 2607361,
+    "poblacion_dane": 9715
+  },
+  "CAUCA|PIENDAMO": {
+    "categoria": "6",
+    "icld_miles": 6550930,
+    "poblacion_dane": 43495
+  },
+  "CAUCA|POPAYAN": {
+    "categoria": "1",
+    "icld_miles": 136684323,
+    "poblacion_dane": 339454
+  },
+  "CAUCA|PUERTO TEJADA": {
+    "categoria": "6",
+    "icld_miles": 15270817,
+    "poblacion_dane": 44134
+  },
+  "CAUCA|PURACE (COCONUCO)": {
+    "categoria": "6",
+    "icld_miles": 3220876,
+    "poblacion_dane": 18428
+  },
+  "CAUCA|ROSAS": {
+    "categoria": "6",
+    "icld_miles": 2506124,
+    "poblacion_dane": 12142
+  },
+  "CAUCA|SAN SEBASTIAN": {
+    "categoria": "6",
+    "icld_miles": 2419874,
+    "poblacion_dane": 11619
+  },
+  "CAUCA|SANTA ROSA": {
+    "categoria": "6",
+    "icld_miles": 2582490,
+    "poblacion_dane": 5639
+  },
+  "CAUCA|SANTANDER DE QUILICHAO": {
+    "categoria": "4",
+    "icld_miles": 29628494,
+    "poblacion_dane": 116885
+  },
+  "CAUCA|SIERRA": {
+    "categoria": "6",
+    "icld_miles": 2278006,
+    "poblacion_dane": 11286
+  },
+  "CAUCA|SILVIA": {
+    "categoria": "6",
+    "icld_miles": 4031127,
+    "poblacion_dane": 39977
+  },
+  "CAUCA|SOTARA (PAISPAMBA)": {
+    "categoria": "6",
+    "icld_miles": 2429469,
+    "poblacion_dane": 14856
+  },
+  "CAUCA|SUAREZ": {
+    "categoria": "6",
+    "icld_miles": 5839701,
+    "poblacion_dane": 33762
+  },
+  "CAUCA|SUCRE": {
+    "categoria": "6",
+    "icld_miles": 3444765,
+    "poblacion_dane": 9936
+  },
+  "CAUCA|TAMBO": {
+    "categoria": "6",
+    "icld_miles": 4412422,
+    "poblacion_dane": 57126
+  },
+  "CAUCA|TIMBIO": {
+    "categoria": "6",
+    "icld_miles": 6091021,
+    "poblacion_dane": 37682
+  },
+  "CAUCA|TIMBIQUI": {
+    "categoria": "6",
+    "icld_miles": 8113787,
+    "poblacion_dane": 27822
+  },
+  "CAUCA|TORIBIO": {
+    "categoria": "6",
+    "icld_miles": 3609551,
+    "poblacion_dane": 37166
+  },
+  "CAUCA|TOTORO": {
+    "categoria": "6",
+    "icld_miles": 2799836,
+    "poblacion_dane": 26336
+  },
+  "CAUCA|VEGA": {
+    "categoria": "6",
+    "icld_miles": 1922092,
+    "poblacion_dane": 26020
+  },
+  "CAUCA|VILLA RICA": {
+    "categoria": "5",
+    "icld_miles": 25904668,
+    "poblacion_dane": 21935
+  },
+  "CESAR|AGUACHICA": {
+    "categoria": "5",
+    "icld_miles": 20702682,
+    "poblacion_dane": 126377
+  },
+  "CESAR|AGUSTIN CODAZZI": {
+    "categoria": "6",
+    "icld_miles": 17370957,
+    "poblacion_dane": 69759
+  },
+  "CESAR|ASTREA": {
+    "categoria": "6",
+    "icld_miles": 6010592,
+    "poblacion_dane": 22921
+  },
+  "CESAR|BECERRIL": {
+    "categoria": "6",
+    "icld_miles": 10515744,
+    "poblacion_dane": 24797
+  },
+  "CESAR|BOSCONIA": {
+    "categoria": "6",
+    "icld_miles": 9188474,
+    "poblacion_dane": 46093
+  },
+  "CESAR|CHIMICHAGUA": {
+    "categoria": "6",
+    "icld_miles": 3762646,
+    "poblacion_dane": 39045
+  },
+  "CESAR|CHIRIGUANA": {
+    "categoria": "6",
+    "icld_miles": 9259294,
+    "poblacion_dane": 31771
+  },
+  "CESAR|COPEY": {
+    "categoria": "6",
+    "icld_miles": 8376765,
+    "poblacion_dane": 34418
+  },
+  "CESAR|CURUMANI": {
+    "categoria": "6",
+    "icld_miles": 4083970,
+    "poblacion_dane": 42836
+  },
+  "CESAR|GAMARRA": {
+    "categoria": "6",
+    "icld_miles": 4027173,
+    "poblacion_dane": 17143
+  },
+  "CESAR|GLORIA": {
+    "categoria": "6",
+    "icld_miles": 10962944,
+    "poblacion_dane": 19644
+  },
+  "CESAR|GONZALEZ": {
+    "categoria": "6",
+    "icld_miles": 1546712,
+    "poblacion_dane": 4819
+  },
+  "CESAR|JAGUA IBIRICO": {
+    "categoria": "5",
+    "icld_miles": 23618184,
+    "poblacion_dane": 53557
+  },
+  "CESAR|MANAURE BALCON DEL CESAR": {
+    "categoria": "6",
+    "icld_miles": 3226109,
+    "poblacion_dane": 11577
+  },
+  "CESAR|PAILITAS": {
+    "categoria": "6",
+    "icld_miles": 5274241,
+    "poblacion_dane": 21284
+  },
+  "CESAR|PASO": {
+    "categoria": "6",
+    "icld_miles": 17063763,
+    "poblacion_dane": 42960
+  },
+  "CESAR|PELAYA": {
+    "categoria": "6",
+    "icld_miles": 4263120,
+    "poblacion_dane": 23779
+  },
+  "CESAR|PUEBLO BELLO": {
+    "categoria": "6",
+    "icld_miles": 4105736,
+    "poblacion_dane": 30844
+  },
+  "CESAR|RIO DE ORO": {
+    "categoria": "6",
+    "icld_miles": 4270387,
+    "poblacion_dane": 19252
+  },
+  "CESAR|ROBLES (LA PAZ)": {
+    "categoria": "6",
+    "icld_miles": 9715145,
+    "poblacion_dane": 31829
+  },
+  "CESAR|SAN ALBERTO": {
+    "categoria": "6",
+    "icld_miles": 10435852,
+    "poblacion_dane": 30145
+  },
+  "CESAR|SAN DIEGO": {
+    "categoria": "6",
+    "icld_miles": 3240958,
+    "poblacion_dane": 21730
+  },
+  "CESAR|SAN MARTIN": {
+    "categoria": "6",
+    "icld_miles": 16504305,
+    "poblacion_dane": 30559
+  },
+  "CESAR|TAMALAMEQUE": {
+    "categoria": "6",
+    "icld_miles": 3531716,
+    "poblacion_dane": 17504
+  },
+  "CESAR|VALLEDUPAR": {
+    "categoria": "1",
+    "icld_miles": 148778178,
+    "poblacion_dane": 558938
+  },
+  "CHOCO|ACANDI": {
+    "categoria": "6",
+    "icld_miles": 4062083,
+    "poblacion_dane": 15604
+  },
+  "CHOCO|ALTO BAUDO (PIE DE PATO)": {
+    "categoria": "6",
+    "icld_miles": 8263916,
+    "poblacion_dane": 30748
+  },
+  "CHOCO|ATRATO": {
+    "categoria": "6",
+    "icld_miles": 3423540,
+    "poblacion_dane": 6724
+  },
+  "CHOCO|BAGADO": {
+    "categoria": "6",
+    "icld_miles": 6437614,
+    "poblacion_dane": 11704
+  },
+  "CHOCO|BAHIA SOLANO (MUTIS)": {
+    "categoria": "6",
+    "icld_miles": 5657743,
+    "poblacion_dane": 11291
+  },
+  "CHOCO|BAJO BAUDO (PIZARRO)": {
+    "categoria": "6",
+    "icld_miles": 11754288,
+    "poblacion_dane": 33373
+  },
+  "CHOCO|BOJAYA (BELLAVISTA)": {
+    "categoria": "6",
+    "icld_miles": 6417885,
+    "poblacion_dane": 13479
+  },
+  "CHOCO|CANTON DE SAN PABLO": {
+    "categoria": "6",
+    "icld_miles": 4218369,
+    "poblacion_dane": 6783
+  },
+  "CHOCO|CARMEN": {
+    "categoria": "6",
+    "icld_miles": 4823810,
+    "poblacion_dane": 9121
+  },
+  "CHOCO|CARMEN DEL DARIEN": {
+    "categoria": "6",
+    "icld_miles": 8939604,
+    "poblacion_dane": 21814
+  },
+  "CHOCO|CERTEGUI": {
+    "categoria": "6",
+    "icld_miles": 3939142,
+    "poblacion_dane": 6088
+  },
+  "CHOCO|CONDOTO": {
+    "categoria": "6",
+    "icld_miles": 6345381,
+    "poblacion_dane": 13652
+  },
+  "CHOCO|ISTMINA": {
+    "categoria": "6",
+    "icld_miles": 8864851,
+    "poblacion_dane": 33188
+  },
+  "CHOCO|JURADO": {
+    "categoria": "6",
+    "icld_miles": 5999758,
+    "poblacion_dane": 7408
+  },
+  "CHOCO|LITORAL DEL SAN JUAN": {
+    "categoria": "6",
+    "icld_miles": 15593926,
+    "poblacion_dane": 24967
+  },
+  "CHOCO|LLORO": {
+    "categoria": "6",
+    "icld_miles": 5627205,
+    "poblacion_dane": 10456
+  },
+  "CHOCO|MEDIO ATRATO": {
+    "categoria": "6",
+    "icld_miles": 8015821,
+    "poblacion_dane": 12668
+  },
+  "CHOCO|MEDIO BAUDO (BOCA DE PEPE)": {
+    "categoria": "6",
+    "icld_miles": 8884389,
+    "poblacion_dane": 16632
+  },
+  "CHOCO|MEDIO SAN JUAN": {
+    "categoria": "6",
+    "icld_miles": 6035742,
+    "poblacion_dane": 11578
+  },
+  "CHOCO|NOVITA": {
+    "categoria": "6",
+    "icld_miles": 5308354,
+    "poblacion_dane": 10179
+  },
+  "CHOCO|NUQUI": {
+    "categoria": "6",
+    "icld_miles": 6387508,
+    "poblacion_dane": 17954
+  },
+  "CHOCO|QUIBDO": {
+    "categoria": "4",
+    "icld_miles": 33716445,
+    "poblacion_dane": 142184
+  },
+  "CHOCO|RIO IRO": {
+    "categoria": "6",
+    "icld_miles": 3583542,
+    "poblacion_dane": 5788
+  },
+  "CHOCO|RIO QUITO": {
+    "categoria": "6",
+    "icld_miles": 4977400,
+    "poblacion_dane": 8996
+  },
+  "CHOCO|RIOSUCIO": {
+    "categoria": "6",
+    "icld_miles": 16083774,
+    "poblacion_dane": 62137
+  },
+  "CHOCO|SAN JOSE DEL PALMAR": {
+    "categoria": "6",
+    "icld_miles": 3461636,
+    "poblacion_dane": 5597
+  },
+  "CHOCO|SIPI": {
+    "categoria": "6",
+    "icld_miles": 9852731,
+    "poblacion_dane": 3554
+  },
+  "CHOCO|TADO": {
+    "categoria": "6",
+    "icld_miles": 6361135,
+    "poblacion_dane": 19822
+  },
+  "CHOCO|UNGUIA": {
+    "categoria": "6",
+    "icld_miles": 4223581,
+    "poblacion_dane": 14285
+  },
+  "CHOCO|UNION PANAMERICANA": {
+    "categoria": "6",
+    "icld_miles": 4212529,
+    "poblacion_dane": 7364
+  },
+  "CORDOBA|APARTADA": {
+    "categoria": "6",
+    "icld_miles": 4961790,
+    "poblacion_dane": 15671
+  },
+  "CORDOBA|AYAPEL": {
+    "categoria": "6",
+    "icld_miles": 7153059,
+    "poblacion_dane": 48756
+  },
+  "CORDOBA|BUENAVISTA": {
+    "categoria": "6",
+    "icld_miles": 5025934,
+    "poblacion_dane": 22596
+  },
+  "CORDOBA|CANALETE": {
+    "categoria": "6",
+    "icld_miles": 5982693,
+    "poblacion_dane": 16404
+  },
+  "CORDOBA|CERETE": {
+    "categoria": "5",
+    "icld_miles": 18523275,
+    "poblacion_dane": 113128
+  },
+  "CORDOBA|CHIMA": {
+    "categoria": "6",
+    "icld_miles": 3858294,
+    "poblacion_dane": 18854
+  },
+  "CORDOBA|CHINU": {
+    "categoria": "6",
+    "icld_miles": 11277356,
+    "poblacion_dane": 51195
+  },
+  "CORDOBA|CIENAGA DE ORO": {
+    "categoria": "6",
+    "icld_miles": 10922331,
+    "poblacion_dane": 63134
+  },
+  "CORDOBA|CORDOBAS": {
+    "categoria": "6",
+    "icld_miles": 6857726,
+    "poblacion_dane": 20164
+  },
+  "CORDOBA|COTORRA": {
+    "categoria": "6",
+    "icld_miles": 3246348,
+    "poblacion_dane": 20353
+  },
+  "CORDOBA|LORICA": {
+    "categoria": "6",
+    "icld_miles": 13893215,
+    "poblacion_dane": 117557
+  },
+  "CORDOBA|MOMIL": {
+    "categoria": "6",
+    "icld_miles": 3274614,
+    "poblacion_dane": 20925
+  },
+  "CORDOBA|MONITOS": {
+    "categoria": "6",
+    "icld_miles": 4710332,
+    "poblacion_dane": 32131
+  },
+  "CORDOBA|MONTELIBANO": {
+    "categoria": "5",
+    "icld_miles": 17734137,
+    "poblacion_dane": 86034
+  },
+  "CORDOBA|MONTERIA": {
+    "categoria": "1",
+    "icld_miles": 139910340,
+    "poblacion_dane": 523150
+  },
+  "CORDOBA|PLANETA RICA": {
+    "categoria": "6",
+    "icld_miles": 13846271,
+    "poblacion_dane": 68231
+  },
+  "CORDOBA|PUEBLO NUEVO": {
+    "categoria": "6",
+    "icld_miles": 8208746,
+    "poblacion_dane": 38306
+  },
+  "CORDOBA|PUERTO ESCONDIDO": {
+    "categoria": "6",
+    "icld_miles": 6873490,
+    "poblacion_dane": 25503
+  },
+  "CORDOBA|PUERTO LIBERTADOR": {
+    "categoria": "6",
+    "icld_miles": 13846122,
+    "poblacion_dane": 45050
+  },
+  "CORDOBA|PURISIMA": {
+    "categoria": "6",
+    "icld_miles": 3333636,
+    "poblacion_dane": 18411
+  },
+  "CORDOBA|SAHAGUN": {
+    "categoria": "5",
+    "icld_miles": 23712166,
+    "poblacion_dane": 115097
+  },
+  "CORDOBA|SAN ANDRES SOTAVENTO": {
+    "categoria": "6",
+    "icld_miles": 4807565,
+    "poblacion_dane": 50328
+  },
+  "CORDOBA|SAN ANTERO": {
+    "categoria": "6",
+    "icld_miles": 7175812,
+    "poblacion_dane": 36284
+  },
+  "CORDOBA|SAN BERNARDO VIENTO": {
+    "categoria": "6",
+    "icld_miles": 4430576,
+    "poblacion_dane": 39715
+  },
+  "CORDOBA|SAN CARLOS": {
+    "categoria": "6",
+    "icld_miles": 3178307,
+    "poblacion_dane": 28939
+  },
+  "CORDOBA|SAN JOSE DE URE": {
+    "categoria": "6",
+    "icld_miles": 4509037,
+    "poblacion_dane": 14579
+  },
+  "CORDOBA|SAN PELAYO": {
+    "categoria": "6",
+    "icld_miles": 6209891,
+    "poblacion_dane": 54610
+  },
+  "CORDOBA|TIERRALTA": {
+    "categoria": "6",
+    "icld_miles": 10898887,
+    "poblacion_dane": 98938
+  },
+  "CORDOBA|TUCHIN": {
+    "categoria": "6",
+    "icld_miles": 5548553,
+    "poblacion_dane": 56666
+  },
+  "CORDOBA|VALENCIA": {
+    "categoria": "6",
+    "icld_miles": 5865641,
+    "poblacion_dane": 38202
+  },
+  "CUNDINAMARCA|AGUA DE DIOS": {
+    "categoria": "6",
+    "icld_miles": 4331337,
+    "poblacion_dane": 13638
+  },
+  "CUNDINAMARCA|ALBAN": {
+    "categoria": "6",
+    "icld_miles": 3643616,
+    "poblacion_dane": 7494
+  },
+  "CUNDINAMARCA|ANAPOIMA": {
+    "categoria": "5",
+    "icld_miles": 26123030,
+    "poblacion_dane": 17161
+  },
+  "CUNDINAMARCA|ANOLAIMA": {
+    "categoria": "6",
+    "icld_miles": 5664494,
+    "poblacion_dane": 16059
+  },
+  "CUNDINAMARCA|APULO (RAFAEL REYES)": {
+    "categoria": "6",
+    "icld_miles": 5776066,
+    "poblacion_dane": 9561
+  },
+  "CUNDINAMARCA|ARBELAEZ": {
+    "categoria": "6",
+    "icld_miles": 3904077,
+    "poblacion_dane": 12201
+  },
+  "CUNDINAMARCA|BELTRAN": {
+    "categoria": "6",
+    "icld_miles": 1445610,
+    "poblacion_dane": 2079
+  },
+  "CUNDINAMARCA|BITUIMA": {
+    "categoria": "6",
+    "icld_miles": 1413348,
+    "poblacion_dane": 2816
+  },
+  "CUNDINAMARCA|BOJACA": {
+    "categoria": "6",
+    "icld_miles": 7127996,
+    "poblacion_dane": 11830
+  },
+  "CUNDINAMARCA|CABRERA": {
+    "categoria": "6",
+    "icld_miles": 1717668,
+    "poblacion_dane": 5504
+  },
+  "CUNDINAMARCA|CACHIPAY": {
+    "categoria": "6",
+    "icld_miles": 6840601,
+    "poblacion_dane": 11615
+  },
+  "CUNDINAMARCA|CAJICA": {
+    "categoria": "2",
+    "icld_miles": 100310551,
+    "poblacion_dane": 98441
+  },
+  "CUNDINAMARCA|CALERA": {
+    "categoria": "5",
+    "icld_miles": 27164040,
+    "poblacion_dane": 35317
+  },
+  "CUNDINAMARCA|CAPARRAPI": {
+    "categoria": "6",
+    "icld_miles": 3564044,
+    "poblacion_dane": 14364
+  },
+  "CUNDINAMARCA|CAQUEZA": {
+    "categoria": "6",
+    "icld_miles": 6958476,
+    "poblacion_dane": 19886
+  },
+  "CUNDINAMARCA|CARMEN DE CARUPA": {
+    "categoria": "6",
+    "icld_miles": 2776169,
+    "poblacion_dane": 8721
+  },
+  "CUNDINAMARCA|CHAGUANI": {
+    "categoria": "6",
+    "icld_miles": 1923534,
+    "poblacion_dane": 4810
+  },
+  "CUNDINAMARCA|CHIA": {
+    "categoria": "1",
+    "icld_miles": 202065689,
+    "poblacion_dane": 158258
+  },
+  "CUNDINAMARCA|CHIPAQUE": {
+    "categoria": "6",
+    "icld_miles": 4899438,
+    "poblacion_dane": 11011
+  },
+  "CUNDINAMARCA|CHOACHI": {
+    "categoria": "6",
+    "icld_miles": 6410315,
+    "poblacion_dane": 12721
+  },
+  "CUNDINAMARCA|CHOCONTA": {
+    "categoria": "6",
+    "icld_miles": 11948677,
+    "poblacion_dane": 24144
+  },
+  "CUNDINAMARCA|COGUA": {
+    "categoria": "5",
+    "icld_miles": 21726048,
+    "poblacion_dane": 26055
+  },
+  "CUNDINAMARCA|COLEGIO": {
+    "categoria": "6",
+    "icld_miles": 11388088,
+    "poblacion_dane": 28185
+  },
+  "CUNDINAMARCA|COTA": {
+    "categoria": "2",
+    "icld_miles": 208376495,
+    "poblacion_dane": 39070
+  },
+  "CUNDINAMARCA|CUCUNUBA": {
+    "categoria": "6",
+    "icld_miles": 5914747,
+    "poblacion_dane": 8900
+  },
+  "CUNDINAMARCA|FACATATIVA": {
+    "categoria": "2",
+    "icld_miles": 63919498,
+    "poblacion_dane": 166588
+  },
+  "CUNDINAMARCA|FOMEQUE": {
+    "categoria": "6",
+    "icld_miles": 5001966,
+    "poblacion_dane": 13959
+  },
+  "CUNDINAMARCA|FOSCA": {
+    "categoria": "6",
+    "icld_miles": 1831420,
+    "poblacion_dane": 6643
+  },
+  "CUNDINAMARCA|FUNZA": {
+    "categoria": "1",
+    "icld_miles": 157682072,
+    "poblacion_dane": 111675
+  },
+  "CUNDINAMARCA|FUQUENE": {
+    "categoria": "6",
+    "icld_miles": 3200778,
+    "poblacion_dane": 5659
+  },
+  "CUNDINAMARCA|FUSAGASUGA": {
+    "categoria": "2",
+    "icld_miles": 88660647,
+    "poblacion_dane": 165143
+  },
+  "CUNDINAMARCA|GACHALA": {
+    "categoria": "6",
+    "icld_miles": 2916238,
+    "poblacion_dane": 4990
+  },
+  "CUNDINAMARCA|GACHANCIPA": {
+    "categoria": "5",
+    "icld_miles": 17680760,
+    "poblacion_dane": 20142
+  },
+  "CUNDINAMARCA|GACHETA": {
+    "categoria": "6",
+    "icld_miles": 4210658,
+    "poblacion_dane": 9583
+  },
+  "CUNDINAMARCA|GAMA": {
+    "categoria": "6",
+    "icld_miles": 1147783,
+    "poblacion_dane": 3556
+  },
+  "CUNDINAMARCA|GIRARDOT": {
+    "categoria": "2",
+    "icld_miles": 59140120,
+    "poblacion_dane": 119446
+  },
+  "CUNDINAMARCA|GRANADA": {
+    "categoria": "6",
+    "icld_miles": 4633611,
+    "poblacion_dane": 8237
+  },
+  "CUNDINAMARCA|GUACHETA": {
+    "categoria": "6",
+    "icld_miles": 8811634,
+    "poblacion_dane": 15528
+  },
+  "CUNDINAMARCA|GUADUAS": {
+    "categoria": "6",
+    "icld_miles": 8020435,
+    "poblacion_dane": 35904
+  },
+  "CUNDINAMARCA|GUASCA": {
+    "categoria": "6",
+    "icld_miles": 9391677,
+    "poblacion_dane": 17989
+  },
+  "CUNDINAMARCA|GUATAQUI": {
+    "categoria": "6",
+    "icld_miles": 1879896,
+    "poblacion_dane": 3329
+  },
+  "CUNDINAMARCA|GUATAVITA": {
+    "categoria": "6",
+    "icld_miles": 3248862,
+    "poblacion_dane": 7382
+  },
+  "CUNDINAMARCA|GUAYABAL DE SIQUIMA": {
+    "categoria": "6",
+    "icld_miles": 2239536,
+    "poblacion_dane": 5150
+  },
+  "CUNDINAMARCA|GUAYABETAL": {
+    "categoria": "6",
+    "icld_miles": 3229465,
+    "poblacion_dane": 7326
+  },
+  "CUNDINAMARCA|GUTIERREZ": {
+    "categoria": "6",
+    "icld_miles": 1688274,
+    "poblacion_dane": 3932
+  },
+  "CUNDINAMARCA|JERUSALEN": {
+    "categoria": "6",
+    "icld_miles": 2515285,
+    "poblacion_dane": 2592
+  },
+  "CUNDINAMARCA|JUNIN": {
+    "categoria": "6",
+    "icld_miles": 2631605,
+    "poblacion_dane": 6630
+  },
+  "CUNDINAMARCA|LENGUAZAQUE": {
+    "categoria": "6",
+    "icld_miles": 4825711,
+    "poblacion_dane": 11753
+  },
+  "CUNDINAMARCA|MACHETA": {
+    "categoria": "6",
+    "icld_miles": 2584138,
+    "poblacion_dane": 6963
+  },
+  "CUNDINAMARCA|MADRID": {
+    "categoria": "2",
+    "icld_miles": 84268627,
+    "poblacion_dane": 134736
+  },
+  "CUNDINAMARCA|MANTA": {
+    "categoria": "6",
+    "icld_miles": 1584898,
+    "poblacion_dane": 4234
+  },
+  "CUNDINAMARCA|MEDINA": {
+    "categoria": "6",
+    "icld_miles": 3393491,
+    "poblacion_dane": 9093
+  },
+  "CUNDINAMARCA|MESA": {
+    "categoria": "5",
+    "icld_miles": 30095291,
+    "poblacion_dane": 38759
+  },
+  "CUNDINAMARCA|MOSQUERA": {
+    "categoria": "1",
+    "icld_miles": 153433331,
+    "poblacion_dane": 151244
+  },
+  "CUNDINAMARCA|NARINO": {
+    "categoria": "6",
+    "icld_miles": 2212124,
+    "poblacion_dane": 2741
+  },
+  "CUNDINAMARCA|NEMOCON": {
+    "categoria": "6",
+    "icld_miles": 6808738,
+    "poblacion_dane": 15588
+  },
+  "CUNDINAMARCA|NILO": {
+    "categoria": "6",
+    "icld_miles": 12076270,
+    "poblacion_dane": 12746
+  },
+  "CUNDINAMARCA|NIMAIMA": {
+    "categoria": "6",
+    "icld_miles": 2556234,
+    "poblacion_dane": 4138
+  },
+  "CUNDINAMARCA|NOCAIMA": {
+    "categoria": "6",
+    "icld_miles": 3015063,
+    "poblacion_dane": 7074
+  },
+  "CUNDINAMARCA|PACHO": {
+    "categoria": "6",
+    "icld_miles": 9803804,
+    "poblacion_dane": 28412
+  },
+  "CUNDINAMARCA|PAIME": {
+    "categoria": "6",
+    "icld_miles": 2896892,
+    "poblacion_dane": 4742
+  },
+  "CUNDINAMARCA|PALMA": {
+    "categoria": "6",
+    "icld_miles": 3118477,
+    "poblacion_dane": 10823
+  },
+  "CUNDINAMARCA|PANDI": {
+    "categoria": "6",
+    "icld_miles": 2203933,
+    "poblacion_dane": 5792
+  },
+  "CUNDINAMARCA|PARATEBUENO": {
+    "categoria": "6",
+    "icld_miles": 4469640,
+    "poblacion_dane": 9851
+  },
+  "CUNDINAMARCA|PASCA": {
+    "categoria": "6",
+    "icld_miles": 2750963,
+    "poblacion_dane": 10525
+  },
+  "CUNDINAMARCA|PENA": {
+    "categoria": "6",
+    "icld_miles": 3257984,
+    "poblacion_dane": 6756
+  },
+  "CUNDINAMARCA|PENON": {
+    "categoria": "6",
+    "icld_miles": 2195927,
+    "poblacion_dane": 5327
+  },
+  "CUNDINAMARCA|PUERTO SALGAR": {
+    "categoria": "6",
+    "icld_miles": 10559464,
+    "poblacion_dane": 18181
+  },
+  "CUNDINAMARCA|PULI": {
+    "categoria": "6",
+    "icld_miles": 1492049,
+    "poblacion_dane": 3830
+  },
+  "CUNDINAMARCA|QUEBRADANEGRA": {
+    "categoria": "6",
+    "icld_miles": 2453411,
+    "poblacion_dane": 5397
+  },
+  "CUNDINAMARCA|QUETAME": {
+    "categoria": "6",
+    "icld_miles": 1864746,
+    "poblacion_dane": 5855
+  },
+  "CUNDINAMARCA|QUIPILE": {
+    "categoria": "6",
+    "icld_miles": 2857738,
+    "poblacion_dane": 7143
+  },
+  "CUNDINAMARCA|RICAURTE": {
+    "categoria": "3",
+    "icld_miles": 37960765,
+    "poblacion_dane": 15324
+  },
+  "CUNDINAMARCA|ROSAL": {
+    "categoria": "6",
+    "icld_miles": 10154018,
+    "poblacion_dane": 25330
+  },
+  "CUNDINAMARCA|SAN ANTONIO DEL TEQUENDAMA": {
+    "categoria": "6",
+    "icld_miles": 4484388,
+    "poblacion_dane": 13831
+  },
+  "CUNDINAMARCA|SAN BERNARDO": {
+    "categoria": "6",
+    "icld_miles": 2707944,
+    "poblacion_dane": 9723
+  },
+  "CUNDINAMARCA|SAN CAYETANO": {
+    "categoria": "6",
+    "icld_miles": 1504067,
+    "poblacion_dane": 5549
+  },
+  "CUNDINAMARCA|SAN FRANCISCO": {
+    "categoria": "6",
+    "icld_miles": 5359080,
+    "poblacion_dane": 12685
+  },
+  "CUNDINAMARCA|SAN JUAN DE RIOSECO": {
+    "categoria": "6",
+    "icld_miles": 3682901,
+    "poblacion_dane": 9388
+  },
+  "CUNDINAMARCA|SASAIMA": {
+    "categoria": "6",
+    "icld_miles": 4040798,
+    "poblacion_dane": 12518
+  },
+  "CUNDINAMARCA|SESQUILE": {
+    "categoria": "6",
+    "icld_miles": 18387307,
+    "poblacion_dane": 13506
+  },
+  "CUNDINAMARCA|SIBATE": {
+    "categoria": "5",
+    "icld_miles": 28178417,
+    "poblacion_dane": 39761
+  },
+  "CUNDINAMARCA|SILVANIA": {
+    "categoria": "6",
+    "icld_miles": 11777074,
+    "poblacion_dane": 25347
+  },
+  "CUNDINAMARCA|SIMIJACA": {
+    "categoria": "6",
+    "icld_miles": 4814645,
+    "poblacion_dane": 15149
+  },
+  "CUNDINAMARCA|SOACHA": {
+    "categoria": "1",
+    "icld_miles": 220805417,
+    "poblacion_dane": 782647
+  },
+  "CUNDINAMARCA|SOPO": {
+    "categoria": "3",
+    "icld_miles": 43077771,
+    "poblacion_dane": 30780
+  },
+  "CUNDINAMARCA|SUBACHOQUE": {
+    "categoria": "6",
+    "icld_miles": 9917671,
+    "poblacion_dane": 17544
+  },
+  "CUNDINAMARCA|SUESCA": {
+    "categoria": "6",
+    "icld_miles": 7353552,
+    "poblacion_dane": 20120
+  },
+  "CUNDINAMARCA|SUPATA": {
+    "categoria": "6",
+    "icld_miles": 2913239,
+    "poblacion_dane": 6040
+  },
+  "CUNDINAMARCA|SUSA": {
+    "categoria": "6",
+    "icld_miles": 2617523,
+    "poblacion_dane": 7508
+  },
+  "CUNDINAMARCA|SUTATAUSA": {
+    "categoria": "6",
+    "icld_miles": 4570421,
+    "poblacion_dane": 6923
+  },
+  "CUNDINAMARCA|TABIO": {
+    "categoria": "6",
+    "icld_miles": 12400365,
+    "poblacion_dane": 25692
+  },
+  "CUNDINAMARCA|TAUSA": {
+    "categoria": "6",
+    "icld_miles": 6254593,
+    "poblacion_dane": 9423
+  },
+  "CUNDINAMARCA|TENA": {
+    "categoria": "6",
+    "icld_miles": 4526316,
+    "poblacion_dane": 11214
+  },
+  "CUNDINAMARCA|TENJO": {
+    "categoria": "3",
+    "icld_miles": 86313075,
+    "poblacion_dane": 26012
+  },
+  "CUNDINAMARCA|TIBACUY": {
+    "categoria": "6",
+    "icld_miles": 1969582,
+    "poblacion_dane": 5008
+  },
+  "CUNDINAMARCA|TIBIRITA": {
+    "categoria": "6",
+    "icld_miles": 1761302,
+    "poblacion_dane": 3633
+  },
+  "CUNDINAMARCA|TOCAIMA": {
+    "categoria": "6",
+    "icld_miles": 8677413,
+    "poblacion_dane": 18304
+  },
+  "CUNDINAMARCA|TOCANCIPA": {
+    "categoria": "2",
+    "icld_miles": 132246565,
+    "poblacion_dane": 46918
+  },
+  "CUNDINAMARCA|TOPAIPI": {
+    "categoria": "6",
+    "icld_miles": 1946945,
+    "poblacion_dane": 4704
+  },
+  "CUNDINAMARCA|UBALA": {
+    "categoria": "6",
+    "icld_miles": 4118899,
+    "poblacion_dane": 8720
+  },
+  "CUNDINAMARCA|UBAQUE": {
+    "categoria": "6",
+    "icld_miles": 3154274,
+    "poblacion_dane": 7729
+  },
+  "CUNDINAMARCA|UBATE": {
+    "categoria": "5",
+    "icld_miles": 22230700,
+    "poblacion_dane": 50581
+  },
+  "CUNDINAMARCA|UNE": {
+    "categoria": "6",
+    "icld_miles": 3114037,
+    "poblacion_dane": 8073
+  },
+  "CUNDINAMARCA|UTICA": {
+    "categoria": "6",
+    "icld_miles": 2512679,
+    "poblacion_dane": 4906
+  },
+  "CUNDINAMARCA|VEGA": {
+    "categoria": "6",
+    "icld_miles": 14663011,
+    "poblacion_dane": 20025
+  },
+  "CUNDINAMARCA|VENECIA (OSPINA PEREZ)": {
+    "categoria": "6",
+    "icld_miles": 1464067,
+    "poblacion_dane": 4877
+  },
+  "CUNDINAMARCA|VERGARA": {
+    "categoria": "6",
+    "icld_miles": 3021423,
+    "poblacion_dane": 7805
+  },
+  "CUNDINAMARCA|VIANI": {
+    "categoria": "6",
+    "icld_miles": 1800959,
+    "poblacion_dane": 5078
+  },
+  "CUNDINAMARCA|VILLAGOMEZ": {
+    "categoria": "6",
+    "icld_miles": 1442676,
+    "poblacion_dane": 2018
+  },
+  "CUNDINAMARCA|VILLAPINZON": {
+    "categoria": "6",
+    "icld_miles": 10004091,
+    "poblacion_dane": 20062
+  },
+  "CUNDINAMARCA|VILLETA": {
+    "categoria": "6",
+    "icld_miles": 16038787,
+    "poblacion_dane": 31632
+  },
+  "CUNDINAMARCA|VIOTA": {
+    "categoria": "6",
+    "icld_miles": 5008076,
+    "poblacion_dane": 15255
+  },
+  "CUNDINAMARCA|YACOPI": {
+    "categoria": "6",
+    "icld_miles": 4035083,
+    "poblacion_dane": 13995
+  },
+  "CUNDINAMARCA|ZIPACON": {
+    "categoria": "6",
+    "icld_miles": 1788895,
+    "poblacion_dane": 5445
+  },
+  "CUNDINAMARCA|ZIPAQUIRA": {
+    "categoria": "2",
+    "icld_miles": 80472159,
+    "poblacion_dane": 155618
+  },
+  "GUAINIA|BARRANCOMINAS": {
+    "categoria": "6",
+    "icld_miles": 3893660,
+    "poblacion_dane": 10815
+  },
+  "GUAINIA|PUERTO INIRIDA": {
+    "categoria": "4",
+    "icld_miles": 10075015,
+    "poblacion_dane": 37015
+  },
+  "GUAJIRA|ALBANIA": {
+    "categoria": "5",
+    "icld_miles": 17855064,
+    "poblacion_dane": 35116
+  },
+  "GUAJIRA|BARRANCAS": {
+    "categoria": "6",
+    "icld_miles": 14251690,
+    "poblacion_dane": 42906
+  },
+  "GUAJIRA|DIBULLA": {
+    "categoria": "6",
+    "icld_miles": 8913502,
+    "poblacion_dane": 45876
+  },
+  "GUAJIRA|DISTRACCION": {
+    "categoria": "6",
+    "icld_miles": 2806081,
+    "poblacion_dane": 15317
+  },
+  "GUAJIRA|FONSECA": {
+    "categoria": "6",
+    "icld_miles": 5984844,
+    "poblacion_dane": 50242
+  },
+  "GUAJIRA|HATONUEVO": {
+    "categoria": "6",
+    "icld_miles": 7472477,
+    "poblacion_dane": 23911
+  },
+  "GUAJIRA|JAGUA DEL PILAR": {
+    "categoria": "6",
+    "icld_miles": 2570904,
+    "poblacion_dane": 4072
+  },
+  "GUAJIRA|MAICAO": {
+    "categoria": "4",
+    "icld_miles": 21808768,
+    "poblacion_dane": 200136
+  },
+  "GUAJIRA|MANAURE": {
+    "categoria": "4",
+    "icld_miles": 9790190,
+    "poblacion_dane": 97010
+  },
+  "GUAJIRA|MOLINO": {
+    "categoria": "6",
+    "icld_miles": 2914571,
+    "poblacion_dane": 8441
+  },
+  "GUAJIRA|RIOHACHA": {
+    "categoria": "3",
+    "icld_miles": 37544720,
+    "poblacion_dane": 222541
+  },
+  "GUAJIRA|SAN JUAN DEL CESAR": {
+    "categoria": "6",
+    "icld_miles": 8291029,
+    "poblacion_dane": 54858
+  },
+  "GUAJIRA|URIBIA": {
+    "categoria": "4",
+    "icld_miles": 25607264,
+    "poblacion_dane": 192278
+  },
+  "GUAJIRA|URUMITA": {
+    "categoria": "6",
+    "icld_miles": 2519287,
+    "poblacion_dane": 12578
+  },
+  "GUAJIRA|VILLANUEVA": {
+    "categoria": "6",
+    "icld_miles": 3579792,
+    "poblacion_dane": 33115
+  },
+  "GUAVIARE|CALAMAR": {
+    "categoria": "6",
+    "icld_miles": 4955591,
+    "poblacion_dane": 11282
+  },
+  "GUAVIARE|MIRAFLORES": {
+    "categoria": "6",
+    "icld_miles": 3211392,
+    "poblacion_dane": 7947
+  },
+  "GUAVIARE|RETORNO": {
+    "categoria": "6",
+    "icld_miles": 5190373,
+    "poblacion_dane": 16984
+  },
+  "GUAVIARE|SAN JOSE DEL GUAVIARE": {
+    "categoria": "4",
+    "icld_miles": 16897286,
+    "poblacion_dane": 61403
+  },
+  "HUILA|ACEVEDO": {
+    "categoria": "6",
+    "icld_miles": 4300012,
+    "poblacion_dane": 26773
+  },
+  "HUILA|AGRADO": {
+    "categoria": "6",
+    "icld_miles": 3133227,
+    "poblacion_dane": 9408
+  },
+  "HUILA|AIPE": {
+    "categoria": "6",
+    "icld_miles": 6070825,
+    "poblacion_dane": 17322
+  },
+  "HUILA|ALGECIRAS": {
+    "categoria": "6",
+    "icld_miles": 4401533,
+    "poblacion_dane": 24044
+  },
+  "HUILA|ALTAMIRA": {
+    "categoria": "6",
+    "icld_miles": 2779123,
+    "poblacion_dane": 4557
+  },
+  "HUILA|ARGENTINA": {
+    "categoria": "6",
+    "icld_miles": 3295536,
+    "poblacion_dane": 13884
+  },
+  "HUILA|BARAYA": {
+    "categoria": "6",
+    "icld_miles": 2765333,
+    "poblacion_dane": 8865
+  },
+  "HUILA|CAMPOALEGRE": {
+    "categoria": "6",
+    "icld_miles": 7372071,
+    "poblacion_dane": 33102
+  },
+  "HUILA|COLOMBIA": {
+    "categoria": "6",
+    "icld_miles": 2715013,
+    "poblacion_dane": 7693
+  },
+  "HUILA|ELIAS": {
+    "categoria": "6",
+    "icld_miles": 1571831,
+    "poblacion_dane": 4532
+  },
+  "HUILA|GARZON": {
+    "categoria": "6",
+    "icld_miles": 15714119,
+    "poblacion_dane": 77794
+  },
+  "HUILA|GIGANTE": {
+    "categoria": "6",
+    "icld_miles": 4441742,
+    "poblacion_dane": 26304
+  },
+  "HUILA|GUADALUPE": {
+    "categoria": "6",
+    "icld_miles": 3447920,
+    "poblacion_dane": 19266
+  },
+  "HUILA|HOBO": {
+    "categoria": "6",
+    "icld_miles": 3187800,
+    "poblacion_dane": 7757
+  },
+  "HUILA|IQUIRA": {
+    "categoria": "6",
+    "icld_miles": 2629628,
+    "poblacion_dane": 9939
+  },
+  "HUILA|ISNOS": {
+    "categoria": "6",
+    "icld_miles": 3871830,
+    "poblacion_dane": 27197
+  },
+  "HUILA|NATAGA": {
+    "categoria": "6",
+    "icld_miles": 1901835,
+    "poblacion_dane": 6950
+  },
+  "HUILA|NEIVA": {
+    "categoria": "2",
+    "icld_miles": 165026968,
+    "poblacion_dane": 380019
+  },
+  "HUILA|OPORAPA": {
+    "categoria": "6",
+    "icld_miles": 2174490,
+    "poblacion_dane": 12537
+  },
+  "HUILA|PAICOL": {
+    "categoria": "6",
+    "icld_miles": 2292672,
+    "poblacion_dane": 7078
+  },
+  "HUILA|PALERMO": {
+    "categoria": "6",
+    "icld_miles": 15768360,
+    "poblacion_dane": 28245
+  },
+  "HUILA|PALESTINA": {
+    "categoria": "6",
+    "icld_miles": 2567008,
+    "poblacion_dane": 12077
+  },
+  "HUILA|PITAL": {
+    "categoria": "6",
+    "icld_miles": 2870332,
+    "poblacion_dane": 14791
+  },
+  "HUILA|PITALITO": {
+    "categoria": "4",
+    "icld_miles": 33135407,
+    "poblacion_dane": 134110
+  },
+  "HUILA|PLATA": {
+    "categoria": "6",
+    "icld_miles": 12377187,
+    "poblacion_dane": 65676
+  },
+  "HUILA|RIVERA": {
+    "categoria": "6",
+    "icld_miles": 13273873,
+    "poblacion_dane": 26153
+  },
+  "HUILA|SALADOBLANCO": {
+    "categoria": "6",
+    "icld_miles": 2424402,
+    "poblacion_dane": 11265
+  },
+  "HUILA|SAN AGUSTIN": {
+    "categoria": "6",
+    "icld_miles": 4719521,
+    "poblacion_dane": 35550
+  },
+  "HUILA|SANTA MARIA": {
+    "categoria": "6",
+    "icld_miles": 2597840,
+    "poblacion_dane": 11173
+  },
+  "HUILA|SUAZA": {
+    "categoria": "6",
+    "icld_miles": 4856486,
+    "poblacion_dane": 23562
+  },
+  "HUILA|TARQUI": {
+    "categoria": "6",
+    "icld_miles": 2777288,
+    "poblacion_dane": 18783
+  },
+  "HUILA|TELLO": {
+    "categoria": "6",
+    "icld_miles": 3169063,
+    "poblacion_dane": 12572
+  },
+  "HUILA|TERUEL": {
+    "categoria": "6",
+    "icld_miles": 1974620,
+    "poblacion_dane": 8605
+  },
+  "HUILA|TESALIA": {
+    "categoria": "6",
+    "icld_miles": 3471254,
+    "poblacion_dane": 11475
+  },
+  "HUILA|TIMANA": {
+    "categoria": "6",
+    "icld_miles": 3962694,
+    "poblacion_dane": 23395
+  },
+  "HUILA|VILLAVIEJA": {
+    "categoria": "6",
+    "icld_miles": 2524717,
+    "poblacion_dane": 7782
+  },
+  "HUILA|YAGUARA": {
+    "categoria": "6",
+    "icld_miles": 5013331,
+    "poblacion_dane": 8218
+  },
+  "MAGDALENA|ALGARROBO": {
+    "categoria": "6",
+    "icld_miles": 3599912,
+    "poblacion_dane": 17549
+  },
+  "MAGDALENA|ARACATACA": {
+    "categoria": "6",
+    "icld_miles": 4946537,
+    "poblacion_dane": 44857
+  },
+  "MAGDALENA|ARIGUANI (EL DIFICIL)": {
+    "categoria": "6",
+    "icld_miles": 6743799,
+    "poblacion_dane": 33688
+  },
+  "MAGDALENA|BANCO": {
+    "categoria": "6",
+    "icld_miles": 6544432,
+    "poblacion_dane": 73253
+  },
+  "MAGDALENA|CERRO SAN ANTONIO": {
+    "categoria": "6",
+    "icld_miles": 2671938,
+    "poblacion_dane": 11146
+  },
+  "MAGDALENA|CHIVOLO": {
+    "categoria": "6",
+    "icld_miles": 4669134,
+    "poblacion_dane": 24624
+  },
+  "MAGDALENA|CIENAGA": {
+    "categoria": "5",
+    "icld_miles": 20911034,
+    "poblacion_dane": 132157
+  },
+  "MAGDALENA|CONCORDIA": {
+    "categoria": "6",
+    "icld_miles": 3045513,
+    "poblacion_dane": 11731
+  },
+  "MAGDALENA|FUNDACION": {
+    "categoria": "6",
+    "icld_miles": 10174837,
+    "poblacion_dane": 74175
+  },
+  "MAGDALENA|GUAMAL": {
+    "categoria": "6",
+    "icld_miles": 3503616,
+    "poblacion_dane": 29946
+  },
+  "MAGDALENA|NUEVA GRANADA": {
+    "categoria": "6",
+    "icld_miles": 7313531,
+    "poblacion_dane": 22104
+  },
+  "MAGDALENA|PEDRAZA": {
+    "categoria": "6",
+    "icld_miles": 2338513,
+    "poblacion_dane": 10411
+  },
+  "MAGDALENA|PIJINO DEL CARMEN": {
+    "categoria": "6",
+    "icld_miles": 4597321,
+    "poblacion_dane": 13498
+  },
+  "MAGDALENA|PINON": {
+    "categoria": "6",
+    "icld_miles": 2874015,
+    "poblacion_dane": 25382
+  },
+  "MAGDALENA|PIVIJAY": {
+    "categoria": "6",
+    "icld_miles": 7722980,
+    "poblacion_dane": 41612
+  },
+  "MAGDALENA|PLATO": {
+    "categoria": "6",
+    "icld_miles": 10310671,
+    "poblacion_dane": 69707
+  },
+  "MAGDALENA|PUEBLOVIEJO": {
+    "categoria": "6",
+    "icld_miles": 3596625,
+    "poblacion_dane": 33789
+  },
+  "MAGDALENA|REMOLINO": {
+    "categoria": "6",
+    "icld_miles": 3143659,
+    "poblacion_dane": 12766
+  },
+  "MAGDALENA|RETEN": {
+    "categoria": "6",
+    "icld_miles": 4253209,
+    "poblacion_dane": 21634
+  },
+  "MAGDALENA|SABANAS DE SAN ANGEL": {
+    "categoria": "6",
+    "icld_miles": 4814702,
+    "poblacion_dane": 17458
+  },
+  "MAGDALENA|SALAMINA": {
+    "categoria": "6",
+    "icld_miles": 3052687,
+    "poblacion_dane": 11986
+  },
+  "MAGDALENA|SAN SEBASTIAN DE BUENAVISTA": {
+    "categoria": "6",
+    "icld_miles": 4820385,
+    "poblacion_dane": 22080
+  },
+  "MAGDALENA|SAN ZENON": {
+    "categoria": "6",
+    "icld_miles": 3181345,
+    "poblacion_dane": 13286
+  },
+  "MAGDALENA|SANTA ANA": {
+    "categoria": "6",
+    "icld_miles": 4455395,
+    "poblacion_dane": 27616
+  },
+  "MAGDALENA|SANTA BARBARA DE PINTO": {
+    "categoria": "6",
+    "icld_miles": 2873317,
+    "poblacion_dane": 11606
+  },
+  "MAGDALENA|SANTA MARTA, DISTRITO TURISTICO, CULTURAL E HISTORICO": {
+    "categoria": "1",
+    "icld_miles": 255911962,
+    "poblacion_dane": 555030
+  },
+  "MAGDALENA|SITIONUEVO": {
+    "categoria": "6",
+    "icld_miles": 16273892,
+    "poblacion_dane": 30470
+  },
+  "MAGDALENA|TENERIFE": {
+    "categoria": "6",
+    "icld_miles": 3703987,
+    "poblacion_dane": 14736
+  },
+  "MAGDALENA|ZAPAYAN": {
+    "categoria": "6",
+    "icld_miles": 2809239,
+    "poblacion_dane": 10904
+  },
+  "MAGDALENA|ZONA BANANERA": {
+    "categoria": "6",
+    "icld_miles": 11818610,
+    "poblacion_dane": 76962
+  },
+  "META|ACACIAS": {
+    "categoria": "2",
+    "icld_miles": 60021149,
+    "poblacion_dane": 95500
+  },
+  "META|BARRANCA DE UPIA": {
+    "categoria": "6",
+    "icld_miles": 7340365,
+    "poblacion_dane": 7079
+  },
+  "META|CABUYARO": {
+    "categoria": "6",
+    "icld_miles": 22572092,
+    "poblacion_dane": 6554
+  },
+  "META|CALVARIO": {
+    "categoria": "6",
+    "icld_miles": 723425,
+    "poblacion_dane": 1870
+  },
+  "META|CASTILLA LA NUEVA": {
+    "categoria": "5",
+    "icld_miles": 17415442,
+    "poblacion_dane": 15683
+  },
+  "META|CASTILLO": {
+    "categoria": "6",
+    "icld_miles": 4021116,
+    "poblacion_dane": 8539
+  },
+  "META|CUBARRAL": {
+    "categoria": "6",
+    "icld_miles": 2175135,
+    "poblacion_dane": 7687
+  },
+  "META|CUMARAL": {
+    "categoria": "6",
+    "icld_miles": 10046064,
+    "poblacion_dane": 24858
+  },
+  "META|DORADO": {
+    "categoria": "6",
+    "icld_miles": 2247206,
+    "poblacion_dane": 4284
+  },
+  "META|FUENTE DE ORO": {
+    "categoria": "6",
+    "icld_miles": 4210168,
+    "poblacion_dane": 13163
+  },
+  "META|GRANADA": {
+    "categoria": "5",
+    "icld_miles": 27066613,
+    "poblacion_dane": 75007
+  },
+  "META|GUAMAL": {
+    "categoria": "6",
+    "icld_miles": 17397017,
+    "poblacion_dane": 15361
+  },
+  "META|LEJANIAS": {
+    "categoria": "6",
+    "icld_miles": 3779646,
+    "poblacion_dane": 12378
+  },
+  "META|MACARENA": {
+    "categoria": "6",
+    "icld_miles": 4370448,
+    "poblacion_dane": 28920
+  },
+  "META|MAPIRIPAN": {
+    "categoria": "6",
+    "icld_miles": 4621281,
+    "poblacion_dane": 7474
+  },
+  "META|MESETAS": {
+    "categoria": "6",
+    "icld_miles": 4724090,
+    "poblacion_dane": 12192
+  },
+  "META|PUERTO CONCORDIA": {
+    "categoria": "6",
+    "icld_miles": 4961364,
+    "poblacion_dane": 9038
+  },
+  "META|PUERTO GAITAN": {
+    "categoria": "2",
+    "icld_miles": 73355113,
+    "poblacion_dane": 45511
+  },
+  "META|PUERTO LLERAS": {
+    "categoria": "6",
+    "icld_miles": 4934741,
+    "poblacion_dane": 11300
+  },
+  "META|PUERTO LOPEZ": {
+    "categoria": "5",
+    "icld_miles": 22591342,
+    "poblacion_dane": 33079
+  },
+  "META|PUERTO RICO": {
+    "categoria": "6",
+    "icld_miles": 6934564,
+    "poblacion_dane": 13663
+  },
+  "META|RESTREPO": {
+    "categoria": "6",
+    "icld_miles": 10592400,
+    "poblacion_dane": 19890
+  },
+  "META|SAN CARLOS GUAROA": {
+    "categoria": "5",
+    "icld_miles": 18688881,
+    "poblacion_dane": 13433
+  },
+  "META|SAN JUAN DE ARAMA": {
+    "categoria": "6",
+    "icld_miles": 3782764,
+    "poblacion_dane": 9862
+  },
+  "META|SAN JUANITO": {
+    "categoria": "6",
+    "icld_miles": 890807,
+    "poblacion_dane": 1385
+  },
+  "META|SAN MARTIN": {
+    "categoria": "6",
+    "icld_miles": 10855072,
+    "poblacion_dane": 29399
+  },
+  "META|URIBE": {
+    "categoria": "6",
+    "icld_miles": 5753485,
+    "poblacion_dane": 9989
+  },
+  "META|VILLAVICENCIO": {
+    "categoria": "1",
+    "icld_miles": 230319105,
+    "poblacion_dane": 577875
+  },
+  "META|VISTA HERMOSA": {
+    "categoria": "6",
+    "icld_miles": 5535556,
+    "poblacion_dane": 19112
+  },
+  "NARINO|ALBAN": {
+    "categoria": "6",
+    "icld_miles": 2087814,
+    "poblacion_dane": 9993
+  },
+  "NARINO|ALDANA": {
+    "categoria": "6",
+    "icld_miles": 1531441,
+    "poblacion_dane": 7734
+  },
+  "NARINO|ANCUYA": {
+    "categoria": "6",
+    "icld_miles": 1275159,
+    "poblacion_dane": 9056
+  },
+  "NARINO|ANDES": {
+    "categoria": "6",
+    "icld_miles": 3345016,
+    "poblacion_dane": 9766
+  },
+  "NARINO|ARBOLEDA (BERRUECOS)": {
+    "categoria": "6",
+    "icld_miles": 2529946,
+    "poblacion_dane": 9045
+  },
+  "NARINO|BARBACOAS": {
+    "categoria": "6",
+    "icld_miles": 6643774,
+    "poblacion_dane": 58292
+  },
+  "NARINO|BELEN": {
+    "categoria": "6",
+    "icld_miles": 1622149,
+    "poblacion_dane": 6621
+  },
+  "NARINO|BUESACO": {
+    "categoria": "6",
+    "icld_miles": 3279254,
+    "poblacion_dane": 24905
+  },
+  "NARINO|CHACHAGUI": {
+    "categoria": "6",
+    "icld_miles": 7318327,
+    "poblacion_dane": 15860
+  },
+  "NARINO|CHARCO": {
+    "categoria": "6",
+    "icld_miles": 6657695,
+    "poblacion_dane": 23099
+  },
+  "NARINO|COLON(GENOVA)": {
+    "categoria": "6",
+    "icld_miles": 1345819,
+    "poblacion_dane": 8829
+  },
+  "NARINO|CONSACA": {
+    "categoria": "6",
+    "icld_miles": 1783685,
+    "poblacion_dane": 14400
+  },
+  "NARINO|CONTADERO": {
+    "categoria": "6",
+    "icld_miles": 3770940,
+    "poblacion_dane": 7578
+  },
+  "NARINO|CORDOBA": {
+    "categoria": "6",
+    "icld_miles": 2551733,
+    "poblacion_dane": 16223
+  },
+  "NARINO|CRUZ": {
+    "categoria": "6",
+    "icld_miles": 2740924,
+    "poblacion_dane": 19421
+  },
+  "NARINO|CUASPUD (CARLOSAMA)": {
+    "categoria": "6",
+    "icld_miles": 2110637,
+    "poblacion_dane": 9618
+  },
+  "NARINO|CUMBAL": {
+    "categoria": "6",
+    "icld_miles": 2643974,
+    "poblacion_dane": 38599
+  },
+  "NARINO|CUMBITARA": {
+    "categoria": "6",
+    "icld_miles": 2987954,
+    "poblacion_dane": 6152
+  },
+  "NARINO|FLORIDA": {
+    "categoria": "6",
+    "icld_miles": 2765416,
+    "poblacion_dane": 10465
+  },
+  "NARINO|FRANCISCO PIZARRO": {
+    "categoria": "6",
+    "icld_miles": 5007015,
+    "poblacion_dane": 14861
+  },
+  "NARINO|FUNES": {
+    "categoria": "6",
+    "icld_miles": 2328714,
+    "poblacion_dane": 7486
+  },
+  "NARINO|GUACHUCAL": {
+    "categoria": "6",
+    "icld_miles": 3181566,
+    "poblacion_dane": 20338
+  },
+  "NARINO|GUAITARILLA": {
+    "categoria": "6",
+    "icld_miles": 2382608,
+    "poblacion_dane": 11921
+  },
+  "NARINO|GUALMATAN": {
+    "categoria": "6",
+    "icld_miles": 1788188,
+    "poblacion_dane": 7352
+  },
+  "NARINO|ILES": {
+    "categoria": "6",
+    "icld_miles": 5019778,
+    "poblacion_dane": 7954
+  },
+  "NARINO|IMUES": {
+    "categoria": "6",
+    "icld_miles": 3554155,
+    "poblacion_dane": 7937
+  },
+  "NARINO|IPIALES": {
+    "categoria": "4",
+    "icld_miles": 34774610,
+    "poblacion_dane": 120842
+  },
+  "NARINO|LEIVA": {
+    "categoria": "6",
+    "icld_miles": 3526773,
+    "poblacion_dane": 10144
+  },
+  "NARINO|LINARES": {
+    "categoria": "6",
+    "icld_miles": 2094174,
+    "poblacion_dane": 10510
+  },
+  "NARINO|LLANADA": {
+    "categoria": "6",
+    "icld_miles": 1714536,
+    "poblacion_dane": 6636
+  },
+  "NARINO|MAGUI (PAYAN)": {
+    "categoria": "6",
+    "icld_miles": 5459056,
+    "poblacion_dane": 25981
+  },
+  "NARINO|MALLAMA": {
+    "categoria": "6",
+    "icld_miles": 1530555,
+    "poblacion_dane": 9396
+  },
+  "NARINO|MOSQUERA": {
+    "categoria": "6",
+    "icld_miles": 5240742,
+    "poblacion_dane": 12547
+  },
+  "NARINO|NARINO": {
+    "categoria": "6",
+    "icld_miles": 1989913,
+    "poblacion_dane": 4541
+  },
+  "NARINO|OLAYA HERRERA": {
+    "categoria": "6",
+    "icld_miles": 5764929,
+    "poblacion_dane": 26280
+  },
+  "NARINO|OSPINA": {
+    "categoria": "6",
+    "icld_miles": 1953754,
+    "poblacion_dane": 7393
+  },
+  "NARINO|PASTO": {
+    "categoria": "1",
+    "icld_miles": 133073589,
+    "poblacion_dane": 410835
+  },
+  "NARINO|PENOL": {
+    "categoria": "6",
+    "icld_miles": 1713455,
+    "poblacion_dane": 7734
+  },
+  "NARINO|POLICARPA": {
+    "categoria": "6",
+    "icld_miles": 3829659,
+    "poblacion_dane": 10314
+  },
+  "NARINO|POTOSI": {
+    "categoria": "6",
+    "icld_miles": 1816618,
+    "poblacion_dane": 10719
+  },
+  "NARINO|PROVIDENCIA": {
+    "categoria": "6",
+    "icld_miles": 1725187,
+    "poblacion_dane": 5796
+  },
+  "NARINO|PUERRES": {
+    "categoria": "6",
+    "icld_miles": 1978017,
+    "poblacion_dane": 8854
+  },
+  "NARINO|PUPIALES": {
+    "categoria": "6",
+    "icld_miles": 3153580,
+    "poblacion_dane": 18164
+  },
+  "NARINO|RICAURTE": {
+    "categoria": "6",
+    "icld_miles": 6029966,
+    "poblacion_dane": 20581
+  },
+  "NARINO|ROBERTO PAYAN": {
+    "categoria": "6",
+    "icld_miles": 3918192,
+    "poblacion_dane": 13249
+  },
+  "NARINO|ROSARIO": {
+    "categoria": "6",
+    "icld_miles": 2556921,
+    "poblacion_dane": 12843
+  },
+  "NARINO|SAMANIEGO": {
+    "categoria": "6",
+    "icld_miles": 4764151,
+    "poblacion_dane": 29936
+  },
+  "NARINO|SAN BERNARDO": {
+    "categoria": "6",
+    "icld_miles": 2224244,
+    "poblacion_dane": 9584
+  },
+  "NARINO|SAN LORENZO": {
+    "categoria": "6",
+    "icld_miles": 2543026,
+    "poblacion_dane": 19280
+  },
+  "NARINO|SAN PABLO": {
+    "categoria": "6",
+    "icld_miles": 2427011,
+    "poblacion_dane": 15838
+  },
+  "NARINO|SAN PEDRO DE CARTAGO": {
+    "categoria": "6",
+    "icld_miles": 2163703,
+    "poblacion_dane": 7100
+  },
+  "NARINO|SANDONA": {
+    "categoria": "6",
+    "icld_miles": 3010188,
+    "poblacion_dane": 21244
+  },
+  "NARINO|SANTA BARBARA (ISCUANDE)": {
+    "categoria": "6",
+    "icld_miles": 5115949,
+    "poblacion_dane": 14060
+  },
+  "NARINO|SANTACRUZ": {
+    "categoria": "6",
+    "icld_miles": 4064779,
+    "poblacion_dane": 11297
+  },
+  "NARINO|SAPUYES": {
+    "categoria": "6",
+    "icld_miles": 2795094,
+    "poblacion_dane": 7633
+  },
+  "NARINO|TABLON": {
+    "categoria": "6",
+    "icld_miles": 2851934,
+    "poblacion_dane": 15009
+  },
+  "NARINO|TAMBO": {
+    "categoria": "6",
+    "icld_miles": 2605116,
+    "poblacion_dane": 14811
+  },
+  "NARINO|TAMINANGO": {
+    "categoria": "6",
+    "icld_miles": 3321878,
+    "poblacion_dane": 18511
+  },
+  "NARINO|TANGUA": {
+    "categoria": "6",
+    "icld_miles": 4333632,
+    "poblacion_dane": 14058
+  },
+  "NARINO|TOLA": {
+    "categoria": "6",
+    "icld_miles": 5036274,
+    "poblacion_dane": 7661
+  },
+  "NARINO|TUMACO": {
+    "categoria": "4",
+    "icld_miles": 26750175,
+    "poblacion_dane": 265599
+  },
+  "NARINO|TUQUERRES": {
+    "categoria": "6",
+    "icld_miles": 5113625,
+    "poblacion_dane": 46419
+  },
+  "NARINO|UNION": {
+    "categoria": "6",
+    "icld_miles": 4521753,
+    "poblacion_dane": 33262
+  },
+  "NARINO|YACUANQUER": {
+    "categoria": "6",
+    "icld_miles": 2846880,
+    "poblacion_dane": 11404
+  },
+  "NOMBRE DEL DEPARTAMENTO|NOMBRE DEL MUNICIPIO": {
+    "categoria": "Categoría",
+    "icld_miles": "ICLD Contraloría (Miles de Pesos)",
+    "poblacion_dane": "Población DANE"
+  },
+  "NORTE DE SANTANDER|ABREGO": {
+    "categoria": "6",
+    "icld_miles": 3800566,
+    "poblacion_dane": 35613
+  },
+  "NORTE DE SANTANDER|ARBOLEDAS": {
+    "categoria": "6",
+    "icld_miles": 3006396,
+    "poblacion_dane": 10914
+  },
+  "NORTE DE SANTANDER|BOCHALEMA": {
+    "categoria": "6",
+    "icld_miles": 4017026,
+    "poblacion_dane": 9309
+  },
+  "NORTE DE SANTANDER|BUCARASICA": {
+    "categoria": "6",
+    "icld_miles": 2850241,
+    "poblacion_dane": 7209
+  },
+  "NORTE DE SANTANDER|CACHIRA": {
+    "categoria": "6",
+    "icld_miles": 2460710,
+    "poblacion_dane": 12361
+  },
+  "NORTE DE SANTANDER|CACOTA": {
+    "categoria": "6",
+    "icld_miles": 1834719,
+    "poblacion_dane": 3153
+  },
+  "NORTE DE SANTANDER|CARMEN": {
+    "categoria": "6",
+    "icld_miles": 5609529,
+    "poblacion_dane": 14971
+  },
+  "NORTE DE SANTANDER|CHINACOTA": {
+    "categoria": "6",
+    "icld_miles": 7785182,
+    "poblacion_dane": 19703
+  },
+  "NORTE DE SANTANDER|CHITAGA": {
+    "categoria": "6",
+    "icld_miles": 3211066,
+    "poblacion_dane": 13204
+  },
+  "NORTE DE SANTANDER|CONVENCION": {
+    "categoria": "6",
+    "icld_miles": 3732519,
+    "poblacion_dane": 20994
+  },
+  "NORTE DE SANTANDER|CUCUTA": {
+    "categoria": "1",
+    "icld_miles": 242703721,
+    "poblacion_dane": 806378
+  },
+  "NORTE DE SANTANDER|CUCUTILLA": {
+    "categoria": "6",
+    "icld_miles": 2802472,
+    "poblacion_dane": 9230
+  },
+  "NORTE DE SANTANDER|DURANIA": {
+    "categoria": "6",
+    "icld_miles": 2448019,
+    "poblacion_dane": 5139
+  },
+  "NORTE DE SANTANDER|ESPERANZA": {
+    "categoria": "6",
+    "icld_miles": 4045915,
+    "poblacion_dane": 13048
+  },
+  "NORTE DE SANTANDER|GRAMALOTE": {
+    "categoria": "6",
+    "icld_miles": 1907048,
+    "poblacion_dane": 8291
+  },
+  "NORTE DE SANTANDER|HACARI": {
+    "categoria": "6",
+    "icld_miles": 3607357,
+    "poblacion_dane": 11452
+  },
+  "NORTE DE SANTANDER|HERRAN": {
+    "categoria": "6",
+    "icld_miles": 2840973,
+    "poblacion_dane": 7790
+  },
+  "NORTE DE SANTANDER|LABATECA": {
+    "categoria": "6",
+    "icld_miles": 1682987,
+    "poblacion_dane": 7123
+  },
+  "NORTE DE SANTANDER|LOURDES": {
+    "categoria": "6",
+    "icld_miles": 2033012,
+    "poblacion_dane": 4499
+  },
+  "NORTE DE SANTANDER|MUTISCUA": {
+    "categoria": "6",
+    "icld_miles": 1587614,
+    "poblacion_dane": 4805
+  },
+  "NORTE DE SANTANDER|OCANA": {
+    "categoria": "4",
+    "icld_miles": 20072797,
+    "poblacion_dane": 134379
+  },
+  "NORTE DE SANTANDER|PAMPLONA": {
+    "categoria": "6",
+    "icld_miles": 10418146,
+    "poblacion_dane": 56451
+  },
+  "NORTE DE SANTANDER|PAMPLONITA": {
+    "categoria": "6",
+    "icld_miles": 2881067,
+    "poblacion_dane": 6186
+  },
+  "NORTE DE SANTANDER|PATIOS": {
+    "categoria": "4",
+    "icld_miles": 31864557,
+    "poblacion_dane": 102949
+  },
+  "NORTE DE SANTANDER|PLAYA": {
+    "categoria": "6",
+    "icld_miles": 2360746,
+    "poblacion_dane": 8675
+  },
+  "NORTE DE SANTANDER|PUERTO SANTANDER": {
+    "categoria": "6",
+    "icld_miles": 2055830,
+    "poblacion_dane": 9817
+  },
+  "NORTE DE SANTANDER|RAGONVALIA": {
+    "categoria": "6",
+    "icld_miles": 2012934,
+    "poblacion_dane": 6704
+  },
+  "NORTE DE SANTANDER|SALAZAR": {
+    "categoria": "6",
+    "icld_miles": 2431943,
+    "poblacion_dane": 11574
+  },
+  "NORTE DE SANTANDER|SAN CALIXTO": {
+    "categoria": "6",
+    "icld_miles": 4009573,
+    "poblacion_dane": 14351
+  },
+  "NORTE DE SANTANDER|SAN CAYETANO": {
+    "categoria": "6",
+    "icld_miles": 10357630,
+    "poblacion_dane": 8049
+  },
+  "NORTE DE SANTANDER|SANTIAGO": {
+    "categoria": "6",
+    "icld_miles": 2669716,
+    "poblacion_dane": 3839
+  },
+  "NORTE DE SANTANDER|SARDINATA": {
+    "categoria": "6",
+    "icld_miles": 4945197,
+    "poblacion_dane": 28749
+  },
+  "NORTE DE SANTANDER|SILOS": {
+    "categoria": "6",
+    "icld_miles": 2092207,
+    "poblacion_dane": 7046
+  },
+  "NORTE DE SANTANDER|TARRA": {
+    "categoria": "6",
+    "icld_miles": 5009409,
+    "poblacion_dane": 23344
+  },
+  "NORTE DE SANTANDER|TEORAMA": {
+    "categoria": "6",
+    "icld_miles": 4420992,
+    "poblacion_dane": 18587
+  },
+  "NORTE DE SANTANDER|TIBU": {
+    "categoria": "6",
+    "icld_miles": 13636031,
+    "poblacion_dane": 61662
+  },
+  "NORTE DE SANTANDER|TOLEDO": {
+    "categoria": "6",
+    "icld_miles": 6095578,
+    "poblacion_dane": 17560
+  },
+  "NORTE DE SANTANDER|VILLA DEL ROSARIO": {
+    "categoria": "4",
+    "icld_miles": 34261736,
+    "poblacion_dane": 115364
+  },
+  "NORTE DE SANTANDER|VILLACARO": {
+    "categoria": "6",
+    "icld_miles": 2503253,
+    "poblacion_dane": 5700
+  },
+  "NORTE DE SANTANDER|ZULIA": {
+    "categoria": "6",
+    "icld_miles": 8094641,
+    "poblacion_dane": 30568
+  },
+  "PUTUMAYO|COLON": {
+    "categoria": "6",
+    "icld_miles": 1293807,
+    "poblacion_dane": 5800
+  },
+  "PUTUMAYO|MOCOA": {
+    "categoria": "5",
+    "icld_miles": 18108762,
+    "poblacion_dane": 63639
+  },
+  "PUTUMAYO|ORITO": {
+    "categoria": "6",
+    "icld_miles": 6320931,
+    "poblacion_dane": 40478
+  },
+  "PUTUMAYO|PUERTO ASIS": {
+    "categoria": "6",
+    "icld_miles": 17095821,
+    "poblacion_dane": 71922
+  },
+  "PUTUMAYO|PUERTO CAICEDO": {
+    "categoria": "6",
+    "icld_miles": 4367858,
+    "poblacion_dane": 16823
+  },
+  "PUTUMAYO|PUERTO GUZMAN": {
+    "categoria": "6",
+    "icld_miles": 2954122,
+    "poblacion_dane": 38076
+  },
+  "PUTUMAYO|PUERTO LEGUIZAMO": {
+    "categoria": "6",
+    "icld_miles": 6572677,
+    "poblacion_dane": 32274
+  },
+  "PUTUMAYO|SAN FRANCISCO": {
+    "categoria": "6",
+    "icld_miles": 1203493,
+    "poblacion_dane": 6244
+  },
+  "PUTUMAYO|SAN MIGUEL": {
+    "categoria": "6",
+    "icld_miles": 4600374,
+    "poblacion_dane": 20997
+  },
+  "PUTUMAYO|SANTIAGO": {
+    "categoria": "6",
+    "icld_miles": 2073477,
+    "poblacion_dane": 7753
+  },
+  "PUTUMAYO|SIBUNDOY": {
+    "categoria": "6",
+    "icld_miles": 2297115,
+    "poblacion_dane": 16733
+  },
+  "PUTUMAYO|VALLE DEL GUAMUEZ": {
+    "categoria": "6",
+    "icld_miles": 8269044,
+    "poblacion_dane": 35593
+  },
+  "PUTUMAYO|VILLAGARZON": {
+    "categoria": "6",
+    "icld_miles": 10207450,
+    "poblacion_dane": 26710
+  },
+  "QUINDIO|ARMENIA": {
+    "categoria": "1",
+    "icld_miles": 165850461,
+    "poblacion_dane": 307886
+  },
+  "QUINDIO|BUENAVISTA": {
+    "categoria": "6",
+    "icld_miles": 1387639,
+    "poblacion_dane": 3220
+  },
+  "QUINDIO|CALARCA": {
+    "categoria": "5",
+    "icld_miles": 20175797,
+    "poblacion_dane": 75979
+  },
+  "QUINDIO|CIRCASIA": {
+    "categoria": "6",
+    "icld_miles": 7082242,
+    "poblacion_dane": 29500
+  },
+  "QUINDIO|CORDOBA": {
+    "categoria": "6",
+    "icld_miles": 1329280,
+    "poblacion_dane": 5888
+  },
+  "QUINDIO|FILANDIA": {
+    "categoria": "6",
+    "icld_miles": 5460477,
+    "poblacion_dane": 12596
+  },
+  "QUINDIO|GENOVA": {
+    "categoria": "6",
+    "icld_miles": 2014829,
+    "poblacion_dane": 7726
+  },
+  "QUINDIO|MONTENEGRO": {
+    "categoria": "6",
+    "icld_miles": 10590025,
+    "poblacion_dane": 38240
+  },
+  "QUINDIO|PIJAO": {
+    "categoria": "6",
+    "icld_miles": 1794150,
+    "poblacion_dane": 5439
+  },
+  "QUINDIO|QUIMBAYA": {
+    "categoria": "6",
+    "icld_miles": 9265871,
+    "poblacion_dane": 31844
+  },
+  "QUINDIO|SALENTO": {
+    "categoria": "6",
+    "icld_miles": 5175457,
+    "poblacion_dane": 9748
+  },
+  "QUINDIO|TEBAIDA": {
+    "categoria": "6",
+    "icld_miles": 14730058,
+    "poblacion_dane": 35010
+  },
+  "RISARALDA|APIA": {
+    "categoria": "6",
+    "icld_miles": 2937904,
+    "poblacion_dane": 12613
+  },
+  "RISARALDA|BALBOA": {
+    "categoria": "6",
+    "icld_miles": 6025429,
+    "poblacion_dane": 6510
+  },
+  "RISARALDA|BELEN DE UMBRIA": {
+    "categoria": "6",
+    "icld_miles": 5631129,
+    "poblacion_dane": 25276
+  },
+  "RISARALDA|CELIA": {
+    "categoria": "6",
+    "icld_miles": 2184971,
+    "poblacion_dane": 7642
+  },
+  "RISARALDA|DOSQUEBRADAS": {
+    "categoria": "2",
+    "icld_miles": 106608711,
+    "poblacion_dane": 225540
+  },
+  "RISARALDA|GUATICA": {
+    "categoria": "6",
+    "icld_miles": 2426010,
+    "poblacion_dane": 12423
+  },
+  "RISARALDA|MARSELLA": {
+    "categoria": "6",
+    "icld_miles": 4605112,
+    "poblacion_dane": 17208
+  },
+  "RISARALDA|MISTRATO": {
+    "categoria": "6",
+    "icld_miles": 3799452,
+    "poblacion_dane": 17527
+  },
+  "RISARALDA|PEREIRA": {
+    "categoria": "1",
+    "icld_miles": 436980237,
+    "poblacion_dane": 481768
+  },
+  "RISARALDA|PUEBLO RICO": {
+    "categoria": "6",
+    "icld_miles": 5815220,
+    "poblacion_dane": 16753
+  },
+  "RISARALDA|QUINCHIA": {
+    "categoria": "6",
+    "icld_miles": 4093776,
+    "poblacion_dane": 27890
+  },
+  "RISARALDA|SANTA ROSA DE CABAL": {
+    "categoria": "4",
+    "icld_miles": 32258977,
+    "poblacion_dane": 79840
+  },
+  "RISARALDA|SANTUARIO": {
+    "categoria": "6",
+    "icld_miles": 3932226,
+    "poblacion_dane": 12826
+  },
+  "RISARALDA|VIRGINIA": {
+    "categoria": "6",
+    "icld_miles": 8357977,
+    "poblacion_dane": 28488
+  },
+  "SANTANDER|AGUADA": {
+    "categoria": "6",
+    "icld_miles": 1657345,
+    "poblacion_dane": 1938
+  },
+  "SANTANDER|ALBANIA": {
+    "categoria": "6",
+    "icld_miles": 1587618,
+    "poblacion_dane": 4263
+  },
+  "SANTANDER|ARATOCA": {
+    "categoria": "6",
+    "icld_miles": 3356429,
+    "poblacion_dane": 8678
+  },
+  "SANTANDER|BARBOSA": {
+    "categoria": "6",
+    "icld_miles": 7626099,
+    "poblacion_dane": 32861
+  },
+  "SANTANDER|BARICHARA": {
+    "categoria": "6",
+    "icld_miles": 6320050,
+    "poblacion_dane": 11092
+  },
+  "SANTANDER|BARRANCABERMEJA": {
+    "categoria": "1",
+    "icld_miles": 308514285,
+    "poblacion_dane": 214571
+  },
+  "SANTANDER|BELLEZA": {
+    "categoria": "6",
+    "icld_miles": 1720356,
+    "poblacion_dane": 6624
+  },
+  "SANTANDER|BETULIA": {
+    "categoria": "6",
+    "icld_miles": 7647116,
+    "poblacion_dane": 6241
+  },
+  "SANTANDER|BOLIVAR": {
+    "categoria": "6",
+    "icld_miles": 2827716,
+    "poblacion_dane": 11803
+  },
+  "SANTANDER|BUCARAMANGA": {
+    "categoria": "0",
+    "icld_miles": 535087534,
+    "poblacion_dane": 614860
+  },
+  "SANTANDER|CABRERA": {
+    "categoria": "6",
+    "icld_miles": 1267881,
+    "poblacion_dane": 2022
+  },
+  "SANTANDER|CALIFORNIA": {
+    "categoria": "6",
+    "icld_miles": 906276,
+    "poblacion_dane": 2246
+  },
+  "SANTANDER|CAPITANEJO": {
+    "categoria": "6",
+    "icld_miles": 3029883,
+    "poblacion_dane": 5687
+  },
+  "SANTANDER|CARCASI": {
+    "categoria": "6",
+    "icld_miles": 2618973,
+    "poblacion_dane": 4427
+  },
+  "SANTANDER|CARMEN": {
+    "categoria": "6",
+    "icld_miles": 5867252,
+    "poblacion_dane": 22419
+  },
+  "SANTANDER|CEPITA": {
+    "categoria": "6",
+    "icld_miles": 1161782,
+    "poblacion_dane": 2100
+  },
+  "SANTANDER|CERRITO": {
+    "categoria": "6",
+    "icld_miles": 2609319,
+    "poblacion_dane": 7062
+  },
+  "SANTANDER|CHARALA": {
+    "categoria": "6",
+    "icld_miles": 4146776,
+    "poblacion_dane": 12734
+  },
+  "SANTANDER|CHARTA": {
+    "categoria": "6",
+    "icld_miles": 922992,
+    "poblacion_dane": 3007
+  },
+  "SANTANDER|CHIMA": {
+    "categoria": "6",
+    "icld_miles": 1977070,
+    "poblacion_dane": 2977
+  },
+  "SANTANDER|CHIPATA": {
+    "categoria": "6",
+    "icld_miles": 2051159,
+    "poblacion_dane": 5309
+  },
+  "SANTANDER|CIMITARRA": {
+    "categoria": "6",
+    "icld_miles": 10339914,
+    "poblacion_dane": 35464
+  },
+  "SANTANDER|CONCEPCION": {
+    "categoria": "6",
+    "icld_miles": 1878395,
+    "poblacion_dane": 6016
+  },
+  "SANTANDER|CONFINES": {
+    "categoria": "6",
+    "icld_miles": 1433570,
+    "poblacion_dane": 3235
+  },
+  "SANTANDER|CONTRATACION": {
+    "categoria": "6",
+    "icld_miles": 1347638,
+    "poblacion_dane": 3834
+  },
+  "SANTANDER|COROMORO": {
+    "categoria": "6",
+    "icld_miles": 2088034,
+    "poblacion_dane": 5250
+  },
+  "SANTANDER|CURITI": {
+    "categoria": "6",
+    "icld_miles": 4330840,
+    "poblacion_dane": 13227
+  },
+  "SANTANDER|ENCINO": {
+    "categoria": "6",
+    "icld_miles": 1357408,
+    "poblacion_dane": 2717
+  },
+  "SANTANDER|ENCISO": {
+    "categoria": "6",
+    "icld_miles": 1937561,
+    "poblacion_dane": 3629
+  },
+  "SANTANDER|FLORIAN": {
+    "categoria": "6",
+    "icld_miles": 2596416,
+    "poblacion_dane": 6021
+  },
+  "SANTANDER|FLORIDABLANCA": {
+    "categoria": "1",
+    "icld_miles": 148971112,
+    "poblacion_dane": 336155
+  },
+  "SANTANDER|GALAN": {
+    "categoria": "6",
+    "icld_miles": 1965714,
+    "poblacion_dane": 3005
+  },
+  "SANTANDER|GAMBITA": {
+    "categoria": "6",
+    "icld_miles": 2498376,
+    "poblacion_dane": 4190
+  },
+  "SANTANDER|GIRON": {
+    "categoria": "2",
+    "icld_miles": 90244024,
+    "poblacion_dane": 174465
+  },
+  "SANTANDER|GUACA": {
+    "categoria": "6",
+    "icld_miles": 1959662,
+    "poblacion_dane": 6243
+  },
+  "SANTANDER|GUACAMAYO": {
+    "categoria": "6",
+    "icld_miles": 1293611,
+    "poblacion_dane": 2266
+  },
+  "SANTANDER|GUADALUPE": {
+    "categoria": "6",
+    "icld_miles": 2035097,
+    "poblacion_dane": 4719
+  },
+  "SANTANDER|GUAPOTA": {
+    "categoria": "6",
+    "icld_miles": 1727072,
+    "poblacion_dane": 2482
+  },
+  "SANTANDER|GUAVATA": {
+    "categoria": "6",
+    "icld_miles": 1677974,
+    "poblacion_dane": 4433
+  },
+  "SANTANDER|GUEPSA": {
+    "categoria": "6",
+    "icld_miles": 2369548,
+    "poblacion_dane": 5353
+  },
+  "SANTANDER|HATO": {
+    "categoria": "6",
+    "icld_miles": 2118120,
+    "poblacion_dane": 2415
+  },
+  "SANTANDER|JESUS MARIA": {
+    "categoria": "6",
+    "icld_miles": 1500606,
+    "poblacion_dane": 3417
+  },
+  "SANTANDER|JORDAN": {
+    "categoria": "6",
+    "icld_miles": 1664389,
+    "poblacion_dane": 1394
+  },
+  "SANTANDER|LANDAZURI": {
+    "categoria": "6",
+    "icld_miles": 3054063,
+    "poblacion_dane": 10624
+  },
+  "SANTANDER|LEBRIJA": {
+    "categoria": "5",
+    "icld_miles": 25025563,
+    "poblacion_dane": 45667
+  },
+  "SANTANDER|MACARAVITA": {
+    "categoria": "6",
+    "icld_miles": 1671398,
+    "poblacion_dane": 2245
+  },
+  "SANTANDER|MALAGA": {
+    "categoria": "6",
+    "icld_miles": 6169884,
+    "poblacion_dane": 21586
+  },
+  "SANTANDER|MATANZA": {
+    "categoria": "6",
+    "icld_miles": 1486820,
+    "poblacion_dane": 5305
+  },
+  "SANTANDER|MOGOTES": {
+    "categoria": "6",
+    "icld_miles": 3572675,
+    "poblacion_dane": 10788
+  },
+  "SANTANDER|MOLAGAVITA": {
+    "categoria": "6",
+    "icld_miles": 2626513,
+    "poblacion_dane": 4277
+  },
+  "SANTANDER|OCAMONTE": {
+    "categoria": "6",
+    "icld_miles": 2093305,
+    "poblacion_dane": 6164
+  },
+  "SANTANDER|OIBA": {
+    "categoria": "6",
+    "icld_miles": 3702007,
+    "poblacion_dane": 11038
+  },
+  "SANTANDER|ONZAGA": {
+    "categoria": "6",
+    "icld_miles": 2177020,
+    "poblacion_dane": 4264
+  },
+  "SANTANDER|PALMAR": {
+    "categoria": "6",
+    "icld_miles": 1635377,
+    "poblacion_dane": 1502
+  },
+  "SANTANDER|PALMAS DEL SOCORRO": {
+    "categoria": "6",
+    "icld_miles": 1613295,
+    "poblacion_dane": 2622
+  },
+  "SANTANDER|PARAMO": {
+    "categoria": "6",
+    "icld_miles": 2172636,
+    "poblacion_dane": 4901
+  },
+  "SANTANDER|PAZ": {
+    "categoria": "6",
+    "icld_miles": 1211201,
+    "poblacion_dane": 5204
+  },
+  "SANTANDER|PENON": {
+    "categoria": "6",
+    "icld_miles": 3217519,
+    "poblacion_dane": 5350
+  },
+  "SANTANDER|PIEDECUESTA": {
+    "categoria": "2",
+    "icld_miles": 74074159,
+    "poblacion_dane": 190712
+  },
+  "SANTANDER|PINCHOTE": {
+    "categoria": "6",
+    "icld_miles": 3611425,
+    "poblacion_dane": 5485
+  },
+  "SANTANDER|PLAYON": {
+    "categoria": "6",
+    "icld_miles": 3872443,
+    "poblacion_dane": 14107
+  },
+  "SANTANDER|PUENTE NACIONAL": {
+    "categoria": "6",
+    "icld_miles": 4972068,
+    "poblacion_dane": 15450
+  },
+  "SANTANDER|PUERTO PARRA": {
+    "categoria": "6",
+    "icld_miles": 4662753,
+    "poblacion_dane": 7914
+  },
+  "SANTANDER|PUERTO WILCHES": {
+    "categoria": "6",
+    "icld_miles": 8429293,
+    "poblacion_dane": 35594
+  },
+  "SANTANDER|RIONEGRO": {
+    "categoria": "6",
+    "icld_miles": 6354818,
+    "poblacion_dane": 26924
+  },
+  "SANTANDER|SABANA DE TORRES": {
+    "categoria": "6",
+    "icld_miles": 10322307,
+    "poblacion_dane": 34690
+  },
+  "SANTANDER|SAN ANDRES": {
+    "categoria": "6",
+    "icld_miles": 2263368,
+    "poblacion_dane": 9083
+  },
+  "SANTANDER|SAN BENITO": {
+    "categoria": "6",
+    "icld_miles": 1169092,
+    "poblacion_dane": 3055
+  },
+  "SANTANDER|SAN GIL": {
+    "categoria": "5",
+    "icld_miles": 24687982,
+    "poblacion_dane": 63009
+  },
+  "SANTANDER|SAN JOAQUIN": {
+    "categoria": "6",
+    "icld_miles": 1000014,
+    "poblacion_dane": 2301
+  },
+  "SANTANDER|SAN JOSE DE MIRANDA": {
+    "categoria": "6",
+    "icld_miles": 2200501,
+    "poblacion_dane": 4429
+  },
+  "SANTANDER|SAN MIGUEL": {
+    "categoria": "6",
+    "icld_miles": 1417689,
+    "poblacion_dane": 2661
+  },
+  "SANTANDER|SAN VICENTE DE CHUCURI": {
+    "categoria": "6",
+    "icld_miles": 10226039,
+    "poblacion_dane": 36272
+  },
+  "SANTANDER|SANTA BARBARA": {
+    "categoria": "6",
+    "icld_miles": 1841321,
+    "poblacion_dane": 2496
+  },
+  "SANTANDER|SANTA HELENA DEL OPON": {
+    "categoria": "6",
+    "icld_miles": 1845083,
+    "poblacion_dane": 3548
+  },
+  "SANTANDER|SANTOS": {
+    "categoria": "6",
+    "icld_miles": 6503512,
+    "poblacion_dane": 15371
+  },
+  "SANTANDER|SIMACOTA": {
+    "categoria": "6",
+    "icld_miles": 4072062,
+    "poblacion_dane": 10706
+  },
+  "SANTANDER|SOCORRO": {
+    "categoria": "6",
+    "icld_miles": 13380331,
+    "poblacion_dane": 35604
+  },
+  "SANTANDER|SUAITA": {
+    "categoria": "6",
+    "icld_miles": 2898360,
+    "poblacion_dane": 10592
+  },
+  "SANTANDER|SUCRE": {
+    "categoria": "6",
+    "icld_miles": 1959950,
+    "poblacion_dane": 7549
+  },
+  "SANTANDER|SURATA": {
+    "categoria": "6",
+    "icld_miles": 1665320,
+    "poblacion_dane": 4110
+  },
+  "SANTANDER|TONA": {
+    "categoria": "6",
+    "icld_miles": 1837687,
+    "poblacion_dane": 7602
+  },
+  "SANTANDER|VALLE SAN JOSE": {
+    "categoria": "6",
+    "icld_miles": 2049899,
+    "poblacion_dane": 6379
+  },
+  "SANTANDER|VELEZ": {
+    "categoria": "6",
+    "icld_miles": 6060351,
+    "poblacion_dane": 26109
+  },
+  "SANTANDER|VETAS": {
+    "categoria": "6",
+    "icld_miles": 972780,
+    "poblacion_dane": 2322
+  },
+  "SANTANDER|VILLANUEVA": {
+    "categoria": "6",
+    "icld_miles": 2627076,
+    "poblacion_dane": 8740
+  },
+  "SANTANDER|ZAPATOCA": {
+    "categoria": "6",
+    "icld_miles": 3653424,
+    "poblacion_dane": 9925
+  },
+  "SUCRE|BUENAVISTA": {
+    "categoria": "6",
+    "icld_miles": 3333621,
+    "poblacion_dane": 11231
+  },
+  "SUCRE|CAIMITO": {
+    "categoria": "6",
+    "icld_miles": 3940741,
+    "poblacion_dane": 16966
+  },
+  "SUCRE|CHALAN": {
+    "categoria": "6",
+    "icld_miles": 3045715,
+    "poblacion_dane": 4786
+  },
+  "SUCRE|COLOSO": {
+    "categoria": "6",
+    "icld_miles": 4162045,
+    "poblacion_dane": 9325
+  },
+  "SUCRE|COROZAL": {
+    "categoria": "6",
+    "icld_miles": 11958497,
+    "poblacion_dane": 70591
+  },
+  "SUCRE|COVENAS": {
+    "categoria": "3",
+    "icld_miles": 101406688,
+    "poblacion_dane": 21190
+  },
+  "SUCRE|GALERAS": {
+    "categoria": "6",
+    "icld_miles": 3989471,
+    "poblacion_dane": 24257
+  },
+  "SUCRE|GUARANDA": {
+    "categoria": "6",
+    "icld_miles": 4843132,
+    "poblacion_dane": 18955
+  },
+  "SUCRE|MAJAGUAL": {
+    "categoria": "6",
+    "icld_miles": 4554645,
+    "poblacion_dane": 41601
+  },
+  "SUCRE|MORROA": {
+    "categoria": "6",
+    "icld_miles": 3236404,
+    "poblacion_dane": 16360
+  },
+  "SUCRE|OVEJAS": {
+    "categoria": "6",
+    "icld_miles": 5591357,
+    "poblacion_dane": 23862
+  },
+  "SUCRE|PALMITOS": {
+    "categoria": "6",
+    "icld_miles": 3593298,
+    "poblacion_dane": 24638
+  },
+  "SUCRE|ROBLE": {
+    "categoria": "6",
+    "icld_miles": 4073805,
+    "poblacion_dane": 10299
+  },
+  "SUCRE|SAMPUES": {
+    "categoria": "6",
+    "icld_miles": 5377242,
+    "poblacion_dane": 52591
+  },
+  "SUCRE|SAN ANTONIO DE PALMITO": {
+    "categoria": "6",
+    "icld_miles": 3230428,
+    "poblacion_dane": 16224
+  },
+  "SUCRE|SAN BENITO ABAD": {
+    "categoria": "6",
+    "icld_miles": 3365189,
+    "poblacion_dane": 30950
+  },
+  "SUCRE|SAN JUAN DE BETULIA": {
+    "categoria": "6",
+    "icld_miles": 3050595,
+    "poblacion_dane": 14306
+  },
+  "SUCRE|SAN MARCOS": {
+    "categoria": "6",
+    "icld_miles": 10118521,
+    "poblacion_dane": 61679
+  },
+  "SUCRE|SAN ONOFRE": {
+    "categoria": "6",
+    "icld_miles": 4603608,
+    "poblacion_dane": 56256
+  },
+  "SUCRE|SAN PEDRO": {
+    "categoria": "6",
+    "icld_miles": 3475933,
+    "poblacion_dane": 20065
+  },
+  "SUCRE|SINCE": {
+    "categoria": "6",
+    "icld_miles": 5309514,
+    "poblacion_dane": 33046
+  },
+  "SUCRE|SINCELEJO": {
+    "categoria": "2",
+    "icld_miles": 100808530,
+    "poblacion_dane": 310456
+  },
+  "SUCRE|SUCRE": {
+    "categoria": "6",
+    "icld_miles": 2804979,
+    "poblacion_dane": 32573
+  },
+  "SUCRE|TOLU": {
+    "categoria": "6",
+    "icld_miles": 12836007,
+    "poblacion_dane": 34472
+  },
+  "SUCRE|TOLUVIEJO": {
+    "categoria": "6",
+    "icld_miles": 7999540,
+    "poblacion_dane": 23099
+  },
+  "SUCRE|UNION": {
+    "categoria": "6",
+    "icld_miles": 4485923,
+    "poblacion_dane": 14282
+  },
+  "TOLIMA|ALPUJARRA": {
+    "categoria": "6",
+    "icld_miles": 1596851,
+    "poblacion_dane": 4693
+  },
+  "TOLIMA|ALVARADO": {
+    "categoria": "6",
+    "icld_miles": 6145466,
+    "poblacion_dane": 9277
+  },
+  "TOLIMA|AMBALEMA": {
+    "categoria": "6",
+    "icld_miles": 2928451,
+    "poblacion_dane": 6874
+  },
+  "TOLIMA|ANZOATEGUI": {
+    "categoria": "6",
+    "icld_miles": 2590226,
+    "poblacion_dane": 10516
+  },
+  "TOLIMA|ARMERO (GUAYABAL)": {
+    "categoria": "6",
+    "icld_miles": 5723882,
+    "poblacion_dane": 13473
+  },
+  "TOLIMA|ATACO": {
+    "categoria": "6",
+    "icld_miles": 5360072,
+    "poblacion_dane": 19985
+  },
+  "TOLIMA|CAJAMARCA": {
+    "categoria": "6",
+    "icld_miles": 10017115,
+    "poblacion_dane": 19312
+  },
+  "TOLIMA|CARMEN APICALA": {
+    "categoria": "6",
+    "icld_miles": 9122182,
+    "poblacion_dane": 11141
+  },
+  "TOLIMA|CASABIANCA": {
+    "categoria": "6",
+    "icld_miles": 1587666,
+    "poblacion_dane": 6412
+  },
+  "TOLIMA|CHAPARRAL": {
+    "categoria": "6",
+    "icld_miles": 11140105,
+    "poblacion_dane": 54452
+  },
+  "TOLIMA|COELLO": {
+    "categoria": "6",
+    "icld_miles": 5304234,
+    "poblacion_dane": 8498
+  },
+  "TOLIMA|COYAIMA": {
+    "categoria": "6",
+    "icld_miles": 8640228,
+    "poblacion_dane": 23498
+  },
+  "TOLIMA|CUNDAY": {
+    "categoria": "6",
+    "icld_miles": 1850922,
+    "poblacion_dane": 8762
+  },
+  "TOLIMA|DOLORES": {
+    "categoria": "6",
+    "icld_miles": 2092587,
+    "poblacion_dane": 8606
+  },
+  "TOLIMA|ESPINAL": {
+    "categoria": "3",
+    "icld_miles": 38477720,
+    "poblacion_dane": 74810
+  },
+  "TOLIMA|FALAN": {
+    "categoria": "6",
+    "icld_miles": 1899676,
+    "poblacion_dane": 7933
+  },
+  "TOLIMA|FLANDES": {
+    "categoria": "6",
+    "icld_miles": 13921708,
+    "poblacion_dane": 30135
+  },
+  "TOLIMA|FRESNO": {
+    "categoria": "6",
+    "icld_miles": 4551317,
+    "poblacion_dane": 32011
+  },
+  "TOLIMA|GUAMO": {
+    "categoria": "6",
+    "icld_miles": 12658212,
+    "poblacion_dane": 34681
+  },
+  "TOLIMA|HERVEO": {
+    "categoria": "6",
+    "icld_miles": 2548571,
+    "poblacion_dane": 7657
+  },
+  "TOLIMA|HONDA": {
+    "categoria": "6",
+    "icld_miles": 7953964,
+    "poblacion_dane": 25997
+  },
+  "TOLIMA|IBAGUE": {
+    "categoria": "1",
+    "icld_miles": 299534381,
+    "poblacion_dane": 542046
+  },
+  "TOLIMA|ICONONZO": {
+    "categoria": "6",
+    "icld_miles": 2984171,
+    "poblacion_dane": 12542
+  },
+  "TOLIMA|LERIDA": {
+    "categoria": "6",
+    "icld_miles": 6399339,
+    "poblacion_dane": 18712
+  },
+  "TOLIMA|LIBANO": {
+    "categoria": "6",
+    "icld_miles": 8262767,
+    "poblacion_dane": 37886
+  },
+  "TOLIMA|MARIQUITA": {
+    "categoria": "6",
+    "icld_miles": 12887185,
+    "poblacion_dane": 39314
+  },
+  "TOLIMA|MELGAR": {
+    "categoria": "5",
+    "icld_miles": 27405293,
+    "poblacion_dane": 38016
+  },
+  "TOLIMA|MURILLO": {
+    "categoria": "6",
+    "icld_miles": 2022181,
+    "poblacion_dane": 4451
+  },
+  "TOLIMA|NATAGAIMA": {
+    "categoria": "6",
+    "icld_miles": 3743749,
+    "poblacion_dane": 14852
+  },
+  "TOLIMA|ORTEGA": {
+    "categoria": "6",
+    "icld_miles": 4463376,
+    "poblacion_dane": 34690
+  },
+  "TOLIMA|PALOCABILDO": {
+    "categoria": "6",
+    "icld_miles": 2291285,
+    "poblacion_dane": 9718
+  },
+  "TOLIMA|PIEDRAS": {
+    "categoria": "6",
+    "icld_miles": 3145234,
+    "poblacion_dane": 7034
+  },
+  "TOLIMA|PLANADAS": {
+    "categoria": "6",
+    "icld_miles": 4390196,
+    "poblacion_dane": 27293
+  },
+  "TOLIMA|PRADO": {
+    "categoria": "6",
+    "icld_miles": 3593634,
+    "poblacion_dane": 8777
+  },
+  "TOLIMA|PURIFICACION": {
+    "categoria": "6",
+    "icld_miles": 9534550,
+    "poblacion_dane": 23963
+  },
+  "TOLIMA|RIOBLANCO": {
+    "categoria": "6",
+    "icld_miles": 4129906,
+    "poblacion_dane": 23293
+  },
+  "TOLIMA|RONCESVALLES": {
+    "categoria": "6",
+    "icld_miles": 1671735,
+    "poblacion_dane": 5625
+  },
+  "TOLIMA|ROVIRA": {
+    "categoria": "6",
+    "icld_miles": 4242163,
+    "poblacion_dane": 22360
+  },
+  "TOLIMA|SALDANA": {
+    "categoria": "6",
+    "icld_miles": 7695146,
+    "poblacion_dane": 14882
+  },
+  "TOLIMA|SAN ANTONIO": {
+    "categoria": "6",
+    "icld_miles": 2780600,
+    "poblacion_dane": 13429
+  },
+  "TOLIMA|SAN LUIS": {
+    "categoria": "6",
+    "icld_miles": 6487831,
+    "poblacion_dane": 13441
+  },
+  "TOLIMA|SANTA ISABEL": {
+    "categoria": "6",
+    "icld_miles": 1312591,
+    "poblacion_dane": 5784
+  },
+  "TOLIMA|SUAREZ": {
+    "categoria": "6",
+    "icld_miles": 2477828,
+    "poblacion_dane": 3919
+  },
+  "TOLIMA|VALLE DE SAN JUAN": {
+    "categoria": "6",
+    "icld_miles": 2189993,
+    "poblacion_dane": 5505
+  },
+  "TOLIMA|VENADILLO": {
+    "categoria": "6",
+    "icld_miles": 4731274,
+    "poblacion_dane": 13217
+  },
+  "TOLIMA|VILLAHERMOSA": {
+    "categoria": "6",
+    "icld_miles": 2000831,
+    "poblacion_dane": 9720
+  },
+  "TOLIMA|VILLARRICA": {
+    "categoria": "6",
+    "icld_miles": 2100410,
+    "poblacion_dane": 5192
+  },
+  "VALLE DEL CAUCA|AGUILA": {
+    "categoria": "6",
+    "icld_miles": 2532445,
+    "poblacion_dane": 9137
+  },
+  "VALLE DEL CAUCA|ALCALA": {
+    "categoria": "6",
+    "icld_miles": 4825308,
+    "poblacion_dane": 14825
+  },
+  "VALLE DEL CAUCA|ANDALUCIA": {
+    "categoria": "6",
+    "icld_miles": 8524068,
+    "poblacion_dane": 22990
+  },
+  "VALLE DEL CAUCA|ANSERMANUEVO": {
+    "categoria": "6",
+    "icld_miles": 4551436,
+    "poblacion_dane": 18270
+  },
+  "VALLE DEL CAUCA|ARGELIA": {
+    "categoria": "6",
+    "icld_miles": 2176623,
+    "poblacion_dane": 5533
+  },
+  "VALLE DEL CAUCA|BOLIVAR": {
+    "categoria": "6",
+    "icld_miles": 3201846,
+    "poblacion_dane": 16412
+  },
+  "VALLE DEL CAUCA|BUENAVENTURA": {
+    "categoria": "2",
+    "icld_miles": 131832434,
+    "poblacion_dane": 323360
+  },
+  "VALLE DEL CAUCA|BUGA": {
+    "categoria": "2",
+    "icld_miles": 72049648,
+    "poblacion_dane": 133322
+  },
+  "VALLE DEL CAUCA|BUGALAGRANDE": {
+    "categoria": "6",
+    "icld_miles": 17265037,
+    "poblacion_dane": 26020
+  },
+  "VALLE DEL CAUCA|CAICEDONIA": {
+    "categoria": "6",
+    "icld_miles": 6301001,
+    "poblacion_dane": 29542
+  },
+  "VALLE DEL CAUCA|CAIRO": {
+    "categoria": "6",
+    "icld_miles": 1950808,
+    "poblacion_dane": 7021
+  },
+  "VALLE DEL CAUCA|CALI": {
+    "categoria": "0",
+    "icld_miles": 1745076713,
+    "poblacion_dane": 2280522
+  },
+  "VALLE DEL CAUCA|CALIMA DEL DARIEN": {
+    "categoria": "6",
+    "icld_miles": 9229637,
+    "poblacion_dane": 19348
+  },
+  "VALLE DEL CAUCA|CANDELARIA": {
+    "categoria": "3",
+    "icld_miles": 57562587,
+    "poblacion_dane": 93932
+  },
+  "VALLE DEL CAUCA|CARTAGO": {
+    "categoria": "3",
+    "icld_miles": 57484223,
+    "poblacion_dane": 142902
+  },
+  "VALLE DEL CAUCA|CERRITO": {
+    "categoria": "5",
+    "icld_miles": 30333811,
+    "poblacion_dane": 57849
+  },
+  "VALLE DEL CAUCA|CUMBRE": {
+    "categoria": "6",
+    "icld_miles": 3751584,
+    "poblacion_dane": 17280
+  },
+  "VALLE DEL CAUCA|DAGUA": {
+    "categoria": "6",
+    "icld_miles": 14273548,
+    "poblacion_dane": 49658
+  },
+  "VALLE DEL CAUCA|DOVIO": {
+    "categoria": "6",
+    "icld_miles": 3379645,
+    "poblacion_dane": 9177
+  },
+  "VALLE DEL CAUCA|FLORIDA": {
+    "categoria": "6",
+    "icld_miles": 12361038,
+    "poblacion_dane": 58399
+  },
+  "VALLE DEL CAUCA|GINEBRA": {
+    "categoria": "6",
+    "icld_miles": 8610736,
+    "poblacion_dane": 24996
+  },
+  "VALLE DEL CAUCA|GUACARI": {
+    "categoria": "6",
+    "icld_miles": 12731405,
+    "poblacion_dane": 35378
+  },
+  "VALLE DEL CAUCA|JAMUNDI": {
+    "categoria": "2",
+    "icld_miles": 79969227,
+    "poblacion_dane": 180917
+  },
+  "VALLE DEL CAUCA|OBANDO": {
+    "categoria": "6",
+    "icld_miles": 4955382,
+    "poblacion_dane": 12615
+  },
+  "VALLE DEL CAUCA|PALMIRA": {
+    "categoria": "1",
+    "icld_miles": 273879558,
+    "poblacion_dane": 358895
+  },
+  "VALLE DEL CAUCA|PRADERA": {
+    "categoria": "6",
+    "icld_miles": 13424163,
+    "poblacion_dane": 49297
+  },
+  "VALLE DEL CAUCA|RESTREPO": {
+    "categoria": "6",
+    "icld_miles": 4069693,
+    "poblacion_dane": 16487
+  },
+  "VALLE DEL CAUCA|RIOFRIO": {
+    "categoria": "6",
+    "icld_miles": 5994320,
+    "poblacion_dane": 15950
+  },
+  "VALLE DEL CAUCA|ROLDANILLO": {
+    "categoria": "6",
+    "icld_miles": 10311309,
+    "poblacion_dane": 37667
+  },
+  "VALLE DEL CAUCA|SAN PEDRO": {
+    "categoria": "6",
+    "icld_miles": 5821638,
+    "poblacion_dane": 18081
+  },
+  "VALLE DEL CAUCA|SEVILLA": {
+    "categoria": "6",
+    "icld_miles": 7643503,
+    "poblacion_dane": 43635
+  },
+  "VALLE DEL CAUCA|TORO": {
+    "categoria": "6",
+    "icld_miles": 3387517,
+    "poblacion_dane": 14974
+  },
+  "VALLE DEL CAUCA|TRUJILLO": {
+    "categoria": "6",
+    "icld_miles": 3926924,
+    "poblacion_dane": 19701
+  },
+  "VALLE DEL CAUCA|TULUA": {
+    "categoria": "2",
+    "icld_miles": 70482847,
+    "poblacion_dane": 231962
+  },
+  "VALLE DEL CAUCA|ULLOA": {
+    "categoria": "6",
+    "icld_miles": 1755493,
+    "poblacion_dane": 5795
+  },
+  "VALLE DEL CAUCA|UNION": {
+    "categoria": "6",
+    "icld_miles": 11807979,
+    "poblacion_dane": 34704
+  },
+  "VALLE DEL CAUCA|VERSALLES": {
+    "categoria": "6",
+    "icld_miles": 1895334,
+    "poblacion_dane": 7438
+  },
+  "VALLE DEL CAUCA|VICTORIA": {
+    "categoria": "6",
+    "icld_miles": 5496103,
+    "poblacion_dane": 12475
+  },
+  "VALLE DEL CAUCA|VIJES": {
+    "categoria": "6",
+    "icld_miles": 3156766,
+    "poblacion_dane": 13251
+  },
+  "VALLE DEL CAUCA|YOTOCO": {
+    "categoria": "6",
+    "icld_miles": 13379832,
+    "poblacion_dane": 16426
+  },
+  "VALLE DEL CAUCA|YUMBO": {
+    "categoria": "1",
+    "icld_miles": 255249417,
+    "poblacion_dane": 108774
+  },
+  "VALLE DEL CAUCA|ZARZAL": {
+    "categoria": "4",
+    "icld_miles": 31389637,
+    "poblacion_dane": 43112
+  },
+  "VAUPES|CARURU": {
+    "categoria": "6",
+    "icld_miles": 2558194,
+    "poblacion_dane": 3497
+  },
+  "VAUPES|MITU": {
+    "categoria": "6",
+    "icld_miles": 8181097,
+    "poblacion_dane": 34037
+  },
+  "VAUPES|TARAIRA": {
+    "categoria": "6",
+    "icld_miles": 6192836,
+    "poblacion_dane": 2543
+  },
+  "VICHADA|CUMARIBO": {
+    "categoria": "4",
+    "icld_miles": 9395301,
+    "poblacion_dane": 85539
+  },
+  "VICHADA|PRIMAVERA": {
+    "categoria": "6",
+    "icld_miles": 4769706,
+    "poblacion_dane": 10992
+  },
+  "VICHADA|PUERTO CARRENO": {
+    "categoria": "4",
+    "icld_miles": 8552505,
+    "poblacion_dane": 22218
+  },
+  "VICHADA|SANTA ROSALIA": {
+    "categoria": "6",
+    "icld_miles": 3334096,
+    "poblacion_dane": 4555
+  }
+}
