@@ -20,6 +20,7 @@ from app.dependencies import get_rag_service
 from app.slices.auth.dependencies import AdminUser, CurrentUser, get_current_user
 from app.slices.sgr import duplicidad_seed_service
 from app.slices.sgr.export_mga_docx import generar_docx_ficha
+from app.slices.planes.models import Plane
 from app.slices.sgr.models import FichaMGA, ProyectoSGR
 from app.slices.sgr.schemas import (
     ActualizarFichaMGARequest,
@@ -31,6 +32,7 @@ from app.slices.sgr.schemas import (
     EvaluarProyectoResponse,
     FichaMGAOut,
     GenerarFichaMGARequest,
+    ProyectoGuardadoOut,
     ProyectoSGROut,
     VerificarDuplicidadResponse,
 )
@@ -121,6 +123,44 @@ async def evaluar_plan(
         response.categoria_municipio = current_user.categoria_municipio
 
     return response
+
+
+@router.get(
+    "/proyectos-guardados",
+    response_model=list[ProyectoGuardadoOut],
+    summary="Mis proyectos SGR guardados",
+    description=(
+        "Lista todos los proyectos SGR guardados explícitamente por el usuario "
+        "(guardado_en IS NOT NULL), a través de todos sus planes. Scope por "
+        "territorio (coleccion_id), salvo superadmin que ve todos."
+    ),
+)
+async def listar_proyectos_guardados(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> list[ProyectoGuardadoOut]:
+    stmt = (
+        select(ProyectoSGR, Plane.titulo, Plane.nombre_corto, FichaMGA.id)
+        .join(Plane, Plane.id == ProyectoSGR.plan_id)
+        .outerjoin(FichaMGA, FichaMGA.proyecto_id == ProyectoSGR.id)
+        .where(ProyectoSGR.guardado_en.is_not(None))
+        .order_by(ProyectoSGR.guardado_en.desc())
+    )
+    if current_user.rol_codigo != "superadmin":
+        stmt = stmt.where(Plane.coleccion_id == current_user.coleccion_id)
+
+    result = await db.execute(stmt)
+    filas = result.all()
+
+    return [
+        ProyectoGuardadoOut(
+            **ProyectoSGROut.model_validate(proyecto).model_dump(),
+            plan_titulo=plan_titulo,
+            plan_nombre_corto=plan_nombre_corto,
+            tiene_ficha_mga=ficha_mga_id is not None,
+        )
+        for proyecto, plan_titulo, plan_nombre_corto, ficha_mga_id in filas
+    ]
 
 
 @router.get(
