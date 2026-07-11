@@ -87,6 +87,12 @@ class Settings(BaseSettings):
     bulk_max_file_bytes: int = 52_428_800  # 50 MiB por archivo
     bulk_ingest_concurrency: int = 2
 
+    # Límite de caracteres para cargue de texto libre (evaluación inversa, texto
+    # directo en base de conocimiento, extracción de documentos) — fuerza
+    # depuración de la información en vez de pegar informes completos. Ajustable
+    # sin redeploy vía env var mientras se define el número final (ref. ficha EBI).
+    max_chars_texto_libre: int = 8_000
+
     # Chunking (Sprint 2)
     default_chunk_strategy: str = "adaptive"
     analysis_max_iterations: int = 3
@@ -159,6 +165,7 @@ class Settings(BaseSettings):
     background_scraper_duration_min: int = 30        # minutos máximos por ejecución
     background_scraper_auto_start: bool = False      # arrancar automáticamente al iniciar la app
     background_scraper_concurrency: int = 2          # normas en paralelo (menor que scraper normal)
+    background_scraper_cron_hours: int = 168         # frecuencia de re-indexación periódica (0 = desactivado; 168 = semanal)
 
     # Análisis con scraping on-demand de normas faltantes en RAG
     analysis_scrape_missing_laws: bool = True        # activar/desactivar la búsqueda de leyes faltantes

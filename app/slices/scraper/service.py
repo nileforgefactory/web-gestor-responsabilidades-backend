@@ -512,6 +512,24 @@ class ScraperService:
         url: str,
         territorio: list[str | None],
     ) -> str:
+        from app.slices.background_scraper.matching import clave_norma, normalizar_texto
+        from app.slices.conocimiento.schemas import ConocimientoUpdate
+
+        clave_nueva = clave_norma(norma) or normalizar_texto(norma)
+        existentes = await conocimiento_repo.list_docs(db, coleccion_id=collection_id, limit=1000)
+        for existente in existentes:
+            clave_existente = clave_norma(existente.nombre) or normalizar_texto(existente.nombre)
+            if clave_existente == clave_nueva:
+                actualizado = await conocimiento_repo.update_doc(
+                    db,
+                    existente.id,
+                    ConocimientoUpdate(
+                        qdrant_doc_id=document_id,
+                        estado="procesando",
+                    ),
+                )
+                return (actualizado or existente).id
+
         doc = await conocimiento_repo.create_doc(
             db,
             ConocimientoCreate(

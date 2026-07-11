@@ -32,6 +32,7 @@ from app.slices.sgr.service import (
     evaluar_plan_sgr,
     evaluar_proyecto_service,
     generar_ficha_mga_service,
+    guardar_proyecto_service,
     verificar_duplicidad_service,
 )
 from app.slices.rag.service import RagService
@@ -157,6 +158,28 @@ async def detalle_proyecto(
     proyecto = result.scalar_one_or_none()
     if proyecto is None:
         raise HTTPException(status_code=404, detail=f"Proyecto '{proyecto_id}' no encontrado")
+    return ProyectoSGROut.model_validate(proyecto)
+
+
+@router.post(
+    "/proyecto/{proyecto_id}/guardar",
+    response_model=ProyectoSGROut,
+    summary="Guardar explícitamente un proyecto SGR",
+    description=(
+        "Marca el proyecto como guardado por el usuario (guardado_en). "
+        "Lo protege de ser eliminado en una re-evaluación del plan (Modo 1) y "
+        "confirma su persistencia en Modo 2 (evaluación inversa)."
+    ),
+    responses={404: {"description": "Proyecto no encontrado"}},
+)
+async def guardar_proyecto_endpoint(
+    proyecto_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ProyectoSGROut:
+    try:
+        proyecto = await guardar_proyecto_service(proyecto_id=proyecto_id, db=db)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ProyectoSGROut.model_validate(proyecto)
 
 

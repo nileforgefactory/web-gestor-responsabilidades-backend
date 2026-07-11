@@ -257,25 +257,30 @@ async def evaluar_plan_sgr(
     candidatos.sort(key=lambda c: c.score_sgr, reverse=True)
     top_candidatos = candidatos[:top_n]
 
-    # ── 7. Persistir en DB ─────────────────────────────────────────────────
+    # ── 7. Persistir en DB (upsert por brecha_id — conserva id/ficha_mga) ──
     if guardar and top_candidatos:
-        # Eliminar proyectos previos en modo descubrimiento para este plan
         proyectos_existentes = await db.execute(
             select(ProyectoSGR).where(
                 ProyectoSGR.plan_id == plan_id,
                 ProyectoSGR.modo == "descubrimiento",
             )
         )
-        for p in proyectos_existentes.scalars().all():
-            await db.delete(p)
+        existentes_por_brecha = {
+            p.brecha_id: p for p in proyectos_existentes.scalars().all() if p.brecha_id is not None
+        }
+        brechas_nuevas = {c.brecha_id for c in top_candidatos}
+
+        # Solo se borran los que ya no aparecen entre los nuevos candidatos
+        # y que el usuario NUNCA guardó explícitamente.
+        for brecha_id, p in existentes_por_brecha.items():
+            if brecha_id not in brechas_nuevas and p.guardado_en is None:
+                await db.delete(p)
 
         for c in top_candidatos:
             brecha_obj = brechas_map.get(c.brecha_id)
-            proyecto = ProyectoSGR(
-                id=str(uuid4()),
-                plan_id=plan_id,
-                brecha_id=c.brecha_id,
-                municipio_codigo=datos_municipio.get("divipola") or "00000000",
+            existente = existentes_por_brecha.get(c.brecha_id)
+
+            campos = dict(
                 nombre=c.nombre,
                 descripcion_problema=brecha_obj.descripcion if brecha_obj else None,
                 sector_sgr=c.sector_sgr,
@@ -289,11 +294,25 @@ async def evaluar_plan_sgr(
                 score_viabilidad=c.score_viabilidad,
                 elegible=c.score_elegibilidad > 0,
                 razon_elegibilidad=c.razon_elegibilidad,
-                estado="borrador",
-                modo="descubrimiento",
             )
-            db.add(proyecto)
-            c.id = proyecto.id
+
+            if existente is not None:
+                # Actualiza scores/datos in-place: conserva id (y por tanto ficha_mga).
+                for campo, valor in campos.items():
+                    setattr(existente, campo, valor)
+                c.id = existente.id
+            else:
+                proyecto = ProyectoSGR(
+                    id=str(uuid4()),
+                    plan_id=plan_id,
+                    brecha_id=c.brecha_id,
+                    municipio_codigo=datos_municipio.get("divipola") or "00000000",
+                    estado="borrador",
+                    modo="descubrimiento",
+                    **campos,
+                )
+                db.add(proyecto)
+                c.id = proyecto.id
 
         await db.commit()
 
@@ -344,6 +363,9 @@ async def generar_ficha_mga_service(
     proyecto = result.scalar_one_or_none()
     if proyecto is None:
         raise ValueError(f"Proyecto '{proyecto_id}' no encontrado")
+
+    if proyecto.guardado_en is None:
+        proyecto.guardado_en = datetime.utcnow()
 
     # ── 2. Verificar si ya existe ficha y no se fuerza regeneración ─────
     ficha_existente_result = await db.execute(
@@ -798,3 +820,25 @@ async def evaluar_proyecto_service(
         proyecto_id=(proyecto_obj.id if proyecto_obj else proyecto_id),
         plan_id=plan_id,
     )
+
+
+# ── M6: Guardado explícito de proyecto ─────────────────────────────────────────
+
+async def guardar_proyecto_service(*, proyecto_id: str, db: AsyncSession) -> ProyectoSGR:
+    """Marca un ProyectoSGR como guardado explícitamente por el usuario.
+
+    Protege al proyecto del barrido de re-evaluación de evaluar_plan_sgr (Modo 1)
+    y le da feedback claro al usuario en Modo 2 (antes el guardado era implícito
+    y silencioso).
+    """
+    result = await db.execute(select(ProyectoSGR).where(ProyectoSGR.id == proyecto_id))
+    proyecto = result.scalar_one_or_none()
+    if proyecto is None:
+        raise ValueError(f"Proyecto '{proyecto_id}' no encontrado")
+
+    if proyecto.guardado_en is None:
+        proyecto.guardado_en = datetime.utcnow()
+        await db.commit()
+        await db.refresh(proyecto)
+
+    return proyecto

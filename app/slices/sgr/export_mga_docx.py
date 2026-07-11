@@ -8,11 +8,19 @@ from docx import Document
 
 from app.slices.sgr.models import FichaMGA
 
+_DISCLAIMER = (
+    "Documento generado automáticamente como insumo preliminar. Debe ser "
+    "revisado y validado por el equipo formulador antes de su radicación "
+    "oficial ante el DNP."
+)
+
 
 def generar_docx_ficha(*, ficha: FichaMGA, proyecto_nombre: str) -> bytes:
     doc = Document()
-    doc.add_heading("Ficha MGA Web", level=1)
+    doc.add_heading("Propuesta de Ficha MGA (borrador preliminar)", level=1)
     doc.add_paragraph(proyecto_nombre).italic = True
+    disclaimer = doc.add_paragraph(_DISCLAIMER)
+    disclaimer.italic = True
 
     secciones = [
         ("1. Identificación", ficha.identificacion),
