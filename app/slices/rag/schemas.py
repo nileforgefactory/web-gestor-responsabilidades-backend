@@ -105,6 +105,10 @@ class RagChunk(BaseModel):
     text: str = Field(..., description="Contenido del fragmento")
     title: str | None = None
     source_filename: str | None = None
+    payload: dict = Field(
+        default_factory=dict,
+        description="Payload crudo del punto Qdrant (incluye campos de extra_payload en ingest_text)",
+    )
 
 
 class RagSearchResponse(BaseModel):

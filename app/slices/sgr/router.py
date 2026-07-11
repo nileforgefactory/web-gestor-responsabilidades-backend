@@ -3,21 +3,26 @@
 from __future__ import annotations
 
 import logging
+import tempfile
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.dependencies import get_rag_service
-from app.slices.auth.dependencies import CurrentUser, get_current_user
+from app.slices.auth.dependencies import AdminUser, CurrentUser, get_current_user
+from app.slices.sgr import duplicidad_seed_service
 from app.slices.sgr.export_mga_docx import generar_docx_ficha
 from app.slices.sgr.models import FichaMGA, ProyectoSGR
 from app.slices.sgr.schemas import (
     ActualizarFichaMGARequest,
     ChatFichaMGARequest,
     ChatFichaMGAResponse,
+    DuplicidadSeedEstado,
     EvaluarPlanResponse,
     EvaluarProyectoRequest,
     EvaluarProyectoResponse,
@@ -433,3 +438,73 @@ async def evaluar_proyecto_endpoint(
         logger.exception("[evaluar_proyecto] Error")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     return response
+
+
+# ── M6: Carga de matriz de proyectos SGR (seed de duplicidad, solo admin) ─────
+
+@router.post(
+    "/duplicidad-seed/iniciar",
+    response_model=DuplicidadSeedEstado,
+    summary="Subir Excel GESPROY/DNP y (re)indexar proyectos SGR para duplicidad",
+    description=(
+        "Solo admin/superadmin. Sube el Excel 'Balance de Seguimiento a las "
+        "Inversiones del SGR', filtra proyectos con al menos un municipio "
+        "categoría 5/6 y los indexa en Qdrant en background. "
+        "Si ya hay una carga en curso, retorna 409."
+    ),
+)
+async def iniciar_duplicidad_seed(
+    admin: AdminUser,
+    file: UploadFile,
+    settings: Settings = Depends(get_settings),
+    rag: RagService = Depends(get_rag_service),
+) -> DuplicidadSeedEstado:
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un .xlsx")
+
+    max_bytes = settings.duplicidad_seed_max_file_bytes
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+    tmp_path = Path(tmp.name)
+    total = 0
+    try:
+        while chunk := await file.read(1024 * 1024):
+            total += len(chunk)
+            if total > max_bytes:
+                tmp.close()
+                tmp_path.unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Archivo excede el máximo permitido ({max_bytes // (1024*1024)} MiB).",
+                )
+            tmp.write(chunk)
+    finally:
+        tmp.close()
+
+    iniciado = duplicidad_seed_service.start_duplicidad_seed(
+        xlsx_path=tmp_path, rag=rag, delete_source_after=True,
+    )
+    if not iniciado:
+        tmp_path.unlink(missing_ok=True)
+        raise HTTPException(409, "Ya hay una carga de matriz SGR en curso. Use /duplicidad-seed/estado para consultarla.")
+    return duplicidad_seed_service.get_estado()
+
+
+@router.post(
+    "/duplicidad-seed/cancelar",
+    response_model=DuplicidadSeedEstado,
+    summary="Cancelar carga de matriz SGR en curso",
+)
+async def cancelar_duplicidad_seed(admin: AdminUser) -> DuplicidadSeedEstado:
+    cancelado = duplicidad_seed_service.cancel_task()
+    if not cancelado:
+        raise HTTPException(409, "No hay ninguna carga de matriz SGR en curso.")
+    return duplicidad_seed_service.get_estado()
+
+
+@router.get(
+    "/duplicidad-seed/estado",
+    response_model=DuplicidadSeedEstado,
+    summary="Estado actual de la carga de matriz SGR",
+)
+async def estado_duplicidad_seed(admin: AdminUser) -> DuplicidadSeedEstado:
+    return duplicidad_seed_service.get_estado()

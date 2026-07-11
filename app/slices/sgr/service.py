@@ -637,9 +637,18 @@ async def verificar_duplicidad_service(
                 "severidad": brecha_obj.severidad,
             }
 
+    # ── 2b. Nombre del municipio: viene del plan asociado, no del nombre del
+    # proyecto (bug anterior usaba proyecto.nombre como si fuera el municipio).
+    nombre_municipio = None
+    if proyecto.plan_id:
+        plan_result = await db.execute(select(Plane).where(Plane.id == proyecto.plan_id))
+        plan_obj = plan_result.scalar_one_or_none()
+        if plan_obj:
+            nombre_municipio = plan_obj.entidad
+
     datos_municipio = {
         "divipola": proyecto.municipio_codigo,
-        "nombre_municipio": proyecto.nombre,
+        "nombre_municipio": nombre_municipio,
         "categoria_municipio": None,
     }
 
