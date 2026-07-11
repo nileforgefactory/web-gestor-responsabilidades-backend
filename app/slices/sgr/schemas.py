@@ -106,6 +106,14 @@ class ProyectoSGROut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProyectoGuardadoOut(ProyectoSGROut):
+    """Proyecto SGR guardado, con contexto del plan de origen para listados globales."""
+
+    plan_titulo: str
+    plan_nombre_corto: str | None
+    tiene_ficha_mga: bool
+
+
 # ── Ficha MGA ─────────────────────────────────────────────────────────────────
 
 class GenerarFichaMGARequest(BaseModel):
