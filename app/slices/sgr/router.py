@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import logging
+import re
 import tempfile
+import unicodedata
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
 
@@ -43,6 +46,16 @@ from app.slices.sgr.service import (
 from app.slices.rag.service import RagService
 
 logger = logging.getLogger(__name__)
+
+
+def _slug_nombre_archivo(nombre: str | None, *, fallback: str) -> str:
+    """Convierte un nombre de proyecto en un slug ASCII seguro para Content-Disposition."""
+    if not nombre:
+        return fallback
+    normalizado = unicodedata.normalize("NFKD", nombre).encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", normalizado).strip("_")
+    return slug[:80] or fallback
+
 
 router = APIRouter(
     prefix="/sgr",
@@ -337,10 +350,18 @@ async def exportar_ficha_mga_docx(
         logger.exception("[exportar_ficha_mga_docx] Error proyecto=%s", proyecto_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    nombre_archivo = _slug_nombre_archivo(proyecto.nombre, fallback=proyecto_id)
+    nombre_utf8 = quote(f"ficha_mga_{proyecto.nombre or proyecto_id}.docx")
+
     return Response(
         content=contenido,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="ficha_mga_{proyecto_id}.docx"'},
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="ficha_mga_{nombre_archivo}.docx"; '
+                f"filename*=UTF-8''{nombre_utf8}"
+            )
+        },
     )
 
 
