@@ -28,3 +28,5 @@ bcrypt>=4.1.0,<5
 email-validator>=2.0.0,<3
 # ── IA providers ─────────────────────────────────────────────────────────────
 google-genai>=1.0
+# ── Scheduler periódico (indexador de normas) ─────────────────────────────────
+APScheduler>=3.10,<4

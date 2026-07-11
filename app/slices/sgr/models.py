@@ -175,6 +175,10 @@ class ProyectoSGR(Base):
     actualizado_en: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
+    guardado_en: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True,
+        comment="NULL = borrador de sesion; timestamp = guardado explicito por el usuario",
+    )
 
     # Relaciones
     ficha_mga: Mapped[FichaMGA | None] = relationship(

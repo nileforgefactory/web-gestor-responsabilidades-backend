@@ -98,6 +98,7 @@ class ProyectoSGROut(BaseModel):
     modo: str
     creado_en: datetime
     actualizado_en: datetime
+    guardado_en: datetime | None = None
     resultado_duplicidad: dict[str, Any] | None = None
     validacion_costos: dict[str, Any] | None = None
     diagnostico_mga: dict[str, Any] | None = None
@@ -224,6 +225,18 @@ class EvaluarProyectoRequest(BaseModel):
     )
     guardar: bool = Field(True, description="Persistir diagnóstico en ProyectoSGR.diagnostico_mga")
     top_chunks_plan: int = Field(6, ge=1, le=20)
+
+    @field_validator("texto_proyecto")
+    @classmethod
+    def _val_max_chars(cls, v: str) -> str:
+        from app.core.config import get_settings
+        limite = get_settings().max_chars_texto_libre
+        if len(v) > limite:
+            raise ValueError(
+                f"El texto excede el máximo permitido ({len(v)}/{limite} caracteres). "
+                "Depura la información antes de enviarla (ej. usa un resumen tipo ficha EBI)."
+            )
+        return v
 
 
 class DiagnosticoDimension(BaseModel):
