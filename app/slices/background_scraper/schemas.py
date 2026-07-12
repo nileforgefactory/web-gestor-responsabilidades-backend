@@ -27,3 +27,35 @@ class BackgroundScraperIniciarRequest(BaseModel):
     prioridad_max: int = 2                   # 1=críticas, 2=importantes, 3=todas
     pais: str = "COLOMBIA"
     solo_faltantes: bool = True              # omite normas ya indexadas en MySQL
+
+
+class NormaTerritorialCreate(BaseModel):
+    codigo: str                              # ej. "Acuerdo 05 de 2024"
+    territorio: str | None = None            # etiqueta ref, ej. "HUILA / NEIVA"
+    prioridad: int = 2
+    descripcion: str | None = None
+
+
+class NormaTerritorialOut(BaseModel):
+    id: str
+    codigo: str
+    territorio: str | None = None
+    prioridad: int
+    descripcion: str | None = None
+    activo: bool
+    creado_en: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class DescubrirNormasRequest(BaseModel):
+    municipio: str | None = None
+    departamento: str | None = None
+    tema: str | None = None
+
+
+class DescubrirNormasResponse(BaseModel):
+    descubiertas: list[str] = []
+    agregadas: list[str] = []
+    ya_presentes: list[str] = []

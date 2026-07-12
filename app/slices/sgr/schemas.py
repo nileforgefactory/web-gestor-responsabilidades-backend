@@ -60,6 +60,10 @@ class ProyectoCandidatoResponse(BaseModel):
     estado: str = "borrador"
     modo: str = "descubrimiento"
 
+    # Estado respecto a proyectos ya persistidos del plan
+    guardado: bool = False        # el usuario lo guardó explícitamente (guardado_en)
+    tiene_ficha_mga: bool = False  # ya tiene una Ficha MGA generada
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -131,6 +135,31 @@ class GenerarFichaMGARequest(BaseModel):
     )
 
 
+class SesionChatMeta(BaseModel):
+    """Metadatos de una sesión (hilo) de chat de la Ficha MGA."""
+
+    id: str
+    titulo: str
+    creada_en: str
+    total_mensajes: int
+
+
+class SesionChatOut(BaseModel):
+    """Sesión de chat completa (con mensajes) de la Ficha MGA."""
+
+    id: str
+    titulo: str
+    creada_en: str
+    mensajes: list[dict] = []
+
+
+class ChatSesionesResponse(BaseModel):
+    """Respuesta con todas las sesiones de chat de una Ficha MGA."""
+
+    sesiones: list[SesionChatOut] = []
+    activa: str | None = None
+
+
 class FichaMGAOut(BaseModel):
     id: int
     proyecto_id: str
@@ -142,7 +171,11 @@ class FichaMGAOut(BaseModel):
     modelo_usado: str | None
     generado_en: datetime
     actualizado_en: datetime
+    # Mensajes de la sesión de chat activa (retrocompatible con el frontend)
     chat_historial: list[dict] = []
+    # Historial por sesiones (hilos): metadatos + id de la sesión activa
+    chat_sesiones: list[SesionChatMeta] = []
+    sesion_activa: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -166,6 +199,10 @@ class ChatFichaMGARequest(BaseModel):
     """Body del POST /sgr/ficha-mga/{proyecto_id}/chat."""
 
     mensaje: str = Field(..., min_length=2, max_length=2000)
+    sesion_id: str | None = Field(
+        None,
+        description="Sesión (hilo) a la que pertenece el mensaje. Si se omite, usa la activa.",
+    )
 
 
 class ChatFichaMGAResponse(BaseModel):
