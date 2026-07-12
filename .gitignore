@@ -47,6 +47,10 @@ htmlcov/
 .agents/
 skills-lock.json
 
+# Scratch / exploración local
+full_dict.txt
+peek_col.py
+
 # SO
 .DS_Store
 Thumbs.db
