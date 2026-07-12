@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.slices.background_scraper.self_heal import asegurar_normas_en_rag
 from app.slices.planes.models import Brecha, Plane
 from app.slices.sgr.agents.agente_chat_mga import chat_editar_ficha
 from app.slices.sgr.agents.agente_duplicidad import verificar_duplicidad
@@ -22,11 +23,14 @@ from app.slices.sgr.models import FichaMGA, ProyectoSGR
 from app.slices.sgr.schemas import (
     ActualizarFichaMGARequest,
     ChatFichaMGAResponse,
+    ChatSesionesResponse,
     DiagnosticoDimension,
     EvaluarPlanResponse,
     EvaluarProyectoResponse,
     FichaMGAOut,
     ProyectoCandidatoResponse,
+    SesionChatMeta,
+    SesionChatOut,
     SimilarRagItem,
     SubflujoInclusion,
     VerificarDuplicidadResponse,
@@ -270,10 +274,21 @@ async def evaluar_plan_sgr(
         }
         brechas_nuevas = {c.brecha_id for c in top_candidatos}
 
-        # Solo se borran los que ya no aparecen entre los nuevos candidatos
-        # y que el usuario NUNCA guardó explícitamente.
+        # Proyectos que ya tienen Ficha MGA: se protegen del barrido aunque el
+        # usuario no los haya guardado explícitamente (así generar la ficha ya no
+        # obliga a marcarlos como "guardados").
+        ids_existentes = [p.id for p in existentes_por_brecha.values()]
+        ficha_ids: set[str] = set()
+        if ids_existentes:
+            ficha_ids_result = await db.execute(
+                select(FichaMGA.proyecto_id).where(FichaMGA.proyecto_id.in_(ids_existentes))
+            )
+            ficha_ids = set(ficha_ids_result.scalars().all())
+
+        # Solo se borran los que ya no aparecen entre los nuevos candidatos,
+        # que el usuario NUNCA guardó explícitamente y que no tienen Ficha MGA.
         for brecha_id, p in existentes_por_brecha.items():
-            if brecha_id not in brechas_nuevas and p.guardado_en is None:
+            if brecha_id not in brechas_nuevas and p.guardado_en is None and p.id not in ficha_ids:
                 await db.delete(p)
 
         for c in top_candidatos:
@@ -301,6 +316,8 @@ async def evaluar_plan_sgr(
                 for campo, valor in campos.items():
                     setattr(existente, campo, valor)
                 c.id = existente.id
+                c.guardado = existente.guardado_en is not None
+                c.tiene_ficha_mga = existente.id in ficha_ids
             else:
                 proyecto = ProyectoSGR(
                     id=str(uuid4()),
@@ -364,8 +381,9 @@ async def generar_ficha_mga_service(
     if proyecto is None:
         raise ValueError(f"Proyecto '{proyecto_id}' no encontrado")
 
-    if proyecto.guardado_en is None:
-        proyecto.guardado_en = datetime.utcnow()
+    # Nota: generar la Ficha MGA ya NO marca el proyecto como "guardado".
+    # El guardado es explícito (botón "Guardar proyecto"); el proyecto con ficha
+    # queda protegido del barrido de re-evaluación por su Ficha MGA (ver evaluar_plan_sgr).
 
     # ── 2. Verificar si ya existe ficha y no se fuerza regeneración ─────
     ficha_existente_result = await db.execute(
@@ -390,6 +408,19 @@ async def generar_ficha_mga_service(
                 "referencia_legal": brecha_obj.referencia_legal or "",
                 "recomendacion": brecha_obj.recomendacion or "",
             }
+
+    # ── 3b. Auto-sanado del RAG: trae normas citadas (brecha/proyecto) ─────
+    await asegurar_normas_en_rag(
+        [
+            proyecto.nombre or "",
+            proyecto.razon_elegibilidad or "",
+            brecha_dict.get("referencia_legal", ""),
+            brecha_dict.get("descripcion", ""),
+            brecha_dict.get("recomendacion", ""),
+        ],
+        rag=rag,
+        settings=settings,
+    )
 
     # ── 4. RAG: fragmentos del plan de desarrollo ──────────────────────────
     plan_chunks: list[str] = []
@@ -514,7 +545,129 @@ async def actualizar_ficha_mga_service(
         proyecto_id,
         ficha.campos_completos,
     )
-    return FichaMGAOut.model_validate(ficha)
+    return ficha_mga_to_out(ficha)
+
+
+# ── Historial de chat por sesiones (hilos) ─────────────────────────────────────
+#
+# El historial se guarda dentro de la columna JSON `chat_historial` con la forma:
+#   {"sesiones": [{"id","titulo","creada_en","mensajes":[{role,texto,timestamp}]}],
+#    "activa": <id>}
+# Retrocompatible: si en BD hay una lista plana (formato antiguo), se envuelve en
+# una única sesión "Conversación inicial".
+
+
+def _normalizar_sesiones(raw) -> dict:
+    """Devuelve siempre la estructura {"sesiones": [...], "activa": id}."""
+    if isinstance(raw, dict) and isinstance(raw.get("sesiones"), list):
+        sesiones = raw["sesiones"]
+        activa = raw.get("activa")
+        if not activa and sesiones:
+            activa = sesiones[-1]["id"]
+        return {"sesiones": sesiones, "activa": activa}
+
+    # Formato antiguo (lista plana) o vacío -> una sesión inicial.
+    mensajes = raw if isinstance(raw, list) else []
+    creada = (
+        mensajes[0].get("timestamp")
+        if mensajes and isinstance(mensajes[0], dict) and mensajes[0].get("timestamp")
+        else datetime.utcnow().isoformat()
+    )
+    sid = uuid4().hex
+    return {
+        "sesiones": [
+            {"id": sid, "titulo": "Conversación inicial", "creada_en": creada, "mensajes": mensajes}
+        ],
+        "activa": sid,
+    }
+
+
+def _sesion_por_id(estructura: dict, sesion_id: str | None) -> dict:
+    """Sesión indicada o la activa; si no existe, la activa/última."""
+    sesiones = estructura["sesiones"]
+    if sesion_id:
+        for s in sesiones:
+            if s["id"] == sesion_id:
+                return s
+    activa = estructura.get("activa")
+    for s in sesiones:
+        if s["id"] == activa:
+            return s
+    return sesiones[-1]
+
+
+def _meta_sesiones(estructura: dict) -> list[SesionChatMeta]:
+    return [
+        SesionChatMeta(
+            id=s["id"],
+            titulo=s.get("titulo") or "Conversación",
+            creada_en=s.get("creada_en") or "",
+            total_mensajes=len(s.get("mensajes") or []),
+        )
+        for s in estructura["sesiones"]
+    ]
+
+
+def ficha_mga_to_out(ficha: FichaMGA) -> FichaMGAOut:
+    """Serializa una FichaMGA exponiendo la sesión de chat activa + metadatos."""
+    estructura = _normalizar_sesiones(ficha.chat_historial)
+    activa = _sesion_por_id(estructura, estructura.get("activa"))
+    return FichaMGAOut(
+        id=ficha.id,
+        proyecto_id=ficha.proyecto_id,
+        identificacion=ficha.identificacion,
+        preparacion=ficha.preparacion,
+        evaluacion=ficha.evaluacion,
+        programacion=ficha.programacion,
+        campos_completos=ficha.campos_completos,
+        modelo_usado=ficha.modelo_usado,
+        generado_en=ficha.generado_en,
+        actualizado_en=ficha.actualizado_en,
+        chat_historial=activa.get("mensajes") or [],
+        chat_sesiones=_meta_sesiones(estructura),
+        sesion_activa=activa["id"],
+    )
+
+
+async def _cargar_ficha(proyecto_id: str, db: AsyncSession) -> FichaMGA:
+    result = await db.execute(select(FichaMGA).where(FichaMGA.proyecto_id == proyecto_id))
+    ficha = result.scalar_one_or_none()
+    if ficha is None:
+        raise ValueError(f"Ficha MGA para proyecto '{proyecto_id}' no encontrada")
+    return ficha
+
+
+async def listar_sesiones_chat_service(*, proyecto_id: str, db: AsyncSession) -> ChatSesionesResponse:
+    """Lista todas las sesiones (hilos) de chat con sus mensajes."""
+    ficha = await _cargar_ficha(proyecto_id, db)
+    estructura = _normalizar_sesiones(ficha.chat_historial)
+    return ChatSesionesResponse(
+        sesiones=[SesionChatOut(**s) for s in estructura["sesiones"]],
+        activa=estructura.get("activa"),
+    )
+
+
+async def crear_sesion_chat_service(*, proyecto_id: str, db: AsyncSession) -> ChatSesionesResponse:
+    """Crea una nueva sesión (hilo) vacía y la deja como activa."""
+    ficha = await _cargar_ficha(proyecto_id, db)
+    estructura = _normalizar_sesiones(ficha.chat_historial)
+    numero = len(estructura["sesiones"]) + 1
+    nueva = {
+        "id": uuid4().hex,
+        "titulo": f"Conversación {numero}",
+        "creada_en": datetime.utcnow().isoformat(),
+        "mensajes": [],
+    }
+    estructura["sesiones"].append(nueva)
+    estructura["activa"] = nueva["id"]
+    ficha.chat_historial = estructura
+    await db.commit()
+    await db.refresh(ficha)
+    estructura = _normalizar_sesiones(ficha.chat_historial)
+    return ChatSesionesResponse(
+        sesiones=[SesionChatOut(**s) for s in estructura["sesiones"]],
+        activa=estructura.get("activa"),
+    )
 
 
 async def chat_ficha_mga_service(
@@ -522,8 +675,10 @@ async def chat_ficha_mga_service(
     proyecto_id: str,
     mensaje: str,
     db: AsyncSession,
+    rag,
     http: httpx.AsyncClient,
     settings: Settings,
+    sesion_id: str | None = None,
 ) -> ChatFichaMGAResponse:
     """
     Chat de edición conversacional sobre la Ficha MGA.
@@ -536,13 +691,22 @@ async def chat_ficha_mga_service(
     if ficha is None:
         raise ValueError(f"Ficha MGA para proyecto '{proyecto_id}' no encontrada")
 
+    # Auto-sanado del RAG: si el usuario cita una norma que falta, se trae antes
+    # de que el agente edite la ficha.
+    await asegurar_normas_en_rag([mensaje], rag=rag, settings=settings)
+
     ficha_actual = {
         "identificacion": ficha.identificacion,
         "preparacion": ficha.preparacion,
         "evaluacion": ficha.evaluacion,
         "programacion": ficha.programacion,
     }
-    historial = ficha.chat_historial or []
+
+    # Sesión (hilo) objetivo: la indicada o la activa. El agente solo ve el
+    # historial de ESA sesión (contexto aislado por hilo).
+    estructura = _normalizar_sesiones(ficha.chat_historial)
+    sesion = _sesion_por_id(estructura, sesion_id)
+    historial = list(sesion.get("mensajes") or [])
 
     resultado = await chat_editar_ficha(
         ficha_actual=ficha_actual,
@@ -566,32 +730,36 @@ async def chat_ficha_mga_service(
         1 for v in (ficha.identificacion, ficha.preparacion, ficha.evaluacion, ficha.programacion) if v
     )
 
-    nueva_historial = list(historial)
-    nueva_historial.append(
-        {"role": "usuario", "texto": mensaje, "timestamp": datetime.utcnow().isoformat()}
-    )
-    nueva_historial.append(
+    # Autotítulo: si la sesión aún no tiene mensajes, usa un extracto del primero.
+    if not sesion.get("mensajes"):
+        sesion["titulo"] = mensaje.strip()[:48] + ("…" if len(mensaje.strip()) > 48 else "")
+
+    sesion["mensajes"] = historial + [
+        {"role": "usuario", "texto": mensaje, "timestamp": datetime.utcnow().isoformat()},
         {
             "role": "asistente",
             "texto": resultado["respuesta_ia"],
             "timestamp": datetime.utcnow().isoformat(),
-        }
-    )
-    # chat_historial es una columna JSON — reasignar la lista completa para que
-    # SQLAlchemy detecte el cambio (no trackea mutación in-place por defecto).
-    ficha.chat_historial = nueva_historial
+        },
+    ]
+    estructura["activa"] = sesion["id"]
+
+    # chat_historial es una columna JSON — reasignar la estructura completa para
+    # que SQLAlchemy detecte el cambio (no trackea mutación in-place por defecto).
+    ficha.chat_historial = estructura
 
     await db.commit()
     await db.refresh(ficha)
     logger.info(
-        "[chat_ficha_mga] Proyecto %s → %d/4 secciones, %d cambios aplicados",
+        "[chat_ficha_mga] Proyecto %s → %d/4 secciones, %d cambios aplicados (sesión %s)",
         proyecto_id,
         ficha.campos_completos,
         len(cambios),
+        sesion["id"],
     )
     return ChatFichaMGAResponse(
         respuesta_ia=resultado["respuesta_ia"],
-        ficha=FichaMGAOut.model_validate(ficha),
+        ficha=ficha_mga_to_out(ficha),
     )
 
 
@@ -727,6 +895,9 @@ async def evaluar_proyecto_service(
     4. Mapea resultado a EvaluarProyectoResponse
     5. Persiste diagnostico_mga en ProyectoSGR si guardar=True
     """
+    # ── 0. Auto-sanado del RAG: trae normas citadas en el texto que falten ──
+    await asegurar_normas_en_rag([texto_proyecto], rag=rag, settings=settings)
+
     # ── 1. RAG: chunks del plan ────────────────────────────────────────────
     plan_chunks: list[str] = []
     if plan_id:

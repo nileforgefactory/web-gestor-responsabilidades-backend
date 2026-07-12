@@ -26,6 +26,7 @@ from app.slices.sgr.schemas import (
     ActualizarFichaMGARequest,
     ChatFichaMGARequest,
     ChatFichaMGAResponse,
+    ChatSesionesResponse,
     DuplicidadSeedEstado,
     EvaluarPlanResponse,
     EvaluarProyectoRequest,
@@ -39,10 +40,13 @@ from app.slices.sgr.schemas import (
 from app.slices.sgr.service import (
     actualizar_ficha_mga_service,
     chat_ficha_mga_service,
+    crear_sesion_chat_service,
     evaluar_plan_sgr,
     evaluar_proyecto_service,
+    ficha_mga_to_out,
     generar_ficha_mga_service,
     guardar_proyecto_service,
+    listar_sesiones_chat_service,
     verificar_duplicidad_service,
 )
 from app.slices.rag.service import RagService
@@ -283,7 +287,7 @@ async def generar_ficha_mga(
         logger.exception("[generar_ficha_mga] Error proyecto=%s", proyecto_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    return FichaMGAOut.model_validate(ficha)
+    return ficha_mga_to_out(ficha)
 
 
 # ── M4b: Edición manual, chat conversacional y exportación Word ───────────────
@@ -347,14 +351,52 @@ async def chat_ficha_mga_endpoint(
             proyecto_id=proyecto_id,
             mensaje=payload.mensaje,
             db=db,
+            rag=rag,
             http=rag.http,
             settings=settings,
+            sesion_id=payload.sesion_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.exception("[chat_ficha_mga] Error proyecto=%s", proyecto_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/ficha-mga/{proyecto_id}/chat-sesiones",
+    response_model=ChatSesionesResponse,
+    summary="Listar sesiones (hilos) de chat de la Ficha MGA",
+    description="Devuelve todas las conversaciones de chat del proyecto con sus mensajes.",
+    responses={404: {"description": "Ficha MGA no encontrada para el proyecto"}},
+)
+async def listar_chat_sesiones_endpoint(
+    proyecto_id: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> ChatSesionesResponse:
+    try:
+        return await listar_sesiones_chat_service(proyecto_id=proyecto_id, db=db)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/ficha-mga/{proyecto_id}/chat-sesiones",
+    response_model=ChatSesionesResponse,
+    summary="Crear una nueva sesión (hilo) de chat",
+    description="Crea una conversación vacía y la deja como activa.",
+    responses={404: {"description": "Ficha MGA no encontrada para el proyecto"}},
+)
+async def crear_chat_sesion_endpoint(
+    proyecto_id: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> ChatSesionesResponse:
+    try:
+        return await crear_sesion_chat_service(proyecto_id=proyecto_id, db=db)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get(
