@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.core.openapi import RESPUESTAS_MYSQL
 from app.dependencies import get_rag_service
 from app.slices.auth.dependencies import AdminUser, CurrentUser
-from app.slices.common.divipola_search import buscar_municipios
+from app.slices.common.divipola_search import buscar_municipios, listar_departamentos
 from app.slices.rag.service import RagService
 from app.slices.auth.mappers import to_me_response, to_user_summary
 from app.slices.auth.permissions import (
@@ -191,6 +191,23 @@ async def buscar_municipios_endpoint(
     rag: RagService = Depends(get_rag_service),
 ) -> list[dict]:
     return await buscar_municipios(q, http=rag.http)
+
+
+@router.get(
+    "/territorio/departamentos",
+    summary="Listar departamentos con sus municipios (DIVIPOLA + categoría SGR)",
+    description=(
+        "Devuelve todos los departamentos con sus municipios agrupados desde el "
+        "dataset DIVIPOLA de datos.gov.co, para poblar dos selectores dependientes "
+        "(departamento -> municipio) al crear un usuario."
+    ),
+    responses=RESPUESTAS_AUTH,
+)
+async def listar_departamentos_endpoint(
+    admin: AdminUser,
+    rag: RagService = Depends(get_rag_service),
+) -> list[dict]:
+    return await listar_departamentos(http=rag.http)
 
 
 @router.post(

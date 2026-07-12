@@ -74,6 +74,45 @@ async def _cargar_todos(http: httpx.AsyncClient) -> list[dict[str, Any]]:
         return _cache
 
 
+async def listar_departamentos(http: httpx.AsyncClient) -> list[dict[str, Any]]:
+    """Agrupa el dataset DIVIPOLA por departamento con sus municipios.
+
+    Pensado para poblar dos selectores dependientes (departamento -> municipios)
+    al crear un usuario. Cada municipio incluye su código DIVIPOLA y la categoría
+    municipal (Ley 617/2000) si está en el catálogo embebido.
+
+    Returns:
+        `[{"departamento", "municipios": [{"municipio","divipola","categoria"}]}]`
+        ordenado alfabéticamente; lista vacía si falla la consulta.
+    """
+    todos = await _cargar_todos(http)
+    if not todos:
+        return []
+
+    grupos: dict[str, list[dict[str, Any]]] = {}
+    for row in todos:
+        departamento = row.get("dpto", "")
+        municipio = row.get("nom_mpio", "")
+        if not departamento or not municipio:
+            continue
+        info = obtener_categoria(departamento, municipio)
+        grupos.setdefault(departamento, []).append({
+            "municipio": municipio,
+            "divipola": row.get("cod_mpio") or row.get("cod_dpto") or "",
+            "categoria": (info or {}).get("categoria"),
+        })
+
+    salida = [
+        {
+            "departamento": departamento,
+            "municipios": sorted(municipios, key=lambda m: m["municipio"]),
+        }
+        for departamento, municipios in grupos.items()
+    ]
+    salida.sort(key=lambda d: d["departamento"])
+    return salida
+
+
 async def buscar_municipios(
     q: str,
     *,
