@@ -89,6 +89,13 @@ async def run_background_scraper(
 
     normas_candidatas = get_normas_by_priority(prioridad_max)
 
+    # Sumar normas territoriales activas del admin (acuerdos/ordenanzas/decretos
+    # locales) — el catálogo deja de estar fijo en las nacionales.
+    from app.slices.background_scraper import territorial
+    for cod in await territorial.codigos_activos(prioridad_max):
+        if cod not in normas_candidatas:
+            normas_candidatas.append(cod)
+
     if solo_faltantes:
         ya_indexadas = await _normas_ya_indexadas(settings)
         normas = [
