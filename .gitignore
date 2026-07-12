@@ -40,8 +40,12 @@ htmlcov/
 *.swo
 *~
 
-# Claude Code (configuración local)
+# Claude Code / agentes / skills (locales, no versionar)
 .claude/settings.json
+.claude/skills/
+.claude/worktrees/
+.agents/
+skills-lock.json
 
 # SO
 .DS_Store
