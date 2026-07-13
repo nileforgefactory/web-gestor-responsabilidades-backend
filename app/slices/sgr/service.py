@@ -422,27 +422,39 @@ async def generar_ficha_mga_service(
         settings=settings,
     )
 
-    # ── 4. RAG: fragmentos del plan de desarrollo ──────────────────────────
-    plan_chunks: list[str] = []
+    # ── 4. Cargar el Plan (para filtrar el RAG y conocer el municipio real) ─
+    plan_obj: Plane | None = None
     if proyecto.plan_id:
+        plan_result = await db.execute(select(Plane).where(Plane.id == proyecto.plan_id))
+        plan_obj = plan_result.scalar_one_or_none()
+
+    # ── 4b. RAG: fragmentos del plan de desarrollo (filtrados a ESTE plan) ──
+    # Sin filtrar por document_id/collection_id, una búsqueda global puede traer
+    # chunks de OTRO plan/municipio indexado en la misma colección. Si el plan no
+    # tiene ninguno de los dos identificadores, se omite la búsqueda (más seguro
+    # que arriesgar mezclar contenido de otro municipio).
+    plan_chunks: list[str] = []
+    if plan_obj and (plan_obj.coleccion_id or plan_obj.qdrant_doc_id):
         query_text = (
             f"{proyecto.nombre} {proyecto.sector_sgr or ''} "
             f"{brecha_dict.get('titulo', '')} inversión pública"
         ).strip()
         try:
-            resultados_rag = await rag.search(query=query_text, limit=top_chunks_plan)
-            plan_chunks = [
-                r.get("text", "") if isinstance(r, dict) else str(r)
-                for r in resultados_rag
-                if r
-            ]
+            resultados_rag = await rag.search(
+                query=query_text,
+                collection_ids=[plan_obj.coleccion_id] if plan_obj.coleccion_id else [],
+                top_k=top_chunks_plan,
+                score_threshold=settings.rag_default_score_threshold,
+                document_id=plan_obj.qdrant_doc_id,
+            )
+            plan_chunks = [c.text for c in resultados_rag.chunks if c.text]
         except Exception as exc:
             logger.warning("[generar_ficha_mga] RAG search falló: %s", exc)
 
-    # ── 5. Datos municipio desde el proyecto ───────────────────────────────
+    # ── 5. Datos municipio: del PLAN (entidad real), no del proyecto ───────
     datos_municipio = {
         "divipola": proyecto.municipio_codigo,
-        "nombre_municipio": proyecto.nombre,
+        "nombre_municipio": (plan_obj.entidad if plan_obj else None) or proyecto.municipio_codigo,
         "categoria_municipio": None,
         "nbi": None,
         "icld": None,
@@ -898,25 +910,35 @@ async def evaluar_proyecto_service(
     # ── 0. Auto-sanado del RAG: trae normas citadas en el texto que falten ──
     await asegurar_normas_en_rag([texto_proyecto], rag=rag, settings=settings)
 
-    # ── 1. RAG: chunks del plan ────────────────────────────────────────────
-    plan_chunks: list[str] = []
+    # ── 1. Cargar el Plan (para filtrar el RAG y conocer el municipio real) ─
+    plan_obj: Plane | None = None
     if plan_id:
+        plan_result = await db.execute(select(Plane).where(Plane.id == plan_id))
+        plan_obj = plan_result.scalar_one_or_none()
+
+    # ── 1b. RAG: chunks del plan (filtrados a ESTE plan) ───────────────────
+    # Sin filtrar por document_id/collection_id, una búsqueda global puede traer
+    # chunks de OTRO plan/municipio indexado en la misma colección. Si el plan no
+    # tiene ninguno de los dos identificadores, se omite la búsqueda (más seguro
+    # que arriesgar mezclar contenido de otro municipio).
+    plan_chunks: list[str] = []
+    if plan_obj and (plan_obj.coleccion_id or plan_obj.qdrant_doc_id):
         try:
             resultados_rag = await rag.search(
                 query=texto_proyecto[:400],
-                limit=top_chunks_plan,
+                collection_ids=[plan_obj.coleccion_id] if plan_obj.coleccion_id else [],
+                top_k=top_chunks_plan,
+                score_threshold=settings.rag_default_score_threshold,
+                document_id=plan_obj.qdrant_doc_id,
             )
-            plan_chunks = [
-                r.get("text", "") if isinstance(r, dict) else str(r)
-                for r in resultados_rag if r
-            ]
+            plan_chunks = [c.text for c in resultados_rag.chunks if c.text]
         except Exception as exc:
             logger.warning("[evaluar_proyecto_service] RAG search falló: %s", exc)
 
-    # ── 2. Datos del municipio (desde proyecto si existe) ──────────────────
+    # ── 2. Datos del municipio: del PLAN (entidad real) y/o del proyecto ───
     datos_municipio: dict = {
         "divipola": None,
-        "nombre_municipio": None,
+        "nombre_municipio": plan_obj.entidad if plan_obj else None,
         "categoria_municipio": None,
         "nbi": None,
         "icld": None,
@@ -928,7 +950,8 @@ async def evaluar_proyecto_service(
         proyecto_obj = result.scalar_one_or_none()
         if proyecto_obj:
             datos_municipio["divipola"] = proyecto_obj.municipio_codigo
-            datos_municipio["nombre_municipio"] = proyecto_obj.nombre
+            if not datos_municipio["nombre_municipio"]:
+                datos_municipio["nombre_municipio"] = proyecto_obj.municipio_codigo
 
     # ── 3. Agente evaluador ────────────────────────────────────────────────
     resultado = await evaluar_proyecto(
