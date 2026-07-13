@@ -1045,3 +1045,14 @@ async def guardar_proyecto_service(*, proyecto_id: str, db: AsyncSession) -> Pro
         await db.refresh(proyecto)
 
     return proyecto
+
+
+async def eliminar_proyecto_service(*, proyecto_id: str, db: AsyncSession) -> None:
+    """Elimina un ProyectoSGR y su Ficha MGA asociada (cascade por FK)."""
+    result = await db.execute(select(ProyectoSGR).where(ProyectoSGR.id == proyecto_id))
+    proyecto = result.scalar_one_or_none()
+    if proyecto is None:
+        raise ValueError(f"Proyecto '{proyecto_id}' no encontrado")
+
+    await db.delete(proyecto)
+    await db.commit()

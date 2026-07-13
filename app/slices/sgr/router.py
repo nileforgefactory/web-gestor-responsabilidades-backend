@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.dependencies import get_rag_service
-from app.slices.auth.dependencies import AdminUser, CurrentUser, get_current_user
+from app.slices.auth.dependencies import AdminUser, CurrentUser, WriteUser, get_current_user
 from app.slices.sgr import duplicidad_seed_service
 from app.slices.sgr.export_mga_docx import generar_docx_ficha
 from app.slices.planes.models import Plane
@@ -41,6 +41,7 @@ from app.slices.sgr.service import (
     actualizar_ficha_mga_service,
     chat_ficha_mga_service,
     crear_sesion_chat_service,
+    eliminar_proyecto_service,
     evaluar_plan_sgr,
     evaluar_proyecto_service,
     ficha_mga_to_out,
@@ -243,6 +244,39 @@ async def guardar_proyecto_endpoint(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ProyectoSGROut.model_validate(proyecto)
+
+
+@router.delete(
+    "/proyecto/{proyecto_id}",
+    status_code=204,
+    summary="Eliminar un proyecto SGR",
+    description=(
+        "Elimina el proyecto y su Ficha MGA asociada (si existe). "
+        "Operación irreversible. Requiere rol administrador o superadmin."
+    ),
+    responses={404: {"description": "Proyecto no encontrado"}, 403: {"description": "Sin permiso de escritura o de otro territorio"}},
+)
+async def eliminar_proyecto_endpoint(
+    proyecto_id: str,
+    current_user: WriteUser,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    result = await db.execute(
+        select(ProyectoSGR, Plane.coleccion_id)
+        .join(Plane, Plane.id == ProyectoSGR.plan_id)
+        .where(ProyectoSGR.id == proyecto_id)
+    )
+    fila = result.first()
+    if fila is None:
+        raise HTTPException(status_code=404, detail=f"Proyecto '{proyecto_id}' no encontrado")
+    _, plan_coleccion_id = fila
+    if current_user.rol_codigo != "superadmin" and plan_coleccion_id != current_user.coleccion_id:
+        raise HTTPException(status_code=403, detail="No puede eliminar proyectos de otro territorio.")
+
+    try:
+        await eliminar_proyecto_service(proyecto_id=proyecto_id, db=db)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── M4: Generación de Ficha MGA ───────────────────────────────────────────────
