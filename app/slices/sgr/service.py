@@ -482,6 +482,21 @@ async def generar_ficha_mga_service(
         settings=settings,
     )
 
+    # ── 6b. Auto-sanado del RAG con el texto YA GENERADO — el LLM puede citar
+    # leyes de su conocimiento general (no presentes en el input del paso 3b)
+    # dentro de las 4 secciones de la ficha. No dispara regeneración: solo
+    # deja la norma indexada en RAG para análisis/duplicidad posteriores.
+    await asegurar_normas_en_rag(
+        [
+            resultado_mga.get("identificacion") or "",
+            resultado_mga.get("preparacion") or "",
+            resultado_mga.get("evaluacion") or "",
+            resultado_mga.get("programacion") or "",
+        ],
+        rag=rag,
+        settings=settings,
+    )
+
     # ── 7. Persistir ficha (upsert) ────────────────────────────────────────
     if ficha_existente:
         ficha_existente.identificacion = resultado_mga.get("identificacion")
