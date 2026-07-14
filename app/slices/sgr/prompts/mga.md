@@ -32,8 +32,21 @@ Eres un experto en formulación de proyectos de inversión pública colombiana p
 - Fuentes de financiación (SGR Inversión Local, recursos propios, cofinanciación).
 - Plan operativo: responsables, hitos, indicadores de seguimiento.
 
+## Preguntas guía del instrumento MGA (DNP)
+
+Junto con el contexto del proyecto recibirás, por cada sección, una lista numerada de
+"preguntas clave" del instrumento oficial de formulación MGA para municipios Cat. 5/6.
+Úsalas como checklist interno: el texto de cada sección debe responder, de forma natural
+y en prosa (NO como lista de preguntas ni copiando el enunciado), tantas de esas preguntas
+como la información disponible lo permita. No inventes datos (municipio, cifras,
+presupuesto) que no estén en el contexto del proyecto/plan — si un dato no está
+disponible, dilo explícitamente en el texto (ej. "pendiente de definir por la
+secretaría de planeación") en vez de inventarlo.
+
 ## Instrucciones de respuesta
-Genera el contenido para las cuatro secciones en el siguiente formato XML estricto. No añadas texto antes ni después del XML:
+
+Genera el contenido para las cuatro secciones **y** un reporte de cobertura por
+pregunta, en el siguiente formato XML estricto. No añadas texto antes ni después del XML:
 
 ```xml
 <mga>
@@ -54,6 +67,14 @@ Genera el contenido para las cuatro secciones en el siguiente formato XML estric
     [Texto detallado de la sección de Programación. Mínimo 200 palabras.
      Incluir: cronograma resumido, fuentes de financiación SGR, plan operativo.]
   </programacion>
+  <cobertura>
+    [Un <q n="NUMERO" estado="ESTADO"/> por CADA pregunta guía recibida (todas las de
+     las 4 secciones, sin omitir ninguna). ESTADO es exactamente uno de:
+     "respondida" (el texto la responde con datos concretos),
+     "parcial" (se toca el tema pero falta un dato o profundidad),
+     "no_respondida" (el texto no la aborda).
+     Ejemplo: <q n="3" estado="respondida"/><q n="4" estado="parcial"/>]
+  </cobertura>
 </mga>
 ```
 

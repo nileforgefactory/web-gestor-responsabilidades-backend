@@ -160,6 +160,15 @@ class ChatSesionesResponse(BaseModel):
     activa: str | None = None
 
 
+class CoberturaPregunta(BaseModel):
+    """Estado de cobertura de una pregunta del instrumento MGA en la ficha generada."""
+
+    numero: int
+    modulo: int
+    pregunta: str
+    estado: Literal["respondida", "parcial", "no_respondida"]
+
+
 class FichaMGAOut(BaseModel):
     id: int
     proyecto_id: str
@@ -176,6 +185,8 @@ class FichaMGAOut(BaseModel):
     # Historial por sesiones (hilos): metadatos + id de la sesión activa
     chat_sesiones: list[SesionChatMeta] = []
     sesion_activa: str | None = None
+    # Cobertura del instrumento MGA de 50 preguntas (alertas de qué falta)
+    cobertura_preguntas: list[CoberturaPregunta] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -337,6 +348,32 @@ class EvaluarProyectoResponse(BaseModel):
 
 EstadoSeedTarea = Literal["idle", "running", "completed", "cancelled", "error"]
 FaseSeed = Literal["extrayendo", "leyendo_filas", "indexando"]
+
+
+# ── Instrumento MGA (50 preguntas + checklist de verificación) ────────────────
+
+class PreguntaMGAOut(BaseModel):
+    numero: int
+    modulo: int
+    seccion: str
+    pregunta: str
+    que_busca: str
+    como_responder: str
+    alerta_cat56: str
+
+
+class ItemVerificacionOut(BaseModel):
+    modulo: str
+    item: str
+    como_verificarlo: str
+    alerta_sgr: str
+
+
+class InstrumentoMGAResponse(BaseModel):
+    """Preguntas del instrumento MGA (módulos 1-4) y checklist final de verificación (22 ítems)."""
+
+    preguntas: list[PreguntaMGAOut]
+    checklist: list[ItemVerificacionOut]
 
 
 class DuplicidadSeedEstado(BaseModel):
