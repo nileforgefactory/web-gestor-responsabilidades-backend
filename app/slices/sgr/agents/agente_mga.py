@@ -11,7 +11,13 @@ import httpx
 
 from app.core.config import Settings
 from app.slices.rag.ai_client import ai_chat
-from app.slices.sgr.instrumento_mga import MODULO_NOMBRE, PreguntaMGA, preguntas_por_modulo
+from app.slices.sgr.instrumento_mga import (
+    MODULO_NOMBRE,
+    ItemVerificacion,
+    PreguntaMGA,
+    checklist_evaluable_ia,
+    preguntas_por_modulo,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +32,9 @@ _MODULO_POR_CAMPO = {"identificacion": 1, "preparacion": 2, "evaluacion": 3, "pr
 
 _COBERTURA_Q_RE = re.compile(r'<q\s+n="(\d+)"\s+estado="([a-z_]+)"\s*/>')
 _ESTADOS_VALIDOS = {"respondida", "parcial", "no_respondida"}
+
+_CHECKLIST_TAG_RE = re.compile(r"<c\s+([^>]*)/>")
+_ATTR_RE = re.compile(r'(\w+)="([^"]*)"')
 
 
 def _construir_preguntas_guia() -> str:
@@ -71,6 +80,47 @@ def _parsear_cobertura(raw: str) -> list[dict[str, Any]]:
 _PREGUNTAS_1_A_4: list[PreguntaMGA] = [
     p for modulo in (1, 2, 3, 4) for p in preguntas_por_modulo(modulo)
 ]
+
+_CHECKLIST_EVALUABLE: list[ItemVerificacion] = checklist_evaluable_ia()
+
+
+def _construir_checklist_guia() -> str:
+    """Texto con los ítems del checklist final que la IA puede evaluar contra el
+    texto generado (excluye ítems sobre soportes físicos o revisión por un par)."""
+    return "\n".join(f"{it.numero}. [{it.modulo}] {it.item}" for it in _CHECKLIST_EVALUABLE)
+
+
+def _parsear_checklist(raw: str) -> list[dict[str, Any]]:
+    """Extrae el bloque <checklist> del XML y lo mapea al ítem real para persistir
+    y mostrar cumple/no cumple con motivo en el frontend."""
+    match = re.search(r"<checklist>(.*?)</checklist>", raw, re.DOTALL)
+    if not match:
+        return []
+    items_por_numero = {it.numero: it for it in _CHECKLIST_EVALUABLE}
+    resultado: list[dict[str, Any]] = []
+    vistos: set[int] = set()
+    for tag_body in _CHECKLIST_TAG_RE.findall(match.group(1)):
+        attrs = dict(_ATTR_RE.findall(tag_body))
+        numero_str = attrs.get("n")
+        cumple_str = attrs.get("cumple")
+        if not numero_str or cumple_str not in ("si", "no"):
+            continue
+        numero = int(numero_str)
+        if numero in vistos:
+            continue
+        item = items_por_numero.get(numero)
+        if item is None:
+            continue
+        vistos.add(numero)
+        resultado.append({
+            "numero": numero,
+            "modulo": item.modulo,
+            "item": item.item,
+            "cumple": cumple_str == "si",
+            "motivo": attrs.get("motivo") or None,
+        })
+    resultado.sort(key=lambda c: c["numero"])
+    return resultado
 
 
 def _load_prompt() -> str:
@@ -153,6 +203,7 @@ async def generar_ficha_mga(
         plan_ctx = f"\n\n=== EXTRACTOS DEL PLAN DE DESARROLLO ===\n{fragmentos}"
 
     preguntas_ctx = _construir_preguntas_guia()
+    checklist_ctx = _construir_checklist_guia()
 
     user_message = (
         f"=== MUNICIPIO ===\n{municipio_ctx}\n\n"
@@ -160,8 +211,10 @@ async def generar_ficha_mga(
         f"=== BRECHA DE ORIGEN ===\n{brecha_ctx}"
         f"{plan_ctx}\n\n"
         f"=== PREGUNTAS GUÍA DEL INSTRUMENTO MGA (responde en prosa lo que la información permita) ===\n{preguntas_ctx}\n\n"
+        f"=== CHECKLIST DE VERIFICACIÓN FINAL (evalúa cumple/no cumple sobre lo que escribas) ===\n{checklist_ctx}\n\n"
         "Genera la ficha MGA completa para este proyecto en el formato XML indicado, "
-        "incluyendo el bloque <cobertura> con TODAS las preguntas guía anteriores."
+        "incluyendo el bloque <cobertura> con TODAS las preguntas guía anteriores y el "
+        "bloque <checklist> con TODOS los ítems del checklist anterior."
     )
 
     messages = [
@@ -184,12 +237,16 @@ async def generar_ficha_mga(
 
     modelo = getattr(settings, "ollama_chat_model", None) or "llm"
     cobertura = _parsear_cobertura(raw)
+    checklist = _parsear_checklist(raw)
     logger.info(
-        "[agente_mga] Proyecto %s → %d/4 secciones generadas, %d/%d preguntas cubiertas",
+        "[agente_mga] Proyecto %s → %d/4 secciones generadas, %d/%d preguntas cubiertas, "
+        "%d/%d ítems de checklist cumplidos",
         proyecto.get("id"),
         campos_completos,
         sum(1 for c in cobertura if c["estado"] == "respondida"),
         len(_PREGUNTAS_1_A_4),
+        sum(1 for c in checklist if c["cumple"]),
+        len(_CHECKLIST_EVALUABLE),
     )
 
     return {
@@ -197,6 +254,7 @@ async def generar_ficha_mga(
         "campos_completos": campos_completos,
         "modelo_usado": modelo,
         "cobertura_preguntas": cobertura,
+        "checklist_verificacion": checklist,
     }
 
 
@@ -213,4 +271,5 @@ def _fallback_mga(proyecto: dict[str, Any], razon: str) -> dict[str, Any]:
         "campos_completos": 0,
         "modelo_usado": None,
         "cobertura_preguntas": [],
+        "checklist_verificacion": [],
     }
