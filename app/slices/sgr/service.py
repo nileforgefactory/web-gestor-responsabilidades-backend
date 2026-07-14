@@ -505,6 +505,7 @@ async def generar_ficha_mga_service(
         ficha_existente.programacion = resultado_mga.get("programacion")
         ficha_existente.campos_completos = resultado_mga.get("campos_completos", 0)
         ficha_existente.modelo_usado = resultado_mga.get("modelo_usado")
+        ficha_existente.cobertura_preguntas = resultado_mga.get("cobertura_preguntas") or []
         ficha = ficha_existente
     else:
         ficha = FichaMGA(
@@ -515,6 +516,7 @@ async def generar_ficha_mga_service(
             programacion=resultado_mga.get("programacion"),
             campos_completos=resultado_mga.get("campos_completos", 0),
             modelo_usado=resultado_mga.get("modelo_usado"),
+            cobertura_preguntas=resultado_mga.get("cobertura_preguntas") or [],
         )
         db.add(ficha)
 
@@ -653,6 +655,7 @@ def ficha_mga_to_out(ficha: FichaMGA) -> FichaMGAOut:
         chat_historial=activa.get("mensajes") or [],
         chat_sesiones=_meta_sesiones(estructura),
         sesion_activa=activa["id"],
+        cobertura_preguntas=ficha.cobertura_preguntas or [],
     )
 
 

@@ -226,4 +226,13 @@ class FichaMGA(Base):
         JSON, nullable=True, comment="Historial de chat de edición: lista de {role, texto, timestamp}"
     )
 
+    cobertura_preguntas: Mapped[list | None] = mapped_column(
+        JSON,
+        nullable=True,
+        comment=(
+            "Cobertura del instrumento MGA (50 preguntas): lista de "
+            "{numero, modulo, pregunta, estado} — estado: respondida | parcial | no_respondida"
+        ),
+    )
+
     proyecto: Mapped[ProyectoSGR] = relationship("ProyectoSGR", back_populates="ficha_mga")

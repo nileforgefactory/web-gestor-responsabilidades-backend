@@ -11,6 +11,7 @@ import httpx
 
 from app.core.config import Settings
 from app.slices.rag.ai_client import ai_chat
+from app.slices.sgr.instrumento_mga import MODULO_NOMBRE, PreguntaMGA, preguntas_por_modulo
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,57 @@ _PROMPT_TEMPLATE: str | None = None
 
 # Campos MGA que extraemos del XML
 _MGA_FIELDS = ("identificacion", "preparacion", "evaluacion", "programacion")
+
+# Sección MGA (campo de la ficha) <-> módulo del instrumento (1-4)
+_MODULO_POR_CAMPO = {"identificacion": 1, "preparacion": 2, "evaluacion": 3, "programacion": 4}
+
+_COBERTURA_Q_RE = re.compile(r'<q\s+n="(\d+)"\s+estado="([a-z_]+)"\s*/>')
+_ESTADOS_VALIDOS = {"respondida", "parcial", "no_respondida"}
+
+
+def _construir_preguntas_guia() -> str:
+    """Texto con las preguntas clave del instrumento MGA (módulos 1-4), agrupadas
+    por sección, para inyectar como contexto guía en el prompt de generación."""
+    bloques: list[str] = []
+    for modulo in (1, 2, 3, 4):
+        preguntas = preguntas_por_modulo(modulo)
+        lineas = [f"### {MODULO_NOMBRE[modulo]} (Módulo {modulo})"]
+        for p in preguntas:
+            lineas.append(f"{p.numero}. {p.pregunta}")
+        bloques.append("\n".join(lineas))
+    return "\n\n".join(bloques)
+
+
+def _parsear_cobertura(raw: str) -> list[dict[str, Any]]:
+    """Extrae el bloque <cobertura> del XML y lo mapea a la pregunta real
+    (número, módulo, texto) para persistir y mostrar alertas en el frontend."""
+    match = re.search(r"<cobertura>(.*?)</cobertura>", raw, re.DOTALL)
+    if not match:
+        return []
+    preguntas_por_numero = {p.numero: p for p in _PREGUNTAS_1_A_4}
+    cobertura: list[dict[str, Any]] = []
+    vistos: set[int] = set()
+    for numero_str, estado in _COBERTURA_Q_RE.findall(match.group(1)):
+        numero = int(numero_str)
+        if numero in vistos or estado not in _ESTADOS_VALIDOS:
+            continue
+        pregunta = preguntas_por_numero.get(numero)
+        if pregunta is None:
+            continue
+        vistos.add(numero)
+        cobertura.append({
+            "numero": numero,
+            "modulo": pregunta.modulo,
+            "pregunta": pregunta.pregunta,
+            "estado": estado,
+        })
+    cobertura.sort(key=lambda c: c["numero"])
+    return cobertura
+
+
+_PREGUNTAS_1_A_4: list[PreguntaMGA] = [
+    p for modulo in (1, 2, 3, 4) for p in preguntas_por_modulo(modulo)
+]
 
 
 def _load_prompt() -> str:
@@ -100,12 +152,16 @@ async def generar_ficha_mga(
         fragmentos = "\n---\n".join(plan_chunks[:5])  # máx 5 chunks del plan
         plan_ctx = f"\n\n=== EXTRACTOS DEL PLAN DE DESARROLLO ===\n{fragmentos}"
 
+    preguntas_ctx = _construir_preguntas_guia()
+
     user_message = (
         f"=== MUNICIPIO ===\n{municipio_ctx}\n\n"
         f"=== PROYECTO SGR CANDIDATO ===\n{proyecto_ctx}\n\n"
         f"=== BRECHA DE ORIGEN ===\n{brecha_ctx}"
         f"{plan_ctx}\n\n"
-        "Genera la ficha MGA completa para este proyecto en el formato XML indicado."
+        f"=== PREGUNTAS GUÍA DEL INSTRUMENTO MGA (responde en prosa lo que la información permita) ===\n{preguntas_ctx}\n\n"
+        "Genera la ficha MGA completa para este proyecto en el formato XML indicado, "
+        "incluyendo el bloque <cobertura> con TODAS las preguntas guía anteriores."
     )
 
     messages = [
@@ -127,16 +183,20 @@ async def generar_ficha_mga(
         return _fallback_mga(proyecto, "Respuesta del LLM no parseable como XML MGA")
 
     modelo = getattr(settings, "ollama_chat_model", None) or "llm"
+    cobertura = _parsear_cobertura(raw)
     logger.info(
-        "[agente_mga] Proyecto %s → %d/4 secciones generadas",
+        "[agente_mga] Proyecto %s → %d/4 secciones generadas, %d/%d preguntas cubiertas",
         proyecto.get("id"),
         campos_completos,
+        sum(1 for c in cobertura if c["estado"] == "respondida"),
+        len(_PREGUNTAS_1_A_4),
     )
 
     return {
         **secciones,
         "campos_completos": campos_completos,
         "modelo_usado": modelo,
+        "cobertura_preguntas": cobertura,
     }
 
 
@@ -152,4 +212,5 @@ def _fallback_mga(proyecto: dict[str, Any], razon: str) -> dict[str, Any]:
         "programacion": None,
         "campos_completos": 0,
         "modelo_usado": None,
+        "cobertura_preguntas": [],
     }
