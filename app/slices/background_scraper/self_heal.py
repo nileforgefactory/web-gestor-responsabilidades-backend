@@ -95,7 +95,7 @@ async def asegurar_normas_en_rag(
     pais: str = "COLOMBIA",
     limite: int = _LIMITE_POR_DEFECTO,
     on_evento: EventoCallback | None = None,
-    timeout_por_norma: float = 90.0,
+    timeout_por_norma: float = 240.0,
 ) -> AutoSanadoResultado:
     """Detecta normas citadas en `textos` y trae al RAG las que falten.
 
@@ -150,7 +150,10 @@ async def asegurar_normas_en_rag(
                 if on_evento:
                     await on_evento("fallida", norma)
         except (asyncio.TimeoutError, Exception) as exc:
-            logger.warning("[self_heal] no se pudo indexar %r: %s", norma, exc)
+            # asyncio.TimeoutError no trae mensaje (str(exc) == ""); se agrega el
+            # tipo y el timeout usado para que el log siga siendo diagnosticable.
+            detalle = str(exc) or f"{type(exc).__name__} (timeout={timeout_por_norma}s)"
+            logger.warning("[self_heal] no se pudo indexar %r: %s", norma, detalle)
             resultado.fallidas.append(norma)
             if on_evento:
                 await on_evento("fallida", norma)
