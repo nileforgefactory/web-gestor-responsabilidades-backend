@@ -361,12 +361,16 @@ class PreguntaMGAOut(BaseModel):
     como_responder: str
     alerta_cat56: str
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ItemVerificacionOut(BaseModel):
     modulo: str
     item: str
     como_verificarlo: str
     alerta_sgr: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class InstrumentoMGAResponse(BaseModel):
