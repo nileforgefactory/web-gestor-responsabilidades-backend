@@ -39,6 +39,8 @@ from app.slices.sgr.schemas import (
     GenerarFichaMGARequest,
     InstrumentoMGAResponse,
     ProyectoGuardadoOut,
+    ProyectoMatrizSGRListResponse,
+    ProyectoMatrizSGROut,
     ProyectoSGROut,
     VerificarDuplicidadResponse,
 )
@@ -710,6 +712,48 @@ async def cancelar_duplicidad_seed(admin: AdminUser) -> DuplicidadSeedEstado:
 )
 async def estado_duplicidad_seed(admin: AdminUser) -> DuplicidadSeedEstado:
     return duplicidad_seed_service.get_estado()
+
+
+@router.get(
+    "/duplicidad-seed/proyectos",
+    response_model=ProyectoMatrizSGRListResponse,
+    summary="Listar proyectos de la Matriz SGR (GESPROY/DNP) ya indexados",
+    description=(
+        "Catálogo paginado y buscable (por nombre, BPIN o municipio) de los "
+        "proyectos cargados desde el último Excel GESPROY/DNP procesado."
+    ),
+)
+async def listar_proyectos_matriz_sgr(
+    current_user: CurrentUser,
+    search: str | None = Query(None, description="Filtra por nombre, BPIN o municipio"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+) -> ProyectoMatrizSGRListResponse:
+    filas, total = await duplicidad_seed_service.listar_catalogo(db, search=search, skip=skip, limit=limit)
+    return ProyectoMatrizSGRListResponse(
+        items=[ProyectoMatrizSGROut.model_validate(f) for f in filas],
+        total=total,
+    )
+
+
+@router.post(
+    "/duplicidad-seed/backfill",
+    summary="Recuperar en MySQL los proyectos ya indexados en Qdrant",
+    description=(
+        "Solo admin/superadmin. Repuebla el catálogo `proyectos_matriz_sgr` "
+        "leyendo lo que ya está indexado en Qdrant (para proyectos indexados "
+        "antes de que existiera este catálogo). Reemplaza el contenido actual "
+        "de la tabla."
+    ),
+)
+async def backfill_duplicidad_seed(
+    admin: AdminUser,
+    db: AsyncSession = Depends(get_db),
+    rag: RagService = Depends(get_rag_service),
+) -> dict:
+    total = await duplicidad_seed_service.backfill_catalogo_desde_qdrant(rag=rag, db=db)
+    return {"proyectos_recuperados": total}
 
 
 @router.get(

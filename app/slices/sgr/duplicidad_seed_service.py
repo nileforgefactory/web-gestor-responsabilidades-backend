@@ -20,10 +20,15 @@ import re
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 from xml.etree import ElementTree as ET
+
+from sqlalchemy import delete, insert, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.slices.common.municipios_catalogo import obtener_categoria
 from app.slices.rag.service import RagService
+from app.slices.sgr.models import ProyectoMatrizSGR
 from app.slices.sgr.schemas import DuplicidadSeedEstado
 
 logger = logging.getLogger(__name__)
@@ -184,6 +189,7 @@ async def run_duplicidad_seed(
         _estado.fase = "indexando"
         await rag.ensure_collection()
         sem = asyncio.Semaphore(_CONCURRENCIA)
+        exitosos: list[dict] = []
 
         async def _indexar(idx: int, c: dict) -> None:
             document_id = c["bpin"] or f"sgr-fila-{idx}"
@@ -211,6 +217,7 @@ async def run_duplicidad_seed(
                         },
                     )
                     _estado.proyectos_indexados += 1
+                    exitosos.append({**c, "qdrant_doc_id": document_id})
                 except asyncio.CancelledError:
                     raise
                 except Exception as exc:
@@ -224,6 +231,16 @@ async def run_duplicidad_seed(
             "[duplicidad_seed] fin: %d indexados, %d fallidos de %d candidatos",
             _estado.proyectos_indexados, _estado.proyectos_fallidos, len(candidatos),
         )
+
+        if exitosos:
+            try:
+                from app.core.database import mysql_available, session_scope
+                if mysql_available():
+                    async with session_scope() as db:
+                        await _persistir_catalogo_mysql(db, exitosos)
+                    logger.info("[duplicidad_seed] catálogo MySQL repoblado: %d filas", len(exitosos))
+            except Exception as exc:
+                logger.warning("[duplicidad_seed] no se pudo persistir el catálogo MySQL: %s", exc)
 
     except asyncio.CancelledError:
         _estado.estado = "cancelled"
@@ -261,3 +278,86 @@ def start_duplicidad_seed(
         run_duplicidad_seed(xlsx_path=xlsx_path, rag=rag, delete_source_after=delete_source_after)
     )
     return True
+
+
+async def _persistir_catalogo_mysql(db: AsyncSession, exitosos: list[dict]) -> None:
+    """Repuebla proyectos_matriz_sgr por completo con los proyectos indexados en
+    esta corrida — la tabla siempre refleja el último Excel cargado con éxito."""
+    await db.execute(delete(ProyectoMatrizSGR))
+    filas = [
+        {
+            "id": str(uuid4()),
+            "bpin": c["bpin"] or None,
+            "nombre": c["nombre"],
+            "municipio": ",".join(c["municipios"]),
+            "departamento": c["departamento"],
+            "sector": c["sector"],
+            "estado": c["estado"],
+            "valor_sgr": c["valor_sgr"],
+            "fecha_aprobacion": c["fecha_aprobacion"],
+            "qdrant_doc_id": c["qdrant_doc_id"],
+        }
+        for c in exitosos
+    ]
+    for i in range(0, len(filas), 1000):
+        await db.execute(insert(ProyectoMatrizSGR), filas[i : i + 1000])
+    await db.commit()
+
+
+async def backfill_catalogo_desde_qdrant(*, rag: RagService, db: AsyncSession) -> int:
+    """Repuebla proyectos_matriz_sgr leyendo lo que ya está indexado en Qdrant —
+    para proyectos indexados antes de que existiera esta tabla MySQL. Deduplica
+    por document_id (un proyecto puede tener más de un chunk)."""
+    payloads = await rag.repository.scroll_payloads_by_collection_id(collection_id=_COLECCION_SGR)
+
+    vistos: dict[str, dict] = {}
+    for p in payloads:
+        doc_id = p.get("document_id")
+        if not doc_id or doc_id in vistos:
+            continue
+        vistos[doc_id] = p
+
+    await db.execute(delete(ProyectoMatrizSGR))
+    filas = [
+        {
+            "id": str(uuid4()),
+            "bpin": p.get("bpin") or None,
+            "nombre": p.get("nombre") or p.get("title") or "",
+            "municipio": p.get("municipio_codigo"),
+            "departamento": p.get("departamento"),
+            "sector": p.get("sector"),
+            "estado": p.get("estado"),
+            "valor_sgr": p.get("valor_sgr"),
+            "fecha_aprobacion": p.get("fecha_aprobacion"),
+            "qdrant_doc_id": doc_id,
+        }
+        for doc_id, p in vistos.items()
+    ]
+    for i in range(0, len(filas), 1000):
+        await db.execute(insert(ProyectoMatrizSGR), filas[i : i + 1000])
+    await db.commit()
+    return len(filas)
+
+
+async def listar_catalogo(
+    db: AsyncSession, *, search: str | None = None, skip: int = 0, limit: int = 50,
+) -> tuple[list[ProyectoMatrizSGR], int]:
+    """Lista paginada del catálogo de proyectos de la Matriz SGR, con búsqueda
+    opcional por nombre, BPIN o municipio."""
+    stmt = select(ProyectoMatrizSGR)
+    count_stmt = select(func.count()).select_from(ProyectoMatrizSGR)
+
+    if search:
+        like = f"%{search}%"
+        condicion = or_(
+            ProyectoMatrizSGR.nombre.like(like),
+            ProyectoMatrizSGR.bpin.like(like),
+            ProyectoMatrizSGR.municipio.like(like),
+        )
+        stmt = stmt.where(condicion)
+        count_stmt = count_stmt.where(condicion)
+
+    total = (await db.execute(count_stmt)).scalar_one()
+    stmt = stmt.order_by(ProyectoMatrizSGR.nombre).offset(skip).limit(limit)
+    filas = (await db.execute(stmt)).scalars().all()
+    return list(filas), total
