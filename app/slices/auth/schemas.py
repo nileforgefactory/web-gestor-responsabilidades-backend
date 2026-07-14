@@ -172,6 +172,18 @@ class UserCreateRequest(BaseModel):
             ]
         },
     )
+    divipola: str | None = Field(
+        None,
+        max_length=8,
+        description="Código DIVIPOLA del municipio elegido en el buscador (opcional).",
+    )
+    categoria_municipio: Literal["5", "6"] | None = Field(
+        None,
+        description=(
+            "Categoría municipal según Ley 617/2000 (solo 5 o 6, relevantes para SGR). "
+            "Si el municipio elegido tiene otra categoría, se omite."
+        ),
+    )
 
     model_config = ConfigDict(
         json_schema_extra={

@@ -61,20 +61,21 @@ async def _buscar_qdrant(
 ) -> list[dict[str, Any]]:
     """Búsqueda semántica local en Qdrant colección proyectos_sgr."""
     try:
-        resultados = await rag.search(
+        resultado = await rag.search(
             query=texto,
-            limit=top_k,
-            collection_name=_COLECCION_SGR,
+            collection_ids=[_COLECCION_SGR],
+            top_k=top_k,
+            score_threshold=_UMBRAL_ADVERTENCIA,
         )
         similares = []
-        for r in resultados:
-            payload = r.get("payload", {}) if isinstance(r, dict) else {}
+        for chunk in resultado.chunks:
+            payload = chunk.payload or {}
             similares.append({
-                "texto": payload.get("texto", r.get("text", "")),
-                "nombre_proyecto": payload.get("nombre", ""),
-                "codigo_bpin": payload.get("bpin", None),
+                "texto": chunk.text,
+                "nombre_proyecto": chunk.title or payload.get("nombre", ""),
+                "codigo_bpin": payload.get("bpin") or chunk.document_id or None,
                 "municipio": payload.get("municipio_codigo", ""),
-                "score_qdrant": r.get("score", 0.0) if isinstance(r, dict) else 0.0,
+                "score_qdrant": chunk.score,
                 "fuente": payload.get("source", "local"),
             })
         return similares

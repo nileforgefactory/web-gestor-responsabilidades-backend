@@ -58,8 +58,38 @@ async def lifespan(_: FastAPI):
         from app.slices.background_scraper import service as bg_service
         bg_service.start_background_scraper(settings=settings, rag=rag_service)
 
+    # ── Indexador de normas: re-ejecución periódica opcional ──
+    scheduler = None
+    if settings.background_scraper_cron_hours > 0:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from app.slices.background_scraper import service as bg_service
+
+        def _disparar_indexacion_periodica() -> None:
+            iniciado = bg_service.start_background_scraper(
+                settings=settings, rag=rag_service, prioridad_max=3,
+            )
+            logger.info(
+                "[scheduler] indexación periódica de normas: %s",
+                "iniciada" if iniciado else "omitida (ya había una corriendo)",
+            )
+
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(
+            _disparar_indexacion_periodica,
+            "interval",
+            hours=settings.background_scraper_cron_hours,
+            id="indexador_normas_periodico",
+        )
+        scheduler.start()
+        logger.info(
+            "[scheduler] indexador de normas programado cada %d horas",
+            settings.background_scraper_cron_hours,
+        )
+
     yield
 
+    if scheduler:
+        scheduler.shutdown(wait=False)
     await rag_service.close()
     await dispose_engine()
     store = get_session_store()

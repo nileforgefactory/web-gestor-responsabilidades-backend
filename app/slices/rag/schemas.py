@@ -2,7 +2,7 @@
 
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class EstrategiaChunk(str, Enum):
@@ -34,6 +34,18 @@ class IngestTextRequest(BaseModel):
         default=EstrategiaChunk.ADAPTATIVO,
         description="fixed = tamaño fijo; adaptive = según tipo de documento/OCR",
     )
+
+    @field_validator("content")
+    @classmethod
+    def _val_max_chars(cls, v: str) -> str:
+        from app.core.config import get_settings
+        limite = get_settings().max_chars_texto_libre
+        if len(v) > limite:
+            raise ValueError(
+                f"El texto excede el máximo permitido ({len(v)}/{limite} caracteres). "
+                "Depura la información antes de enviarla (ej. usa un resumen tipo ficha EBI)."
+            )
+        return v
 
 
 class IngestTextResponse(BaseModel):
@@ -93,6 +105,10 @@ class RagChunk(BaseModel):
     text: str = Field(..., description="Contenido del fragmento")
     title: str | None = None
     source_filename: str | None = None
+    payload: dict = Field(
+        default_factory=dict,
+        description="Payload crudo del punto Qdrant (incluye campos de extra_payload en ingest_text)",
+    )
 
 
 class RagSearchResponse(BaseModel):

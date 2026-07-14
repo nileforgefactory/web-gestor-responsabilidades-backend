@@ -60,6 +60,10 @@ class ProyectoCandidatoResponse(BaseModel):
     estado: str = "borrador"
     modo: str = "descubrimiento"
 
+    # Estado respecto a proyectos ya persistidos del plan
+    guardado: bool = False        # el usuario lo guardó explícitamente (guardado_en)
+    tiene_ficha_mga: bool = False  # ya tiene una Ficha MGA generada
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -98,11 +102,20 @@ class ProyectoSGROut(BaseModel):
     modo: str
     creado_en: datetime
     actualizado_en: datetime
+    guardado_en: datetime | None = None
     resultado_duplicidad: dict[str, Any] | None = None
     validacion_costos: dict[str, Any] | None = None
     diagnostico_mga: dict[str, Any] | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProyectoGuardadoOut(ProyectoSGROut):
+    """Proyecto SGR guardado, con contexto del plan de origen para listados globales."""
+
+    plan_titulo: str
+    plan_nombre_corto: str | None
+    tiene_ficha_mga: bool
 
 
 # ── Ficha MGA ─────────────────────────────────────────────────────────────────
@@ -122,6 +135,31 @@ class GenerarFichaMGARequest(BaseModel):
     )
 
 
+class SesionChatMeta(BaseModel):
+    """Metadatos de una sesión (hilo) de chat de la Ficha MGA."""
+
+    id: str
+    titulo: str
+    creada_en: str
+    total_mensajes: int
+
+
+class SesionChatOut(BaseModel):
+    """Sesión de chat completa (con mensajes) de la Ficha MGA."""
+
+    id: str
+    titulo: str
+    creada_en: str
+    mensajes: list[dict] = []
+
+
+class ChatSesionesResponse(BaseModel):
+    """Respuesta con todas las sesiones de chat de una Ficha MGA."""
+
+    sesiones: list[SesionChatOut] = []
+    activa: str | None = None
+
+
 class FichaMGAOut(BaseModel):
     id: int
     proyecto_id: str
@@ -133,7 +171,11 @@ class FichaMGAOut(BaseModel):
     modelo_usado: str | None
     generado_en: datetime
     actualizado_en: datetime
+    # Mensajes de la sesión de chat activa (retrocompatible con el frontend)
     chat_historial: list[dict] = []
+    # Historial por sesiones (hilos): metadatos + id de la sesión activa
+    chat_sesiones: list[SesionChatMeta] = []
+    sesion_activa: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -157,6 +199,10 @@ class ChatFichaMGARequest(BaseModel):
     """Body del POST /sgr/ficha-mga/{proyecto_id}/chat."""
 
     mensaje: str = Field(..., min_length=2, max_length=2000)
+    sesion_id: str | None = Field(
+        None,
+        description="Sesión (hilo) a la que pertenece el mensaje. Si se omite, usa la activa.",
+    )
 
 
 class ChatFichaMGAResponse(BaseModel):
@@ -225,6 +271,18 @@ class EvaluarProyectoRequest(BaseModel):
     guardar: bool = Field(True, description="Persistir diagnóstico en ProyectoSGR.diagnostico_mga")
     top_chunks_plan: int = Field(6, ge=1, le=20)
 
+    @field_validator("texto_proyecto")
+    @classmethod
+    def _val_max_chars(cls, v: str) -> str:
+        from app.core.config import get_settings
+        limite = get_settings().max_chars_texto_libre
+        if len(v) > limite:
+            raise ValueError(
+                f"El texto excede el máximo permitido ({len(v)}/{limite} caracteres). "
+                "Depura la información antes de enviarla (ej. usa un resumen tipo ficha EBI)."
+            )
+        return v
+
 
 class DiagnosticoDimension(BaseModel):
     """Resultado de una dimensión del diagnóstico inverso."""
@@ -273,3 +331,23 @@ class EvaluarProyectoResponse(BaseModel):
     procesado_en: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ── M6: Carga de matriz de proyectos SGR (seed de duplicidad) ─────────────────
+
+EstadoSeedTarea = Literal["idle", "running", "completed", "cancelled", "error"]
+FaseSeed = Literal["extrayendo", "leyendo_filas", "indexando"]
+
+
+class DuplicidadSeedEstado(BaseModel):
+    """Estado de la carga en background del Excel GESPROY/DNP de proyectos SGR."""
+
+    estado: EstadoSeedTarea
+    fase: FaseSeed | None = None
+    iniciado_en: datetime | None = None
+    finalizado_en: datetime | None = None
+    filas_leidas: int = 0
+    filas_filtradas: int = 0
+    proyectos_indexados: int = 0
+    proyectos_fallidos: int = 0
+    error: str | None = None

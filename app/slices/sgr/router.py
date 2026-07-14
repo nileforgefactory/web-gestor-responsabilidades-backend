@@ -3,40 +3,66 @@
 from __future__ import annotations
 
 import logging
+import re
+import tempfile
+import unicodedata
+from pathlib import Path
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.dependencies import get_rag_service
-from app.slices.auth.dependencies import CurrentUser, get_current_user
+from app.slices.auth.dependencies import AdminUser, CurrentUser, WriteUser, get_current_user
+from app.slices.sgr import duplicidad_seed_service
 from app.slices.sgr.export_mga_docx import generar_docx_ficha
+from app.slices.planes.models import Plane
 from app.slices.sgr.models import FichaMGA, ProyectoSGR
 from app.slices.sgr.schemas import (
     ActualizarFichaMGARequest,
     ChatFichaMGARequest,
     ChatFichaMGAResponse,
+    ChatSesionesResponse,
+    DuplicidadSeedEstado,
     EvaluarPlanResponse,
     EvaluarProyectoRequest,
     EvaluarProyectoResponse,
     FichaMGAOut,
     GenerarFichaMGARequest,
+    ProyectoGuardadoOut,
     ProyectoSGROut,
     VerificarDuplicidadResponse,
 )
 from app.slices.sgr.service import (
     actualizar_ficha_mga_service,
     chat_ficha_mga_service,
+    crear_sesion_chat_service,
+    eliminar_proyecto_service,
     evaluar_plan_sgr,
     evaluar_proyecto_service,
+    ficha_mga_to_out,
     generar_ficha_mga_service,
+    guardar_proyecto_service,
+    listar_sesiones_chat_service,
     verificar_duplicidad_service,
 )
 from app.slices.rag.service import RagService
 
 logger = logging.getLogger(__name__)
+
+
+def _slug_nombre_archivo(nombre: str | None, *, fallback: str) -> str:
+    """Convierte un nombre de proyecto en un slug ASCII seguro para Content-Disposition."""
+    if not nombre:
+        return fallback
+    normalizado = unicodedata.normalize("NFKD", nombre).encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", normalizado).strip("_")
+    return slug[:80] or fallback
+
 
 router = APIRouter(
     prefix="/sgr",
@@ -105,6 +131,44 @@ async def evaluar_plan(
 
 
 @router.get(
+    "/proyectos-guardados",
+    response_model=list[ProyectoGuardadoOut],
+    summary="Mis proyectos SGR guardados",
+    description=(
+        "Lista todos los proyectos SGR guardados explícitamente por el usuario "
+        "(guardado_en IS NOT NULL), a través de todos sus planes. Scope por "
+        "territorio (coleccion_id), salvo superadmin que ve todos."
+    ),
+)
+async def listar_proyectos_guardados(
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> list[ProyectoGuardadoOut]:
+    stmt = (
+        select(ProyectoSGR, Plane.titulo, Plane.nombre_corto, FichaMGA.id)
+        .join(Plane, Plane.id == ProyectoSGR.plan_id)
+        .outerjoin(FichaMGA, FichaMGA.proyecto_id == ProyectoSGR.id)
+        .where(ProyectoSGR.guardado_en.is_not(None))
+        .order_by(ProyectoSGR.guardado_en.desc())
+    )
+    if current_user.rol_codigo != "superadmin":
+        stmt = stmt.where(Plane.coleccion_id == current_user.coleccion_id)
+
+    result = await db.execute(stmt)
+    filas = result.all()
+
+    return [
+        ProyectoGuardadoOut(
+            **ProyectoSGROut.model_validate(proyecto).model_dump(),
+            plan_titulo=plan_titulo,
+            plan_nombre_corto=plan_nombre_corto,
+            tiene_ficha_mga=ficha_mga_id is not None,
+        )
+        for proyecto, plan_titulo, plan_nombre_corto, ficha_mga_id in filas
+    ]
+
+
+@router.get(
     "/proyectos/{plan_id}",
     response_model=list[ProyectoSGROut],
     summary="Listar proyectos SGR generados para un plan",
@@ -160,6 +224,61 @@ async def detalle_proyecto(
     return ProyectoSGROut.model_validate(proyecto)
 
 
+@router.post(
+    "/proyecto/{proyecto_id}/guardar",
+    response_model=ProyectoSGROut,
+    summary="Guardar explícitamente un proyecto SGR",
+    description=(
+        "Marca el proyecto como guardado por el usuario (guardado_en). "
+        "Lo protege de ser eliminado en una re-evaluación del plan (Modo 1) y "
+        "confirma su persistencia en Modo 2 (evaluación inversa)."
+    ),
+    responses={404: {"description": "Proyecto no encontrado"}},
+)
+async def guardar_proyecto_endpoint(
+    proyecto_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> ProyectoSGROut:
+    try:
+        proyecto = await guardar_proyecto_service(proyecto_id=proyecto_id, db=db)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ProyectoSGROut.model_validate(proyecto)
+
+
+@router.delete(
+    "/proyecto/{proyecto_id}",
+    status_code=204,
+    summary="Eliminar un proyecto SGR",
+    description=(
+        "Elimina el proyecto y su Ficha MGA asociada (si existe). "
+        "Operación irreversible. Requiere rol administrador o superadmin."
+    ),
+    responses={404: {"description": "Proyecto no encontrado"}, 403: {"description": "Sin permiso de escritura o de otro territorio"}},
+)
+async def eliminar_proyecto_endpoint(
+    proyecto_id: str,
+    current_user: WriteUser,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    result = await db.execute(
+        select(ProyectoSGR, Plane.coleccion_id)
+        .join(Plane, Plane.id == ProyectoSGR.plan_id)
+        .where(ProyectoSGR.id == proyecto_id)
+    )
+    fila = result.first()
+    if fila is None:
+        raise HTTPException(status_code=404, detail=f"Proyecto '{proyecto_id}' no encontrado")
+    _, plan_coleccion_id = fila
+    if current_user.rol_codigo != "superadmin" and plan_coleccion_id != current_user.coleccion_id:
+        raise HTTPException(status_code=403, detail="No puede eliminar proyectos de otro territorio.")
+
+    try:
+        await eliminar_proyecto_service(proyecto_id=proyecto_id, db=db)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 # ── M4: Generación de Ficha MGA ───────────────────────────────────────────────
 
 @router.post(
@@ -202,7 +321,7 @@ async def generar_ficha_mga(
         logger.exception("[generar_ficha_mga] Error proyecto=%s", proyecto_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    return FichaMGAOut.model_validate(ficha)
+    return ficha_mga_to_out(ficha)
 
 
 # ── M4b: Edición manual, chat conversacional y exportación Word ───────────────
@@ -266,14 +385,52 @@ async def chat_ficha_mga_endpoint(
             proyecto_id=proyecto_id,
             mensaje=payload.mensaje,
             db=db,
+            rag=rag,
             http=rag.http,
             settings=settings,
+            sesion_id=payload.sesion_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         logger.exception("[chat_ficha_mga] Error proyecto=%s", proyecto_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get(
+    "/ficha-mga/{proyecto_id}/chat-sesiones",
+    response_model=ChatSesionesResponse,
+    summary="Listar sesiones (hilos) de chat de la Ficha MGA",
+    description="Devuelve todas las conversaciones de chat del proyecto con sus mensajes.",
+    responses={404: {"description": "Ficha MGA no encontrada para el proyecto"}},
+)
+async def listar_chat_sesiones_endpoint(
+    proyecto_id: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> ChatSesionesResponse:
+    try:
+        return await listar_sesiones_chat_service(proyecto_id=proyecto_id, db=db)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/ficha-mga/{proyecto_id}/chat-sesiones",
+    response_model=ChatSesionesResponse,
+    summary="Crear una nueva sesión (hilo) de chat",
+    description="Crea una conversación vacía y la deja como activa.",
+    responses={404: {"description": "Ficha MGA no encontrada para el proyecto"}},
+)
+async def crear_chat_sesion_endpoint(
+    proyecto_id: str,
+    current_user: CurrentUser,
+    db: AsyncSession = Depends(get_db),
+) -> ChatSesionesResponse:
+    try:
+        return await crear_sesion_chat_service(proyecto_id=proyecto_id, db=db)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get(
@@ -309,10 +466,18 @@ async def exportar_ficha_mga_docx(
         logger.exception("[exportar_ficha_mga_docx] Error proyecto=%s", proyecto_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+    nombre_archivo = _slug_nombre_archivo(proyecto.nombre, fallback=proyecto_id)
+    nombre_utf8 = quote(f"ficha_mga_{proyecto.nombre or proyecto_id}.docx")
+
     return Response(
         content=contenido,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="ficha_mga_{proyecto_id}.docx"'},
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="ficha_mga_{nombre_archivo}.docx"; '
+                f"filename*=UTF-8''{nombre_utf8}"
+            )
+        },
     )
 
 
@@ -410,3 +575,73 @@ async def evaluar_proyecto_endpoint(
         logger.exception("[evaluar_proyecto] Error")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     return response
+
+
+# ── M6: Carga de matriz de proyectos SGR (seed de duplicidad, solo admin) ─────
+
+@router.post(
+    "/duplicidad-seed/iniciar",
+    response_model=DuplicidadSeedEstado,
+    summary="Subir Excel GESPROY/DNP y (re)indexar proyectos SGR para duplicidad",
+    description=(
+        "Solo admin/superadmin. Sube el Excel 'Balance de Seguimiento a las "
+        "Inversiones del SGR', filtra proyectos con al menos un municipio "
+        "categoría 5/6 y los indexa en Qdrant en background. "
+        "Si ya hay una carga en curso, retorna 409."
+    ),
+)
+async def iniciar_duplicidad_seed(
+    admin: AdminUser,
+    file: UploadFile,
+    settings: Settings = Depends(get_settings),
+    rag: RagService = Depends(get_rag_service),
+) -> DuplicidadSeedEstado:
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un .xlsx")
+
+    max_bytes = settings.duplicidad_seed_max_file_bytes
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+    tmp_path = Path(tmp.name)
+    total = 0
+    try:
+        while chunk := await file.read(1024 * 1024):
+            total += len(chunk)
+            if total > max_bytes:
+                tmp.close()
+                tmp_path.unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Archivo excede el máximo permitido ({max_bytes // (1024*1024)} MiB).",
+                )
+            tmp.write(chunk)
+    finally:
+        tmp.close()
+
+    iniciado = duplicidad_seed_service.start_duplicidad_seed(
+        xlsx_path=tmp_path, rag=rag, delete_source_after=True,
+    )
+    if not iniciado:
+        tmp_path.unlink(missing_ok=True)
+        raise HTTPException(409, "Ya hay una carga de matriz SGR en curso. Use /duplicidad-seed/estado para consultarla.")
+    return duplicidad_seed_service.get_estado()
+
+
+@router.post(
+    "/duplicidad-seed/cancelar",
+    response_model=DuplicidadSeedEstado,
+    summary="Cancelar carga de matriz SGR en curso",
+)
+async def cancelar_duplicidad_seed(admin: AdminUser) -> DuplicidadSeedEstado:
+    cancelado = duplicidad_seed_service.cancel_task()
+    if not cancelado:
+        raise HTTPException(409, "No hay ninguna carga de matriz SGR en curso.")
+    return duplicidad_seed_service.get_estado()
+
+
+@router.get(
+    "/duplicidad-seed/estado",
+    response_model=DuplicidadSeedEstado,
+    summary="Estado actual de la carga de matriz SGR",
+)
+async def estado_duplicidad_seed(admin: AdminUser) -> DuplicidadSeedEstado:
+    return duplicidad_seed_service.get_estado()
