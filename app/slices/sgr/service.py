@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from datetime import datetime
+from typing import Any, AsyncIterator, Awaitable, Callable
 from uuid import uuid4
 
 import httpx
@@ -37,6 +39,57 @@ from app.slices.sgr.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+EmitCallback = Callable[[dict[str, Any]], Awaitable[None]]
+
+# Fases aproximadas mostradas mientras se espera la única llamada al LLM que
+# genera la Ficha MGA — no es progreso real (ai_chat no soporta streaming de
+# tokens hoy), solo confirma que el proceso sigue en curso.
+_FASES_GENERACION = [
+    "Analizando problema e identificación…",
+    "Formulando preparación y alternativas…",
+    "Evaluando viabilidad y costos…",
+    "Programando actividades y presupuesto…",
+    "Verificando cobertura de las 46 preguntas guía…",
+    "Evaluando checklist final de verificación…",
+]
+
+
+def _norma_evento_adapter(emit: EmitCallback | None):
+    """Adapta el callback (fase, norma) de asegurar_normas_en_rag al formato de evento dict."""
+    if emit is None:
+        return None
+
+    async def _on_evento(fase: str, norma: str) -> None:
+        await emit({"type": "norma", "fase": fase, "norma": norma})
+
+    return _on_evento
+
+
+async def _con_fases_aproximadas(coro, emit: EmitCallback | None):
+    """Ejecuta `coro` (la llamada al LLM) emitiendo fases rotativas cada
+    pocos segundos mientras se espera, para indicar que sigue en curso."""
+    if emit is None:
+        return await coro
+
+    task = asyncio.ensure_future(coro)
+
+    async def _ticker() -> None:
+        i = 0
+        while True:
+            await asyncio.sleep(5)
+            await emit({"type": "generando_fase", "fase": _FASES_GENERACION[i % len(_FASES_GENERACION)]})
+            i += 1
+
+    ticker_task = asyncio.ensure_future(_ticker())
+    try:
+        return await task
+    finally:
+        ticker_task.cancel()
+        try:
+            await ticker_task
+        except asyncio.CancelledError:
+            pass
 
 # ── Scoring ────────────────────────────────────────────────────────────────────
 
@@ -362,6 +415,7 @@ async def generar_ficha_mga_service(
     settings: Settings,
     forzar_regeneracion: bool = False,
     top_chunks_plan: int = 5,
+    emit: EmitCallback | None = None,
 ) -> FichaMGA:
     """
     Genera (o regenera) la Ficha MGA de un ProyectoSGR existente.
@@ -376,6 +430,8 @@ async def generar_ficha_mga_service(
     from app.slices.rag.service import RagService  # import local para evitar circular
 
     # ── 1. Cargar proyecto ─────────────────────────────────────────────────
+    if emit:
+        await emit({"type": "paso", "msg": "Cargando datos del proyecto…"})
     result = await db.execute(select(ProyectoSGR).where(ProyectoSGR.id == proyecto_id))
     proyecto = result.scalar_one_or_none()
     if proyecto is None:
@@ -394,6 +450,8 @@ async def generar_ficha_mga_service(
         return ficha_existente
 
     # ── 3. Cargar brecha origen ────────────────────────────────────────────
+    if emit:
+        await emit({"type": "paso", "msg": "Cargando brecha de origen…"})
     brecha_dict: dict = {}
     if proyecto.brecha_id:
         brecha_result = await db.execute(
@@ -410,6 +468,8 @@ async def generar_ficha_mga_service(
             }
 
     # ── 3b. Auto-sanado del RAG: trae normas citadas (brecha/proyecto) ─────
+    if emit:
+        await emit({"type": "paso", "msg": "Verificando normas citadas en el proyecto…"})
     await asegurar_normas_en_rag(
         [
             proyecto.nombre or "",
@@ -420,6 +480,7 @@ async def generar_ficha_mga_service(
         ],
         rag=rag,
         settings=settings,
+        on_evento=_norma_evento_adapter(emit),
     )
 
     # ── 4. Cargar el Plan (para filtrar el RAG y conocer el municipio real) ─
@@ -435,6 +496,8 @@ async def generar_ficha_mga_service(
     # que arriesgar mezclar contenido de otro municipio).
     plan_chunks: list[str] = []
     if plan_obj and (plan_obj.coleccion_id or plan_obj.qdrant_doc_id):
+        if emit:
+            await emit({"type": "paso", "msg": "Buscando contexto del plan de desarrollo…"})
         query_text = (
             f"{proyecto.nombre} {proyecto.sector_sgr or ''} "
             f"{brecha_dict.get('titulo', '')} inversión pública"
@@ -473,19 +536,26 @@ async def generar_ficha_mga_service(
     }
 
     # ── 6. Llamar al agente MGA ────────────────────────────────────────────
-    resultado_mga = await generar_ficha_mga(
-        proyecto=proyecto_dict,
-        brecha=brecha_dict,
-        datos_municipio=datos_municipio,
-        plan_chunks=plan_chunks,
-        http=http,
-        settings=settings,
+    if emit:
+        await emit({"type": "paso", "msg": "Generando la ficha con IA (identificación, preparación, evaluación y programación)…"})
+    resultado_mga = await _con_fases_aproximadas(
+        generar_ficha_mga(
+            proyecto=proyecto_dict,
+            brecha=brecha_dict,
+            datos_municipio=datos_municipio,
+            plan_chunks=plan_chunks,
+            http=http,
+            settings=settings,
+        ),
+        emit,
     )
 
     # ── 6b. Auto-sanado del RAG con el texto YA GENERADO — el LLM puede citar
     # leyes de su conocimiento general (no presentes en el input del paso 3b)
     # dentro de las 4 secciones de la ficha. No dispara regeneración: solo
     # deja la norma indexada en RAG para análisis/duplicidad posteriores.
+    if emit:
+        await emit({"type": "paso", "msg": "Verificando normas citadas en el texto generado…"})
     await asegurar_normas_en_rag(
         [
             resultado_mga.get("identificacion") or "",
@@ -495,6 +565,7 @@ async def generar_ficha_mga_service(
         ],
         rag=rag,
         settings=settings,
+        on_evento=_norma_evento_adapter(emit),
     )
 
     # ── 7. Persistir ficha (upsert) ────────────────────────────────────────
@@ -536,6 +607,63 @@ async def generar_ficha_mga_service(
         proyecto.estado,
     )
     return ficha
+
+
+async def stream_generar_ficha_mga(
+    *,
+    proyecto_id: str,
+    db: AsyncSession,
+    rag,
+    http: httpx.AsyncClient,
+    settings: Settings,
+    forzar_regeneracion: bool = False,
+    top_chunks_plan: int = 5,
+) -> AsyncIterator[str]:
+    """Envuelve generar_ficha_mga_service y emite líneas SSE (data: JSON) con el
+    progreso real (pasos del pipeline, normas detectadas/indexadas al vuelo) y
+    fases aproximadas durante el tramo de la llamada al LLM."""
+    queue: asyncio.Queue[dict[str, Any] | None] = asyncio.Queue()
+
+    async def emit(event: dict[str, Any]) -> None:
+        await queue.put(event)
+
+    async def worker() -> None:
+        try:
+            ficha = await generar_ficha_mga_service(
+                proyecto_id=proyecto_id,
+                db=db,
+                rag=rag,
+                http=http,
+                settings=settings,
+                forzar_regeneracion=forzar_regeneracion,
+                top_chunks_plan=top_chunks_plan,
+                emit=emit,
+            )
+            ficha_out = ficha_mga_to_out(ficha)
+            await queue.put({"type": "done", "ficha": ficha_out.model_dump(mode="json")})
+        except ValueError as exc:
+            await queue.put({"type": "error", "error": str(exc), "status": 404})
+        except Exception as exc:
+            logger.exception("[stream_generar_ficha_mga] Error proyecto=%s", proyecto_id)
+            await queue.put({"type": "error", "error": str(exc)})
+        finally:
+            await queue.put(None)
+
+    task = asyncio.create_task(worker())
+    try:
+        while True:
+            try:
+                event = await asyncio.wait_for(queue.get(), timeout=10.0)
+            except asyncio.TimeoutError:
+                yield f"data: {json.dumps({'type': 'heartbeat'}, ensure_ascii=False)}\n\n"
+                continue
+            if event is None:
+                break
+            yield f"data: {json.dumps(event, ensure_ascii=False, default=str)}\n\n"
+        yield "data: \n\n"
+    finally:
+        if not task.done():
+            task.cancel()
 
 
 # ── M4b: Edición manual y chat conversacional de la Ficha MGA ─────────────────

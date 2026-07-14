@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
+from fastapi.responses import StreamingResponse
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,6 +53,7 @@ from app.slices.sgr.service import (
     generar_ficha_mga_service,
     guardar_proyecto_service,
     listar_sesiones_chat_service,
+    stream_generar_ficha_mga,
     verificar_duplicidad_service,
 )
 from app.slices.rag.service import RagService
@@ -334,12 +336,29 @@ async def generar_ficha_mga(
     proyecto_id: str,
     current_user: CurrentUser,
     body: GenerarFichaMGARequest = GenerarFichaMGARequest(),
+    stream: bool = Query(False, description="true = progreso en vivo por SSE; false = JSON único al finalizar"),
     db: AsyncSession = Depends(get_db),
     rag: RagService = Depends(get_rag_service),
-) -> FichaMGAOut:
+) -> FichaMGAOut | Response:
     """Genera o recupera la Ficha MGA Web para el proyecto indicado."""
     await _ensure_proyecto_access(db, current_user, proyecto_id)
     settings = get_settings()
+
+    if stream:
+        return StreamingResponse(
+            stream_generar_ficha_mga(
+                proyecto_id=proyecto_id,
+                db=db,
+                rag=rag,
+                http=rag.http,
+                settings=settings,
+                forzar_regeneracion=body.forzar_regeneracion,
+                top_chunks_plan=body.top_chunks_plan,
+            ),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
     try:
         ficha = await generar_ficha_mga_service(
             proyecto_id=proyecto_id,
