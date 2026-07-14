@@ -247,3 +247,31 @@ class FichaMGA(Base):
     )
 
     proyecto: Mapped[ProyectoSGR] = relationship("ProyectoSGR", back_populates="ficha_mga")
+
+
+# ── Catálogo de proyectos de la Matriz SGR (GESPROY/DNP) ──────────────────────
+
+class ProyectoMatrizSGR(Base):
+    """
+    Catálogo liviano (MySQL) de los proyectos SGR ya aprobados que se cargan desde
+    el Excel "Balance de Seguimiento a las Inversiones del SGR" (GESPROY/DNP) y se
+    indexan en Qdrant para verificación de duplicidad (agente_duplicidad.py).
+
+    Se repuebla por completo en cada carga exitosa del Excel (la tabla siempre
+    refleja el último archivo subido). `qdrant_doc_id` referencia el documento
+    indexado en la colección lógica "proyectos_sgr" de Qdrant.
+    """
+
+    __tablename__ = "proyectos_matriz_sgr"
+
+    id:               Mapped[str]  = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    bpin:             Mapped[str | None] = mapped_column(String(50), index=True)
+    nombre:           Mapped[str]  = mapped_column(String(500), index=True)
+    municipio:        Mapped[str | None] = mapped_column(String(300), index=True)
+    departamento:     Mapped[str | None] = mapped_column(String(150), index=True)
+    sector:           Mapped[str | None] = mapped_column(String(150))
+    estado:           Mapped[str | None] = mapped_column(String(100))
+    valor_sgr:        Mapped[str | None] = mapped_column(String(100))
+    fecha_aprobacion: Mapped[str | None] = mapped_column(String(50))
+    qdrant_doc_id:    Mapped[str | None] = mapped_column(String(200))
+    creado_en:        Mapped[datetime]   = mapped_column(DateTime, server_default=func.now())

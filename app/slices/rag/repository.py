@@ -190,3 +190,41 @@ class RagRepository:
             )
             for cid in sorted(chunk_counts.keys())
         ]
+
+    async def scroll_payloads_by_collection_id(
+        self,
+        *,
+        collection_id: str,
+        scroll_batch: int = 256,
+        max_points: int = 100_000,
+    ) -> list[dict]:
+        """Devuelve el payload de cada punto (chunk) de una colección lógica, sin
+        vectores — usado para reconstruir catálogos MySQL a partir de lo ya
+        indexado en Qdrant (backfill)."""
+        query_filter = models.Filter(
+            must=[models.FieldCondition(key="collection_id", match=models.MatchValue(value=collection_id))]
+        )
+        resultados: list[dict] = []
+        offset: str | int | None = None
+        scanned = 0
+
+        while scanned < max_points:
+            limit = min(scroll_batch, max_points - scanned)
+            records, offset = await self.client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=query_filter,
+                limit=limit,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
+            )
+            if not records:
+                break
+            for point in records:
+                scanned += 1
+                if point.payload:
+                    resultados.append(point.payload)
+            if offset is None:
+                break
+
+        return resultados

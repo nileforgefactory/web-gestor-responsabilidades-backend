@@ -406,3 +406,27 @@ class DuplicidadSeedEstado(BaseModel):
     proyectos_indexados: int = 0
     proyectos_fallidos: int = 0
     error: str | None = None
+
+
+class ProyectoMatrizSGROut(BaseModel):
+    """Proyecto del catálogo GESPROY/DNP cargado en la Matriz SGR."""
+
+    id: str
+    bpin: str | None
+    nombre: str
+    municipio: str | None
+    departamento: str | None
+    sector: str | None
+    estado: str | None
+    valor_sgr: str | None
+    fecha_aprobacion: str | None
+    creado_en: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProyectoMatrizSGRListResponse(BaseModel):
+    """Página de resultados del catálogo de proyectos de la Matriz SGR."""
+
+    items: list[ProyectoMatrizSGROut]
+    total: int
