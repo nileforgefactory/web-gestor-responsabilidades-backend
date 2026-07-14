@@ -16,6 +16,7 @@ from app.slices.planes.schemas import (
 )
 
 from app.slices.auth.dependencies import CurrentUser, WriteUser, get_current_user
+from app.slices.auth.permissions import ensure_collection_access
 
 router = APIRouter(
     prefix="/planes",
@@ -68,12 +69,14 @@ async def list_planes(
 )
 async def get_plan(
     plan_id: str,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> PlanDetail:
     """Obtiene un plan por ID con relaciones cargadas (eager)."""
     plane = await repo.get_plane(db, plan_id)
     if plane is None:
         raise HTTPException(404, f"Plan '{plan_id}' no encontrado")
+    ensure_collection_access(current_user, plane.coleccion_id)
     return plane  # type: ignore[return-value]
 
 
@@ -105,13 +108,16 @@ async def create_plan(
 async def update_plan(
     plan_id: str,
     payload: PlanUpdate,
-    _: WriteUser,
+    current_user: WriteUser,
     db: AsyncSession = Depends(get_db),
 ) -> PlanSummary:
     """Actualización parcial de metadatos del plan."""
-    plane = await repo.update_plane(db, plan_id, payload)
-    if plane is None:
+    existente = await db.get(repo.Plane, plan_id)
+    if existente is None:
         raise HTTPException(404, f"Plan '{plan_id}' no encontrado")
+    ensure_collection_access(current_user, existente.coleccion_id)
+
+    plane = await repo.update_plane(db, plan_id, payload)
     return plane  # type: ignore[return-value]
 
 
@@ -124,10 +130,13 @@ async def update_plan(
 )
 async def delete_plan(
     plan_id: str,
-    _: WriteUser,
+    current_user: WriteUser,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Elimina un plan por ID."""
-    deleted = await repo.delete_plane(db, plan_id)
-    if not deleted:
+    existente = await db.get(repo.Plane, plan_id)
+    if existente is None:
         raise HTTPException(404, f"Plan '{plan_id}' no encontrado")
+    ensure_collection_access(current_user, existente.coleccion_id)
+
+    await repo.delete_plane(db, plan_id)
