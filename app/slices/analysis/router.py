@@ -236,6 +236,7 @@ async def cancel_session(session_id: str) -> dict[str, str]:
 )
 async def export_pdf(
     plan_id: str,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
     rag: RagService = Depends(get_rag_service),
 ) -> Response:
@@ -249,6 +250,7 @@ async def export_pdf(
     plane = await repo.get_plane(db, plan_id)
     if plane is None:
         raise HTTPException(404, f"Plan '{plan_id}' no encontrado")
+    ensure_collection_access(current_user, plane.coleccion_id)
 
     from app.slices.planes.schemas import PlanDetail
     detail = PlanDetail.model_validate(plane)

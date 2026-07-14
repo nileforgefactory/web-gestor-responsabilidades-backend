@@ -18,6 +18,8 @@ from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.dependencies import get_rag_service
 from app.slices.auth.dependencies import AdminUser, CurrentUser, WriteUser, get_current_user
+from app.slices.auth.models import User
+from app.slices.auth.permissions import ensure_collection_access
 from app.slices.sgr import duplicidad_seed_service
 from app.slices.sgr.export_mga_docx import generar_docx_ficha
 from app.slices.sgr.instrumento_mga import LISTA_VERIFICACION, PREGUNTAS_MGA
@@ -55,6 +57,28 @@ from app.slices.sgr.service import (
 from app.slices.rag.service import RagService
 
 logger = logging.getLogger(__name__)
+
+
+async def _ensure_plan_access(db: AsyncSession, current_user: User, plan_id: str) -> None:
+    """Verifica que el plan exista y pertenezca al territorio del usuario."""
+    result = await db.execute(select(Plane.coleccion_id).where(Plane.id == plan_id))
+    coleccion_id = result.scalar_one_or_none()
+    if coleccion_id is None:
+        raise HTTPException(status_code=404, detail=f"Plan '{plan_id}' no encontrado")
+    ensure_collection_access(current_user, coleccion_id)
+
+
+async def _ensure_proyecto_access(db: AsyncSession, current_user: User, proyecto_id: str) -> None:
+    """Verifica que el proyecto exista y pertenezca (vía su plan) al territorio del usuario."""
+    result = await db.execute(
+        select(Plane.coleccion_id)
+        .join(ProyectoSGR, ProyectoSGR.plan_id == Plane.id)
+        .where(ProyectoSGR.id == proyecto_id)
+    )
+    coleccion_id = result.scalar_one_or_none()
+    if coleccion_id is None:
+        raise HTTPException(status_code=404, detail=f"Proyecto '{proyecto_id}' no encontrado")
+    ensure_collection_access(current_user, coleccion_id)
 
 
 def _slug_nombre_archivo(nombre: str | None, *, fallback: str) -> str:
@@ -103,6 +127,7 @@ async def evaluar_plan(
     rag: RagService = Depends(get_rag_service),
 ) -> EvaluarPlanResponse:
     """Evalúa las brechas del plan y genera candidatos de proyectos SGR."""
+    await _ensure_plan_access(db, current_user, plan_id)
     settings = get_settings()
 
     # Enriquecer datos del municipio con el perfil del usuario autenticado
@@ -182,6 +207,7 @@ async def listar_proyectos_guardados(
 )
 async def listar_proyectos(
     plan_id: str,
+    current_user: CurrentUser,
     modo: str | None = Query(
         None,
         description="Filtrar por modo: descubrimiento | evaluacion_inversa",
@@ -193,6 +219,7 @@ async def listar_proyectos(
     db: AsyncSession = Depends(get_db),
 ) -> list[ProyectoSGROut]:
     """Lista proyectos SGR de un plan con filtros opcionales."""
+    await _ensure_plan_access(db, current_user, plan_id)
     stmt = select(ProyectoSGR).where(ProyectoSGR.plan_id == plan_id)
     if modo:
         stmt = stmt.where(ProyectoSGR.modo == modo)
@@ -214,9 +241,11 @@ async def listar_proyectos(
 )
 async def detalle_proyecto(
     proyecto_id: str,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ProyectoSGROut:
     """Devuelve el detalle completo de un proyecto SGR por su ID."""
+    await _ensure_proyecto_access(db, current_user, proyecto_id)
     result = await db.execute(
         select(ProyectoSGR).where(ProyectoSGR.id == proyecto_id)
     )
@@ -239,8 +268,10 @@ async def detalle_proyecto(
 )
 async def guardar_proyecto_endpoint(
     proyecto_id: str,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ProyectoSGROut:
+    await _ensure_proyecto_access(db, current_user, proyecto_id)
     try:
         proyecto = await guardar_proyecto_service(proyecto_id=proyecto_id, db=db)
     except ValueError as exc:
@@ -301,11 +332,13 @@ async def eliminar_proyecto_endpoint(
 )
 async def generar_ficha_mga(
     proyecto_id: str,
+    current_user: CurrentUser,
     body: GenerarFichaMGARequest = GenerarFichaMGARequest(),
     db: AsyncSession = Depends(get_db),
     rag: RagService = Depends(get_rag_service),
 ) -> FichaMGAOut:
     """Genera o recupera la Ficha MGA Web para el proyecto indicado."""
+    await _ensure_proyecto_access(db, current_user, proyecto_id)
     settings = get_settings()
     try:
         ficha = await generar_ficha_mga_service(
@@ -347,6 +380,7 @@ async def actualizar_ficha_mga_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> FichaMGAOut:
     """Edita manualmente las secciones de la Ficha MGA de un proyecto."""
+    await _ensure_proyecto_access(db, current_user, proyecto_id)
     try:
         return await actualizar_ficha_mga_service(
             proyecto_id=proyecto_id,
@@ -381,6 +415,7 @@ async def chat_ficha_mga_endpoint(
     rag: RagService = Depends(get_rag_service),
 ) -> ChatFichaMGAResponse:
     """Chat conversacional para editar la Ficha MGA vía IA."""
+    await _ensure_proyecto_access(db, current_user, proyecto_id)
     settings = get_settings()
     try:
         return await chat_ficha_mga_service(
@@ -411,6 +446,7 @@ async def listar_chat_sesiones_endpoint(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ChatSesionesResponse:
+    await _ensure_proyecto_access(db, current_user, proyecto_id)
     try:
         return await listar_sesiones_chat_service(proyecto_id=proyecto_id, db=db)
     except ValueError as exc:
@@ -429,6 +465,7 @@ async def crear_chat_sesion_endpoint(
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ChatSesionesResponse:
+    await _ensure_proyecto_access(db, current_user, proyecto_id)
     try:
         return await crear_sesion_chat_service(proyecto_id=proyecto_id, db=db)
     except ValueError as exc:
@@ -450,6 +487,7 @@ async def exportar_ficha_mga_docx(
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     """Exporta la Ficha MGA del proyecto como documento Word descargable."""
+    await _ensure_proyecto_access(db, current_user, proyecto_id)
     result = await db.execute(select(ProyectoSGR).where(ProyectoSGR.id == proyecto_id))
     proyecto = result.scalar_one_or_none()
     if proyecto is None:
@@ -505,10 +543,12 @@ async def exportar_ficha_mga_docx(
 )
 async def verificar_duplicidad(
     proyecto_id: str,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
     rag: RagService = Depends(get_rag_service),
 ) -> VerificarDuplicidadResponse:
     """Verifica duplicidad del proyecto contra el Mapa de Inversiones SGR."""
+    await _ensure_proyecto_access(db, current_user, proyecto_id)
     settings = get_settings()
     try:
         response = await verificar_duplicidad_service(
@@ -560,6 +600,10 @@ async def evaluar_proyecto_endpoint(
     rag: RagService = Depends(get_rag_service),
 ) -> EvaluarProyectoResponse:
     """Modo 2 — diagnóstico inverso de un proyecto SGR con RAG bidireccional."""
+    if body.proyecto_id:
+        await _ensure_proyecto_access(db, current_user, body.proyecto_id)
+    elif body.plan_id:
+        await _ensure_plan_access(db, current_user, body.plan_id)
     settings = get_settings()
     try:
         response = await evaluar_proyecto_service(
