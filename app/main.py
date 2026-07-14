@@ -31,6 +31,7 @@ from app.slices.analysis.router import router as analysis_router
 from app.slices.scraper.router import router as scraper_router
 from app.slices.background_scraper.router import router as background_scraper_router
 from app.slices.sgr.router import router as sgr_router
+from app.slices.alertas.router import router as alertas_router
 
 
 @asynccontextmanager
@@ -326,6 +327,7 @@ app.include_router(analysis_router, prefix="/api/v1")
 app.include_router(scraper_router,            prefix="/api/v1")
 app.include_router(background_scraper_router, prefix="/api/v1")
 app.include_router(sgr_router,               prefix="/api/v1")
+app.include_router(alertas_router,           prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)
