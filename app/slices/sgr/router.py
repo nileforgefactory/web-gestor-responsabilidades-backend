@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.dependencies import get_rag_service
-from app.slices.auth.dependencies import AdminUser, CurrentUser, WriteUser, get_current_user
+from app.slices.auth.dependencies import AdminUser, CurrentUser, get_current_user
 from app.slices.auth.models import User
 from app.slices.auth.permissions import ensure_collection_access
 from app.slices.sgr import duplicidad_seed_service
@@ -285,13 +285,13 @@ async def guardar_proyecto_endpoint(
     summary="Eliminar un proyecto SGR",
     description=(
         "Elimina el proyecto y su Ficha MGA asociada (si existe). "
-        "Operación irreversible. Requiere rol administrador o superadmin."
+        "Operación irreversible."
     ),
-    responses={404: {"description": "Proyecto no encontrado"}, 403: {"description": "Sin permiso de escritura o de otro territorio"}},
+    responses={404: {"description": "Proyecto no encontrado"}, 403: {"description": "De otro territorio"}},
 )
 async def eliminar_proyecto_endpoint(
     proyecto_id: str,
-    current_user: WriteUser,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     result = await db.execute(

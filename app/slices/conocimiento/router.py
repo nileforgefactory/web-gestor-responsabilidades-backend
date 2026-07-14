@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.openapi import RESPUESTAS_MYSQL
-from app.slices.auth.dependencies import CurrentUser, WriteUser, get_current_user
+from app.slices.auth.dependencies import CurrentUser, get_current_user
 from app.slices.auth.permissions import (
     allowed_collections_for_user,
     ensure_collection_access,
@@ -90,11 +90,11 @@ async def get_doc(
 )
 async def create_doc(
     payload: ConocimientoCreate,
-    admin: WriteUser,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ConocimientoOut:
     """Crea metadatos de un documento ya indexado en Qdrant."""
-    ensure_collection_access(admin, payload.coleccion_id)
+    ensure_collection_access(current_user, payload.coleccion_id)
     return await repo.create_doc(db, payload)  # type: ignore[return-value]
 
 
@@ -107,14 +107,14 @@ async def create_doc(
 async def update_doc(
     doc_id: str,
     payload: ConocimientoUpdate,
-    admin: WriteUser,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> ConocimientoOut:
     """Actualiza estado o metadatos del documento en catálogo."""
     existing = await repo.get_doc(db, doc_id)
     if existing is None:
         raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
-    ensure_collection_access(admin, existing.coleccion_id)
+    ensure_collection_access(current_user, existing.coleccion_id)
     doc = await repo.update_doc(db, doc_id, payload)
     if doc is None:
         raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
@@ -192,7 +192,7 @@ async def habilitar_doc(
 )
 async def delete_doc(
     doc_id: str,
-    admin: WriteUser,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
     rag: RagService = Depends(get_rag_service),
 ) -> None:
@@ -200,7 +200,7 @@ async def delete_doc(
     existing = await repo.get_doc(db, doc_id)
     if existing is None:
         raise HTTPException(404, f"Documento '{doc_id}' no encontrado")
-    ensure_collection_access(admin, existing.coleccion_id)
+    ensure_collection_access(current_user, existing.coleccion_id)
 
     if existing.qdrant_doc_id and existing.coleccion_id:
         try:
