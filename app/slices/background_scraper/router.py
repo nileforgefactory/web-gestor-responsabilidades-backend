@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.dependencies import get_rag_service
-from app.slices.auth.dependencies import AdminUser
+from app.slices.auth.dependencies import AdminUser, CurrentUser
 from app.slices.background_scraper import descubrimiento
 from app.slices.background_scraper import service as bg
 from app.slices.background_scraper import territorial
@@ -39,6 +39,7 @@ router = APIRouter(prefix="/background-scraper", tags=["background-scraper"])
 )
 async def iniciar(
     payload: BackgroundScraperIniciarRequest,
+    current_user: CurrentUser,
     settings: Settings = Depends(get_settings),
     rag: RagService = Depends(get_rag_service),
 ) -> BackgroundScraperEstado:
@@ -60,7 +61,7 @@ async def iniciar(
     response_model=BackgroundScraperEstado,
     summary="Cancelar ingesta en curso",
 )
-async def cancelar() -> BackgroundScraperEstado:
+async def cancelar(current_user: CurrentUser) -> BackgroundScraperEstado:
     cancelado = bg.cancel_task()
     if not cancelado:
         raise HTTPException(409, "No hay ningún proceso de ingesta en curso.")
@@ -72,7 +73,7 @@ async def cancelar() -> BackgroundScraperEstado:
     response_model=BackgroundScraperEstado,
     summary="Estado actual de la ingesta automática",
 )
-async def estado() -> BackgroundScraperEstado:
+async def estado(current_user: CurrentUser) -> BackgroundScraperEstado:
     return bg.get_estado()
 
 
@@ -81,7 +82,7 @@ async def estado() -> BackgroundScraperEstado:
     summary="Listar normas del catálogo base",
     description="Devuelve todas las normas que el sistema intenta indexar, con su prioridad.",
 )
-async def normas_base(prioridad_max: int = 3) -> list[dict]:
+async def normas_base(admin: AdminUser, prioridad_max: int = 3) -> list[dict]:
     return [
         {"codigo": cod, "prioridad": pri}
         for cod, pri in NORMAS_BASE

@@ -15,7 +15,7 @@ from app.slices.planes.schemas import (
     PlanUpdate,
 )
 
-from app.slices.auth.dependencies import CurrentUser, WriteUser, get_current_user
+from app.slices.auth.dependencies import CurrentUser, get_current_user
 from app.slices.auth.permissions import ensure_collection_access
 
 router = APIRouter(
@@ -90,7 +90,7 @@ async def get_plan(
 )
 async def create_plan(
     payload: PlanCreate,
-    _: WriteUser,
+    _: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> PlanDetail:
     """Registra un nuevo plan de desarrollo en MySQL."""
@@ -108,7 +108,7 @@ async def create_plan(
 async def update_plan(
     plan_id: str,
     payload: PlanUpdate,
-    current_user: WriteUser,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> PlanSummary:
     """Actualización parcial de metadatos del plan."""
@@ -130,7 +130,7 @@ async def update_plan(
 )
 async def delete_plan(
     plan_id: str,
-    current_user: WriteUser,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Elimina un plan por ID."""
