@@ -267,7 +267,7 @@ class ProyectoMatrizSGR(Base):
     id:               Mapped[str]  = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     bpin:             Mapped[str | None] = mapped_column(String(50), index=True)
     nombre:           Mapped[str]  = mapped_column(String(500), index=True)
-    municipio:        Mapped[str | None] = mapped_column(String(300), index=True)
+    municipio:        Mapped[str | None] = mapped_column(Text)
     departamento:     Mapped[str | None] = mapped_column(String(150), index=True)
     sector:           Mapped[str | None] = mapped_column(String(150))
     estado:           Mapped[str | None] = mapped_column(String(100))
