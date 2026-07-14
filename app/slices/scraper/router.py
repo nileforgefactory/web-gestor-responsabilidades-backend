@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from app.core.config import Settings, get_settings
 from app.core.openapi import RESPUESTAS_RAG
 from app.dependencies import get_rag_service
-from app.slices.auth.dependencies import get_current_user, require_write
+from app.slices.auth.dependencies import get_current_user
 from app.slices.rag.service import RagService
 from app.slices.scraper.schemas import ScraperBuscarRequest, ScraperBuscarResponse
 from app.slices.scraper.service import ScraperService
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/scraper",
     tags=["scraper"],
-    dependencies=[Depends(get_current_user), Depends(require_write)],
+    dependencies=[Depends(get_current_user)],
 )
 
 

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.database import get_optional_db
 from app.core.openapi import RESPUESTAS_RAG
-from app.slices.auth.dependencies import CurrentUser, WriteUser, get_current_user
+from app.slices.auth.dependencies import CurrentUser, get_current_user
 from app.slices.auth.permissions import (
     ensure_collection_access,
     ensure_collections_access,
@@ -155,12 +155,12 @@ async def _bloquear_si_duplicado(
 )
 async def ingest_text(
     payload: IngestTextRequest,
-    admin: WriteUser,
+    current_user: CurrentUser,
     service: RagService = Depends(get_rag_service),
     db: AsyncSession | None = Depends(get_optional_db),
 ) -> IngestTextResponse:
     """Indexa texto JSON en la colección indicada."""
-    ensure_collection_access(admin, payload.collection_id)
+    ensure_collection_access(current_user, payload.collection_id)
     await _bloquear_si_duplicado(
         db, coleccion_id=payload.collection_id, nombre=payload.document_id
     )
@@ -198,7 +198,7 @@ async def ingest_text(
     responses=RESPUESTAS_RAG,
 )
 async def ingest_file(
-    admin: WriteUser,
+    current_user: CurrentUser,
     collection_id: str = Form(..., min_length=1, description="ID lógico de la colección Qdrant"),
     document_id: str | None = Form(
         None,
@@ -215,7 +215,7 @@ async def ingest_file(
     db: AsyncSession | None = Depends(get_optional_db),
 ) -> IngestTextResponse:
     """Extrae texto del archivo, fragmenta e indexa en Qdrant."""
-    ensure_collection_access(admin, collection_id)
+    ensure_collection_access(current_user, collection_id)
     await service.ensure_collection()
     try:
         extraccion = await extract_document_from_upload(file)
@@ -260,7 +260,7 @@ async def ingest_file(
     responses=RESPUESTAS_RAG,
 )
 async def ingest_files_bulk(
-    admin: WriteUser,
+    current_user: CurrentUser,
     collection_id: str = Form(..., min_length=1, description="Colección destino"),
     files: list[UploadFile] = File(
         ...,
@@ -283,7 +283,7 @@ async def ingest_files_bulk(
     service: RagService = Depends(get_rag_service),
 ) -> IngestMasivaResponse:
     """Procesa múltiples archivos en paralelo limitado e indexa cada uno."""
-    ensure_collection_access(admin, collection_id)
+    ensure_collection_access(current_user, collection_id)
     await service.ensure_collection()
     settings = get_settings()
     try:
