@@ -169,6 +169,16 @@ class CoberturaPregunta(BaseModel):
     estado: Literal["respondida", "parcial", "no_respondida"]
 
 
+class ChecklistItemResultado(BaseModel):
+    """Evaluación IA de un ítem del checklist final de verificación contra la ficha generada."""
+
+    numero: int
+    modulo: str
+    item: str
+    cumple: bool
+    motivo: str | None = None
+
+
 class FichaMGAOut(BaseModel):
     id: int
     proyecto_id: str
@@ -185,8 +195,10 @@ class FichaMGAOut(BaseModel):
     # Historial por sesiones (hilos): metadatos + id de la sesión activa
     chat_sesiones: list[SesionChatMeta] = []
     sesion_activa: str | None = None
-    # Cobertura del instrumento MGA de 50 preguntas (alertas de qué falta)
+    # Cobertura de las 46 preguntas guía del instrumento MGA (módulos 1-4)
     cobertura_preguntas: list[CoberturaPregunta] = []
+    # Evaluación IA del checklist final de verificación (20 de 22 ítems evaluables)
+    checklist_verificacion: list[ChecklistItemResultado] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -350,7 +362,7 @@ EstadoSeedTarea = Literal["idle", "running", "completed", "cancelled", "error"]
 FaseSeed = Literal["extrayendo", "leyendo_filas", "indexando"]
 
 
-# ── Instrumento MGA (50 preguntas + checklist de verificación) ────────────────
+# ── Instrumento MGA (46 preguntas guía, módulos 1-4 + checklist de verificación) ──
 
 class PreguntaMGAOut(BaseModel):
     numero: int
@@ -365,10 +377,12 @@ class PreguntaMGAOut(BaseModel):
 
 
 class ItemVerificacionOut(BaseModel):
+    numero: int
     modulo: str
     item: str
     como_verificarlo: str
     alerta_sgr: str
+    evaluable_ia: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
