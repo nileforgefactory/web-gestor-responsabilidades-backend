@@ -43,10 +43,18 @@ presupuesto) que no estén en el contexto del proyecto/plan — si un dato no es
 disponible, dilo explícitamente en el texto (ej. "pendiente de definir por la
 secretaría de planeación") en vez de inventarlo.
 
+## Checklist de verificación final (DNP)
+
+También recibirás una lista numerada de ítems del checklist oficial de verificación
+final MGA (cosas que un evaluador SGR revisa antes de aprobar el proyecto). Debes
+evaluar, para cada ítem, si el texto que generaste lo cumple, con base ÚNICAMENTE en lo
+que escribiste — no asumas cumplimiento de algo que no quedó explícito.
+
 ## Instrucciones de respuesta
 
-Genera el contenido para las cuatro secciones **y** un reporte de cobertura por
-pregunta, en el siguiente formato XML estricto. No añadas texto antes ni después del XML:
+Genera el contenido para las cuatro secciones, un reporte de cobertura por pregunta y
+la evaluación del checklist de verificación, en el siguiente formato XML estricto. No
+añadas texto antes ni después del XML:
 
 ```xml
 <mga>
@@ -75,6 +83,12 @@ pregunta, en el siguiente formato XML estricto. No añadas texto antes ni despu�
      "no_respondida" (el texto no la aborda).
      Ejemplo: <q n="3" estado="respondida"/><q n="4" estado="parcial"/>]
   </cobertura>
+  <checklist>
+    [Un <c n="NUMERO" cumple="SI_NO" motivo="RAZON_BREVE"/> por CADA ítem del checklist
+     recibido (sin omitir ninguno). SI_NO es exactamente "si" o "no". RAZON_BREVE es una
+     frase de máximo 15 palabras explicando por qué (ej. "línea de base sin fuente citada").
+     Ejemplo: <c n="1" cumple="si" motivo="PND y programa citados con nombre exacto"/>]
+  </checklist>
 </mga>
 ```
 

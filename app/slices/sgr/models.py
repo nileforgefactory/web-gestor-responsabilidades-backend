@@ -230,8 +230,19 @@ class FichaMGA(Base):
         JSON,
         nullable=True,
         comment=(
-            "Cobertura del instrumento MGA (50 preguntas): lista de "
+            "Cobertura del instrumento MGA (46 preguntas de los módulos 1-4, de las 50 "
+            "totales — las 4 de Presentación no aplican a la ficha): lista de "
             "{numero, modulo, pregunta, estado} — estado: respondida | parcial | no_respondida"
+        ),
+    )
+
+    checklist_verificacion: Mapped[list | None] = mapped_column(
+        JSON,
+        nullable=True,
+        comment=(
+            "Evaluación IA del checklist final de verificación (20 de los 22 ítems, "
+            "excluye 2 no verificables desde el texto): lista de "
+            "{numero, modulo, item, cumple, motivo}"
         ),
     )
 

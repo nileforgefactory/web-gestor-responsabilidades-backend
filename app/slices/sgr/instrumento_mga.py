@@ -392,143 +392,174 @@ MODULO_NOMBRE: dict[int, str] = {
 
 @dataclass(frozen=True)
 class ItemVerificacion:
+    numero: int  # 1-22, estable para referenciar en evaluaciones automáticas
     modulo: str  # "M1".."M4" | "PR"
     item: str
     como_verificarlo: str
     alerta_sgr: str
+    evaluable_ia: bool = True  # False para ítems que la IA no puede verificar desde el texto (ej. soportes adjuntos, revisión por un par)
 
 
 LISTA_VERIFICACION: list[ItemVerificacion] = [
     ItemVerificacion(
+        numero=1,
         modulo="""M1""",
         item="""Articulación con PND, plan sectorial y plan de desarrollo territorial registrada con nombres exactos.""",
         como_verificarlo="""Compara lo registrado con los documentos oficiales.""",
         alerta_sgr="""Los evaluadores verifican nombre y código exacto del programa.""",
     ),
     ItemVerificacion(
+        numero=2,
         modulo="""M1""",
         item="""Árbol de problemas completo: problema central, efectos directos e indirectos, causas directas e indirectas.""",
         como_verificarlo="""Lee el árbol de abajo hacia arriba con la lógica 'si X entonces Y'.""",
         alerta_sgr="""Sin árbol coherente, el proyecto puede ser devuelto.""",
     ),
     ItemVerificacion(
+        numero=3,
         modulo="""M1""",
         item="""Línea de base con valor numérico, unidad de medida y fuente citada.""",
         como_verificarlo="""Verifica que la fuente sea verificable (DANE, Terridata, registros oficiales).""",
         alerta_sgr="""El SGR rechaza líneas de base sin soporte estadístico confiable.""",
     ),
     ItemVerificacion(
+        numero=4,
         modulo="""M1""",
         item="""Participantes registrados con posición, intereses y estrategias de gestión.""",
         como_verificarlo="""Revisa que oponentes y perjudicados tienen estrategia y costo asociado si aplica.""",
         alerta_sgr="""Proyectos con conflictos sociales no gestionados se bloquean en OCAD.""",
     ),
     ItemVerificacion(
+        numero=5,
         modulo="""M1""",
         item="""Población afectada, objetivo y características demográficas consistentes con el déficit.""",
         como_verificarlo="""Compara cifra de población objetivo con el déficit del estudio de mercado.""",
         alerta_sgr="""Inconsistencia numérica = devolución automática.""",
     ),
     ItemVerificacion(
+        numero=6,
         modulo="""M1""",
         item="""Objetivo general con verbo infinitivo, sin alternativa, fin ni meta incluida.""",
         como_verificarlo="""Verifica que no empiece con 'Mediante...' ni incluya cifras de meta.""",
         alerta_sgr="""Error muy frecuente en formuladores principiantes.""",
     ),
     ItemVerificacion(
+        numero=7,
         modulo="""M1""",
         item="""Al menos una alternativa nombrada y método de evaluación seleccionado.""",
         como_verificarlo="""Confirma que la herramienta dejó avanzar al Módulo 2.""",
         alerta_sgr="""Con una sola alternativa se aplica costo-beneficio por defecto.""",
     ),
     ItemVerificacion(
+        numero=8,
         modulo="""M2""",
         item="""Estudio de necesidades con serie histórica, proyección y déficit por producto.""",
         como_verificarlo="""Verifica que la serie tenga mínimo 2 años y la proyección cubra la vida útil.""",
         alerta_sgr="""Serie con menos de 2 años es insuficiente para evaluadores SGR.""",
     ),
     ItemVerificacion(
+        numero=9,
         modulo="""M2""",
         item="""Análisis técnico con normas aplicables y relaciones entre productos; soportes adjuntos.""",
         como_verificarlo="""Confirma que las normas citadas son las vigentes al año de formulación.""",
         alerta_sgr="""Normas desactualizadas invalidan la viabilidad técnica.""",
     ),
     ItemVerificacion(
+        numero=10,
         modulo="""M2""",
         item="""Localización definida (macro y micro) con criterios y compatibilidad con ordenamiento territorial.""",
         como_verificarlo="""Verifica el POT/PBOT/EOT: el uso del suelo debe ser compatible.""",
         alerta_sgr="""Predio incompatible con uso del suelo = proyecto no viable.""",
     ),
     ItemVerificacion(
+        numero=11,
         modulo="""M2""",
         item="""Cadena de valor completa con ruta crítica e interventoría costeadas.""",
         como_verificarlo="""Revisa que interventoría aparezca como actividad con costo.""",
         alerta_sgr="""Olvidar interventoría es el error #1 en municipios pequeños.""",
     ),
     ItemVerificacion(
+        numero=12,
         modulo="""M2""",
         item="""Al menos 3 riesgos registrados (objetivo, producto, actividad de ruta crítica) con medidas.""",
         como_verificarlo="""Verifica que medidas con costo estén en el presupuesto.""",
         alerta_sgr="""El SGR verifica coherencia entre riesgos y presupuesto.""",
     ),
     ItemVerificacion(
+        numero=13,
         modulo="""M2""",
         item="""Ingresos o beneficios identificados, cuantificados y valorados.""",
         como_verificarlo="""Si no hay ingresos comerciales, confirma que hay beneficios sociales valorados.""",
         alerta_sgr="""Sin beneficios, la evaluación económica no puede calcularse.""",
     ),
     ItemVerificacion(
+        numero=14,
         modulo="""M3""",
         item="""Flujo de caja financiero y económico consolidados con todos los periodos.""",
         como_verificarlo="""Verifica que los flujos incluyan todos los años del horizonte de evaluación.""",
         alerta_sgr="""Un horizonte más corto que la vida útil subestima los beneficios.""",
     ),
     ItemVerificacion(
+        numero=15,
         modulo="""M3""",
         item="""Indicadores de decisión positivos: VPN/VPNE > 0 o costo-eficiencia menor entre alternativas.""",
         como_verificarlo="""Si el VPNE es negativo, revisa costos y beneficios antes de continuar.""",
         alerta_sgr="""VPNE negativo requiere justificación técnica muy sólida para SGR.""",
     ),
     ItemVerificacion(
+        numero=16,
         modulo="""M3""",
         item="""Alternativa seleccionada y decisión de avanzar registrada.""",
         como_verificarlo="""Confirma que la herramienta habilita el Módulo 4.""",
         alerta_sgr="""Sin decisión registrada no se puede programar.""",
     ),
     ItemVerificacion(
+        numero=17,
         modulo="""M4""",
         item="""Matriz de marco lógico consistente: lógica vertical y horizontal verificada.""",
         como_verificarlo="""Lee de abajo arriba: actividades → productos → objetivo → fin.""",
         alerta_sgr="""Inconsistencia lógica = devolución por banco de proyectos.""",
     ),
     ItemVerificacion(
+        numero=18,
         modulo="""M4""",
         item="""Indicadores con unidad, meta por periodo y fuente de verificación; hoja de vida elaborada.""",
         como_verificarlo="""Verifica que cada indicador tenga fuente real y alcanzable.""",
         alerta_sgr="""Indicadores sin fuente verificable son un riesgo de seguimiento.""",
     ),
     ItemVerificacion(
+        numero=19,
         modulo="""M4""",
         item="""Supuestos formulados en positivo, uno por nivel de la matriz.""",
         como_verificarlo="""Transforma riesgos externos en hipótesis positivas.""",
         alerta_sgr="""Falta de supuestos es señal de formulación incompleta.""",
     ),
     ItemVerificacion(
+        numero=20,
         modulo="""M4""",
         item="""Esquema financiero cuadrado: total aportes = total costos, con clasificador presupuestal correcto.""",
         como_verificarlo="""Suma todos los aportes y compara con el total de costos del proyecto.""",
         alerta_sgr="""Descuadre de un peso = devolución. Revisa categorías presupuestales.""",
     ),
     ItemVerificacion(
+        numero=21,
         modulo="""PR""",
         item="""Documentos de soporte adjuntos según fase (perfil/prefactibilidad/factibilidad) y sector.""",
         como_verificarlo="""Consulta guías sectoriales SGR y Acuerdos 15 y 17 de la Comisión Rectora.""",
         alerta_sgr="""Falta de soportes es la causa más frecuente de devolución en OCAD.""",
+        evaluable_ia=False,
     ),
     ItemVerificacion(
+        numero=22,
         modulo="""PR""",
         item="""Revisión final de consistencia realizada con un par o el equipo de planeación.""",
         como_verificarlo="""Pide a otra persona que lea el proyecto completo antes de transferir.""",
         alerta_sgr="""Dos pares de ojos detectan errores que el formulador no ve.""",
+        evaluable_ia=False,
     ),
 ]
+
+
+def checklist_evaluable_ia() -> list[ItemVerificacion]:
+    """Ítems del checklist que la IA puede evaluar contra el texto de la ficha (excluye soportes físicos/revisión por un par)."""
+    return [it for it in LISTA_VERIFICACION if it.evaluable_ia]

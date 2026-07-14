@@ -696,7 +696,7 @@ async def estado_duplicidad_seed(admin: AdminUser) -> DuplicidadSeedEstado:
 @router.get(
     "/instrumento-mga",
     response_model=InstrumentoMGAResponse,
-    summary="Instrumento MGA: 50 preguntas guía y checklist final de verificación",
+    summary="Instrumento MGA: 46 preguntas guía y checklist final de verificación",
     description=(
         "Devuelve las preguntas del instrumento oficial de formulación MGA (módulos "
         "1 a 4) usadas como guía en la generación de la Ficha MGA, y el checklist de "
