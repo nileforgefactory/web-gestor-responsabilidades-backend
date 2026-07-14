@@ -20,6 +20,7 @@ from app.dependencies import get_rag_service
 from app.slices.auth.dependencies import AdminUser, CurrentUser, WriteUser, get_current_user
 from app.slices.sgr import duplicidad_seed_service
 from app.slices.sgr.export_mga_docx import generar_docx_ficha
+from app.slices.sgr.instrumento_mga import LISTA_VERIFICACION, PREGUNTAS_MGA
 from app.slices.planes.models import Plane
 from app.slices.sgr.models import FichaMGA, ProyectoSGR
 from app.slices.sgr.schemas import (
@@ -33,6 +34,7 @@ from app.slices.sgr.schemas import (
     EvaluarProyectoResponse,
     FichaMGAOut,
     GenerarFichaMGARequest,
+    InstrumentoMGAResponse,
     ProyectoGuardadoOut,
     ProyectoSGROut,
     VerificarDuplicidadResponse,
@@ -645,3 +647,20 @@ async def cancelar_duplicidad_seed(admin: AdminUser) -> DuplicidadSeedEstado:
 )
 async def estado_duplicidad_seed(admin: AdminUser) -> DuplicidadSeedEstado:
     return duplicidad_seed_service.get_estado()
+
+
+@router.get(
+    "/instrumento-mga",
+    response_model=InstrumentoMGAResponse,
+    summary="Instrumento MGA: 50 preguntas guía y checklist final de verificación",
+    description=(
+        "Devuelve las preguntas del instrumento oficial de formulación MGA (módulos "
+        "1 a 4) usadas como guía en la generación de la Ficha MGA, y el checklist de "
+        "22 ítems de verificación final antes de transferir el proyecto a MGA Web."
+    ),
+)
+async def obtener_instrumento_mga(current_user: CurrentUser) -> InstrumentoMGAResponse:
+    return InstrumentoMGAResponse(
+        preguntas=[p for p in PREGUNTAS_MGA if p.modulo in (1, 2, 3, 4)],
+        checklist=list(LISTA_VERIFICACION),
+    )
