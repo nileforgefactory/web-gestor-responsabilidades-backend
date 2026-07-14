@@ -126,6 +126,13 @@ async def run_background_scraper(
     scraper = ScraperService(settings=settings, rag=rag)
     sem = asyncio.Semaphore(max(1, settings.background_scraper_concurrency))
 
+    # Tope duro por norma: una sola norma con varios candidatos (cada uno con
+    # descarga + validación IA de hasta 300s) puede tardar 20-40+ min y colgar
+    # todo el proceso, ya que el deadline solo se revisaba ENTRE normas, nunca
+    # DURANTE. Con este tope, una norma lenta se marca como fallida y el
+    # proceso sigue con la siguiente en vez de quedar "ejecutando indefinidamente".
+    _MAX_SEGUNDOS_POR_NORMA = 240
+
     async def procesar(norma: str) -> dict[str, Any]:
         async with sem:
             _estado.norma_actual = norma
@@ -141,11 +148,23 @@ async def run_background_scraper(
     try:
         for norma in normas:
             # Verificar tiempo restante antes de cada norma
-            if asyncio.get_event_loop().time() >= deadline:
+            tiempo_restante = deadline - asyncio.get_event_loop().time()
+            if tiempo_restante <= 0:
                 logger.info("[BG_SCRAPER] tiempo agotado, deteniendo")
                 break
 
-            resultado = await procesar(norma)
+            try:
+                resultado = await asyncio.wait_for(
+                    procesar(norma),
+                    timeout=min(_MAX_SEGUNDOS_POR_NORMA, tiempo_restante),
+                )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "[BG_SCRAPER] norma=%r excedió %ds, se omite y continúa con la siguiente",
+                    norma,
+                    _MAX_SEGUNDOS_POR_NORMA,
+                )
+                resultado = {"estado": "error", "motivo": "timeout: la norma tardó demasiado"}
             estado_norma = resultado.get("estado", "error")
 
             _estado.normas_procesadas += 1

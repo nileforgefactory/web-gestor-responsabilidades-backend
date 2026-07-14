@@ -19,6 +19,7 @@ from app.slices.auth.permissions import (
     is_superadmin,
 )
 from app.dependencies import get_rag_service
+from app.slices.background_scraper.matching import claves_posibles
 from app.slices.conocimiento import repository as conocimiento_repo
 from app.slices.rag.bulk import ingestir_archivos_masivo
 from app.slices.rag.extract import (
@@ -106,6 +107,41 @@ def _upstream_http(exc: BaseException, *, code: int) -> HTTPException:
     )
 
 
+async def _bloquear_si_duplicado(
+    db: AsyncSession | None,
+    *,
+    coleccion_id: str,
+    nombre: str,
+) -> None:
+    """Verifica en el catálogo (misma colección, estado indexado) si ya existe un
+    documento equivalente por nombre/tipo-número-año (ej. dos veces la
+    Constitución con nombres de archivo distintos) y bloquea el duplicado.
+
+    Best-effort: si MySQL no está disponible, no bloquea (degrada con gracia,
+    igual que el resto de la app).
+    """
+    if db is None:
+        return
+    claves_nuevo = claves_posibles(nombre)
+    if not claves_nuevo:
+        return
+    existentes = await conocimiento_repo.list_docs(
+        db, coleccion_id=coleccion_id, estado="indexado", limit=500
+    )
+    for doc in existentes:
+        claves_existente = claves_posibles(doc.nombre)
+        if doc.archivo_nombre:
+            claves_existente |= claves_posibles(doc.archivo_nombre)
+        if claves_nuevo & claves_existente:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Ya existe un documento equivalente indexado: «{doc.nombre}». "
+                    "Deshabilítalo o elimínalo primero si quieres reemplazarlo."
+                ),
+            )
+
+
 @router.post(
     "/ingest-text",
     response_model=IngestTextResponse,
@@ -121,9 +157,13 @@ async def ingest_text(
     payload: IngestTextRequest,
     admin: WriteUser,
     service: RagService = Depends(get_rag_service),
+    db: AsyncSession | None = Depends(get_optional_db),
 ) -> IngestTextResponse:
     """Indexa texto JSON en la colección indicada."""
     ensure_collection_access(admin, payload.collection_id)
+    await _bloquear_si_duplicado(
+        db, coleccion_id=payload.collection_id, nombre=payload.document_id
+    )
     await service.ensure_collection()
     try:
         return await service.ingest_text(
@@ -172,6 +212,7 @@ async def ingest_file(
     ),
     file: UploadFile = File(..., description="Archivo a indexar"),
     service: RagService = Depends(get_rag_service),
+    db: AsyncSession | None = Depends(get_optional_db),
 ) -> IngestTextResponse:
     """Extrae texto del archivo, fragmenta e indexa en Qdrant."""
     ensure_collection_access(admin, collection_id)
@@ -184,6 +225,7 @@ async def ingest_file(
     filename = extraccion.filename
     doc_id = (document_id or "").strip() or derive_document_id_from_filename(filename)
     title = extract_title(filename)
+    await _bloquear_si_duplicado(db, coleccion_id=collection_id, nombre=title or filename)
     try:
         return await service.ingest_text(
             collection_id=collection_id,
